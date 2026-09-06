@@ -1,20 +1,49 @@
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
-local UserInputService = game:GetService("UserInputService")
-local TweenService = game:GetService("TweenService")
-local CoreGui = game:GetService("CoreGui")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local HttpService = game:GetService("HttpService")
+local UserInputService = game:GetService("UserInputService")
 local lp = Players.LocalPlayer
+
+-- استدعاء مكتبة Rayfield
+local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
+
+-- ===============================================
+-- [ 1 ] إعدادات السكربت الأول (Aura Kill)
+-- ===============================================
+local DATA_FILE = "aurakill_delta_data_v2.json"
+local SAVE = {safe1 = "", safe2 = "", safe3 = ""}
+local AuraTargetSelected = "All"
+
+local function loadData()
+    pcall(function()
+        if writefile and isfile and isfile(DATA_FILE) then
+            local data = HttpService:JSONDecode(readfile(DATA_FILE))
+            if data and type(data) == "table" then
+                SAVE.safe1 = data.safe1 or ""
+                SAVE.safe2 = data.safe2 or ""
+                SAVE.safe3 = data.safe3 or ""
+            end
+        end
+    end)
+end
+
+local function saveData()
+    pcall(function()
+        if writefile then
+            writefile(DATA_FILE, HttpService:JSONEncode(SAVE))
+        end
+    end)
+end
+
+loadData()
 
 local HitR = nil
 local function findHitRemote()
     local function search(obj)
         for _, child in pairs(obj:GetChildren()) do
             if child:IsA("RemoteFunction") or child:IsA("RemoteEvent") then
-                if child.Name == "Hit" then
-                    return child
-                end
+                if child.Name == "Hit" then return child end
             end
             local found = search(child)
             if found then return found end
@@ -35,467 +64,586 @@ local function findHitRemote()
 end
 findHitRemote()
 
-local DATA_FILE = "aurakill_delta_data_v2.json"
-local SAVE = {safe1 = "", safe2 = "", safe3 = "", targetList = ""}
-
-local function loadData()
-    pcall(function()
-        if writefile and isfile and isfile(DATA_FILE) then
-            local data = HttpService:JSONDecode(readfile(DATA_FILE))
-            if data and type(data) == "table" then
-                SAVE.safe1 = data.safe1 or ""
-                SAVE.safe2 = data.safe2 or ""
-                SAVE.safe3 = data.safe3 or ""
-                SAVE.targetList = data.targetList or ""
-            end
-        end
-    end)
-end
-
-local function saveData()
-    pcall(function()
-        if writefile then
-            writefile(DATA_FILE, HttpService:JSONEncode({
-                safe1 = SAVE.safe1,
-                safe2 = SAVE.safe2,
-                safe3 = SAVE.safe3,
-                targetList = SAVE.targetList
-            }))
-        end
-    end)
-end
-
-loadData()
-
-local gui = Instance.new("ScreenGui")
-gui.Name = "AuraKillDelta"
-gui.ResetOnSpawn = false
-gui.Parent = CoreGui
-
-local main = Instance.new("Frame")
-main.Size = UDim2.new(0, 390, 0, 210)
-main.Position = UDim2.new(0.5, -195, 0.4, -105)
-main.BackgroundColor3 = Color3.fromRGB(15, 15, 25)
-main.BackgroundTransparency = 0.1
-main.BorderSizePixel = 0
-main.ClipsDescendants = true
-main.Parent = gui
-Instance.new("UICorner", main).CornerRadius = UDim.new(0, 10)
-
-local glow = Instance.new("Frame")
-glow.Size = UDim2.new(1, 6, 1, 6)
-glow.Position = UDim2.new(0, -3, 0, -3)
-glow.BackgroundColor3 = Color3.fromRGB(255, 50, 150)
-glow.BackgroundTransparency = 0.85
-glow.BorderSizePixel = 0
-glow.Parent = main
-Instance.new("UICorner", glow).CornerRadius = UDim.new(0, 12)
-
-local titleBar = Instance.new("Frame")
-titleBar.Size = UDim2.new(1, 0, 0, 32)
-titleBar.BackgroundColor3 = Color3.fromRGB(25, 25, 40)
-titleBar.BackgroundTransparency = 0.2
-titleBar.BorderSizePixel = 0
-titleBar.Active = true
-titleBar.Parent = main
-Instance.new("UICorner", titleBar).CornerRadius = UDim.new(0, 10)
-
-local titleText = Instance.new("TextLabel")
-titleText.Size = UDim2.new(0.6, 0, 1, 0)
-titleText.Position = UDim2.new(0, 10, 0, 0)
-titleText.BackgroundTransparency = 1
-titleText.Text = "الأنفكتوس العراقي"
-titleText.TextColor3 = Color3.fromRGB(255, 255, 255)
-titleText.Font = Enum.Font.GothamBold
-titleText.TextSize = 11
-titleText.TextXAlignment = Enum.TextXAlignment.Left
-titleText.Parent = titleBar
-
-local minBtn = Instance.new("TextButton")
-minBtn.Size = UDim2.new(0, 22, 0, 22)
-minBtn.Position = UDim2.new(1, -52, 0.5, -11)
-minBtn.Text = "−"
-minBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 60)
-minBtn.BackgroundTransparency = 0.3
-minBtn.TextColor3 = Color3.fromRGB(200, 200, 220)
-minBtn.Font = Enum.Font.GothamBold
-minBtn.TextSize = 12
-minBtn.BorderSizePixel = 0
-minBtn.Parent = titleBar
-Instance.new("UICorner", minBtn).CornerRadius = UDim.new(0, 5)
-
-local closeBtn = Instance.new("TextButton")
-closeBtn.Size = UDim2.new(0, 22, 0, 22)
-closeBtn.Position = UDim2.new(1, -26, 0.5, -11)
-closeBtn.Text = "✕"
-closeBtn.BackgroundColor3 = Color3.fromRGB(120, 30, 40)
-closeBtn.BackgroundTransparency = 0.3
-closeBtn.TextColor3 = Color3.fromRGB(255, 180, 180)
-closeBtn.Font = Enum.Font.GothamBold
-closeBtn.TextSize = 10
-closeBtn.BorderSizePixel = 0
-closeBtn.Parent = titleBar
-Instance.new("UICorner", closeBtn).CornerRadius = UDim.new(0, 5)
-
-local conn = nil
-closeBtn.MouseButton1Click:Connect(function()
-    if conn then conn:Disconnect() end
-    saveData()
-    gui:Destroy()
-end)
-
-local drag = {dragging = false, start = nil, pos = nil, glowPos = nil}
-titleBar.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-        drag.dragging = true
-        drag.start = input.Position
-        drag.pos = main.Position
-        drag.glowPos = glow.Position
-    end
-end)
-
-UserInputService.InputChanged:Connect(function(input)
-    if drag.dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
-        local d = input.Position - drag.start
-        main.Position = UDim2.new(drag.pos.X.Scale, drag.pos.X.Offset + d.X, drag.pos.Y.Scale, drag.pos.Y.Offset + d.Y)
-        glow.Position = UDim2.new(drag.glowPos.X.Scale, drag.glowPos.X.Offset + d.X, drag.glowPos.Y.Scale, drag.glowPos.Y.Offset + d.Y)
-    end
-end)
-
-UserInputService.InputEnded:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-        drag.dragging = false
-    end
-end)
-
-local isMinimized = false
-minBtn.MouseButton1Click:Connect(function()
-    isMinimized = not isMinimized
-    if isMinimized then
-        TweenService:Create(main, TweenInfo.new(0.2, Enum.EasingStyle.Quad), {Size = UDim2.new(0, 98, 0, 32)}):Play()
-        minBtn.Text = "+"
-        closeBtn.Visible = false
-        titleText.Visible = false
-        for _, child in pairs(main:GetChildren()) do
-            if child ~= titleBar and child ~= glow then
-                child.Visible = false
-            end
-        end
-    else
-        TweenService:Create(main, TweenInfo.new(0.2, Enum.EasingStyle.Quad), {Size = UDim2.new(0, 390, 0, 210)}):Play()
-        minBtn.Text = "−"
-        closeBtn.Visible = true
-        titleText.Visible = true
-        for _, child in pairs(main:GetChildren()) do
-            if child ~= titleBar and child ~= glow then
-                child.Visible = true
-            end
-        end
-    end
-end)
-
-local leftContainer = Instance.new("ScrollingFrame")
-leftContainer.Size = UDim2.new(0.48, 0, 1, -38)
-leftContainer.Position = UDim2.new(0, 6, 0, 35)
-leftContainer.BackgroundTransparency = 1
-leftContainer.BorderSizePixel = 0
-leftContainer.ScrollBarThickness = 2
-leftContainer.ScrollBarImageColor3 = Color3.fromRGB(255, 50, 150)
-leftContainer.CanvasSize = UDim2.new(0, 0, 0, 0)
-leftContainer.AutomaticCanvasSize = Enum.AutomaticSize.Y
-leftContainer.Parent = main
-
-local leftLayout = Instance.new("UIListLayout")
-leftLayout.Padding = UDim.new(0, 4)
-leftLayout.Parent = leftContainer
-
-local rightContainer = Instance.new("ScrollingFrame")
-rightContainer.Size = UDim2.new(0.48, 0, 1, -38)
-rightContainer.Position = UDim2.new(0.51, 0, 0, 35)
-rightContainer.BackgroundTransparency = 1
-rightContainer.BorderSizePixel = 0
-rightContainer.ScrollBarThickness = 2
-rightContainer.ScrollBarImageColor3 = Color3.fromRGB(255, 50, 150)
-rightContainer.CanvasSize = UDim2.new(0, 0, 0, 0)
-rightContainer.AutomaticCanvasSize = Enum.AutomaticSize.Y
-rightContainer.Parent = main
-
-local rightLayout = Instance.new("UIListLayout")
-rightLayout.Padding = UDim.new(0, 4)
-rightLayout.Parent = rightContainer
-
-local togFrame = Instance.new("Frame")
-togFrame.Size = UDim2.new(1, 0, 0, 30)
-togFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 32)
-togFrame.BackgroundTransparency = 0.3
-togFrame.BorderSizePixel = 0
-togFrame.Parent = leftContainer
-Instance.new("UICorner", togFrame).CornerRadius = UDim.new(0, 5)
-
-local togLabel = Instance.new("TextLabel")
-togLabel.Size = UDim2.new(0.5, 0, 1, 0)
-togLabel.Position = UDim2.new(0, 6, 0, 0)
-togLabel.BackgroundTransparency = 1
-togLabel.Text = "STATUS"
-togLabel.TextColor3 = Color3.fromRGB(220, 220, 230)
-togLabel.Font = Enum.Font.GothamBold
-togLabel.TextSize = 10
-togLabel.TextXAlignment = Enum.TextXAlignment.Left
-togLabel.Parent = togFrame
-
-local togBtn = Instance.new("TextButton")
-togBtn.Size = UDim2.new(0, 60, 0, 22)
-togBtn.Position = UDim2.new(1, -66, 0.5, -11)
-togBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
-togBtn.BackgroundTransparency = 0.1
-togBtn.Text = "OFF"
-togBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-togBtn.Font = Enum.Font.GothamBold
-togBtn.TextSize = 10
-togBtn.BorderSizePixel = 0
-togBtn.Parent = togFrame
-Instance.new("UICorner", togBtn).CornerRadius = UDim.new(0, 5)
-
-local function createInputBox(parent, nameText, defaultText)
-    local frame = Instance.new("Frame")
-    frame.Size = UDim2.new(1, 0, 0, 30)
-    frame.BackgroundColor3 = Color3.fromRGB(20, 20, 32)
-    frame.BackgroundTransparency = 0.3
-    frame.BorderSizePixel = 0
-    frame.Parent = parent
-    Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 5)
-
-    local label = Instance.new("TextLabel")
-    label.Size = UDim2.new(0.35, 0, 1, 0)
-    label.Position = UDim2.new(0, 6, 0, 0)
-    label.BackgroundTransparency = 1
-    label.Text = nameText
-    label.TextColor3 = Color3.fromRGB(200, 200, 210)
-    label.Font = Enum.Font.GothamBold
-    label.TextSize = 9
-    label.TextXAlignment = Enum.TextXAlignment.Left
-    label.Parent = frame
-
-    local box = Instance.new("TextBox")
-    box.Size = UDim2.new(0.6, 0, 0, 20)
-    box.Position = UDim2.new(0.38, 0, 0.5, -10)
-    box.BackgroundColor3 = Color3.fromRGB(30, 30, 45)
-    box.BackgroundTransparency = 0.2
-    box.Text = defaultText
-    box.PlaceholderText = "Name..."
-    box.TextColor3 = Color3.fromRGB(240, 240, 250)
-    box.Font = Enum.Font.Gotham
-    box.TextSize = 8
-    box.BorderSizePixel = 0
-    box.ClearTextOnFocus = false
-    box.Parent = frame
-    Instance.new("UICorner", box).CornerRadius = UDim.new(0, 4)
-    return box
-end
-
-local safe1Box = createInputBox(leftContainer, "SAFE 1", SAVE.safe1)
-local safe2Box = createInputBox(leftContainer, "SAFE 2", SAVE.safe2)
-local safe3Box = createInputBox(rightContainer, "SAFE 3", SAVE.safe3)
-local targetBox = createInputBox(rightContainer, "TARGET", SAVE.targetList)
-
-local function createSlider(parent, nameText, minVal, maxVal, defaultVal)
-    local frame = Instance.new("Frame")
-    frame.Size = UDim2.new(1, 0, 0, 36)
-    frame.BackgroundColor3 = Color3.fromRGB(20, 20, 32)
-    frame.BackgroundTransparency = 0.3
-    frame.BorderSizePixel = 0
-    frame.Parent = parent
-    Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 5)
-
-    local label = Instance.new("TextLabel")
-    label.Size = UDim2.new(0.5, 0, 0, 14)
-    label.Position = UDim2.new(0, 6, 0, 2)
-    label.BackgroundTransparency = 1
-    label.Text = nameText
-    label.TextColor3 = Color3.fromRGB(200, 200, 210)
-    label.Font = Enum.Font.GothamBold
-    label.TextSize = 9
-    label.TextXAlignment = Enum.TextXAlignment.Left
-    label.Parent = frame
-
-    local valLabel = Instance.new("TextLabel")
-    valLabel.Size = UDim2.new(0.3, 0, 0, 14)
-    valLabel.Position = UDim2.new(0.68, 0, 0, 2)
-    valLabel.BackgroundTransparency = 1
-    valLabel.Text = tostring(defaultVal)
-    valLabel.TextColor3 = Color3.fromRGB(255, 50, 150)
-    valLabel.Font = Enum.Font.GothamBold
-    valLabel.TextSize = 9
-    valLabel.TextXAlignment = Enum.TextXAlignment.Right
-    valLabel.Parent = frame
-
-    local track = Instance.new("Frame")
-    track.Size = UDim2.new(0.9, 0, 0, 3)
-    track.Position = UDim2.new(0.05, 0, 0.7, 0)
-    track.BackgroundColor3 = Color3.fromRGB(40, 40, 60)
-    track.BorderSizePixel = 0
-    track.Parent = frame
-    Instance.new("UICorner", track).CornerRadius = UDim.new(1, 0)
-
-    local fill = Instance.new("Frame")
-    local initP = (defaultVal - minVal) / (maxVal - minVal)
-    fill.Size = UDim2.new(initP, 0, 1, 0)
-    fill.BackgroundColor3 = Color3.fromRGB(255, 50, 150)
-    fill.BorderSizePixel = 0
-    fill.Parent = track
-    Instance.new("UICorner", fill).CornerRadius = UDim.new(1, 0)
-
-    local thumb = Instance.new("Frame")
-    thumb.Size = UDim2.new(0, 10, 0, 10)
-    thumb.Position = UDim2.new(initP, -5, 0.5, -5)
-    thumb.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-    thumb.BorderSizePixel = 0
-    thumb.Parent = track
-    Instance.new("UICorner", thumb).CornerRadius = UDim.new(1, 0)
-
-    local currentValue = defaultVal
-    local dragging = false
-
-    local function update(inputPos)
-        local w = track.AbsoluteSize.X
-        if w <= 0 then return end
-        local p = math.clamp((inputPos.X - track.AbsolutePosition.X) / w, 0, 1)
-        local v = math.floor(minVal + p * (maxVal - minVal))
-        fill.Size = UDim2.new(p, 0, 1, 0)
-        thumb.Position = UDim2.new(p, -5, 0.5, -5)
-        valLabel.Text = tostring(v)
-        currentValue = v
-    end
-
-    track.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            dragging = true
-            update(input.Position)
-        end
-    end)
-
-    UserInputService.InputChanged:Connect(function(input)
-        if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
-            update(input.Position)
-        end
-    end)
-
-    UserInputService.InputEnded:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            dragging = false
-        end
-    end)
-
-    return function() return currentValue end
-end
-
-local getRange = createSlider(leftContainer, "RANGE", 5, 100, 50)
-local getAps = createSlider(rightContainer, "APS", 1, 5000, 1000)
-
 local enabled = false
+local rangeVal = 50
+local apsVal = 15
+local conn = nil
 
 local function isSafe(name)
     local lowerName = name:lower()
-    local boxes = {safe1Box.Text, safe2Box.Text, safe3Box.Text}
+    local boxes = {SAVE.safe1, SAVE.safe2, SAVE.safe3}
     for _, boxText in ipairs(boxes) do
         for s in boxText:gmatch("%S+") do
-            if lowerName:find(s:lower(), 1, true) then
-                return true
-            end
+            if lowerName:find(s:lower(), 1, true) then return true end
         end
     end
     return false
 end
 
 local function isTarget(name)
-    local text = targetBox.Text:lower():gsub("^%s*(.-)%s*$", "%1")
-    if text == "" or text == "all" then
-        return true
-    end
-    local lowerName = name:lower()
-    for t in text:gmatch("%S+") do
-        if lowerName:find(t, 1, true) then
-            return true
-        end
-    end
-    return false
+    if AuraTargetSelected == "All" or AuraTargetSelected == "" then return true end
+    return name:lower() == AuraTargetSelected:lower()
 end
 
 local function doHit(hum, pos)
     if not hum or not hum.Parent then return end
     if HitR then
-        pcall(function()
+        if HitR:IsA("RemoteEvent") then
+            HitR:FireServer(hum, Vector3.new(pos.X, pos.Y, pos.Z))
+        elseif HitR:IsA("RemoteFunction") then
             HitR:InvokeServer(hum, Vector3.new(pos.X, pos.Y, pos.Z))
+        end
+    end
+end
+
+-- ===============================================
+-- [ 2 ] إعدادات السكربت الثاني (AINZ Grab) و دوال مساعدة
+-- ===============================================
+local GrabRF = ReplicatedStorage:FindFirstChild("OldPackages") 
+    and ReplicatedStorage.OldPackages.Knit.Services.CombatService.RF.Grab
+
+local AutoGrab = false
+local AutoTargetEnabled = false
+local SpecificTargetEnabled = false
+local ChosenTargetPlayer = nil
+local TriggerDistance = 15
+local TpSelectedPlayer = nil
+
+local function getPlayerNames(includeAll)
+    local names = {}
+    if includeAll then
+        table.insert(names, "All")
+    end
+    for _, p in ipairs(Players:GetPlayers()) do
+        if p ~= lp then
+            table.insert(names, p.Name)
+        end
+    end
+    return names
+end
+
+-- ===============================================
+-- [ 3 ] إعدادات تأثيرات الاسم والقفز اللانهائي
+-- ===============================================
+local BWNameActive = false
+local currentNameMode = "NONE" 
+local rnHue = 0
+local bwLastUpdate = 0
+local rnSpeed = 0.7        
+local rnUpdateRate = 0.02   
+local policeToggle = false  
+local isInfJump = false
+
+local rainbowNameRemote = ReplicatedStorage:WaitForChild("Remotes", 10)
+rainbowNameRemote = rainbowNameRemote and rainbowNameRemote:FindFirstChild("SetRPNameColor")
+
+-- ===============================================
+-- [ 4 ] إعدادات كشف الأماكن (ESP System)
+-- ===============================================
+local EspEnabled = false
+local EspBoxes = true
+local EspNames = true
+
+local function removeEsp(char)
+    if not char then return end
+    if char:FindFirstChild("ESP_Highlight") then char.ESP_Highlight:Destroy() end
+    if char:FindFirstChild("ESP_Billboard") then char.ESP_Billboard:Destroy() end
+end
+
+local function applyEsp(player)
+    if player == lp or not player.Character then return end
+    local char = player.Character
+    removeEsp(char)
+
+    if not EspEnabled then return end
+
+    if EspBoxes then
+        local highlight = Instance.new("Highlight")
+        highlight.Name = "ESP_Highlight"
+        highlight.Adornee = char
+        highlight.FillColor = isSafe(player.Name) and Color3.fromRGB(0, 255, 100) or Color3.fromRGB(255, 50, 50)
+        highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
+        highlight.FillTransparency = 0.5
+        highlight.OutlineTransparency = 0
+        highlight.Parent = char
+    end
+
+    local head = char:FindFirstChild("Head")
+    if head and EspNames then
+        local billboard = Instance.new("BillboardGui")
+        billboard.Name = "ESP_Billboard"
+        billboard.Adornee = head
+        billboard.Size = UDim2.new(0, 120, 0, 40)
+        billboard.StudsOffset = Vector3.new(0, 2.5, 0)
+        billboard.AlwaysOnTop = true
+
+        local textLabel = Instance.new("TextLabel")
+        textLabel.Size = UDim2.new(1, 0, 1, 0)
+        textLabel.BackgroundTransparency = 1
+        textLabel.TextColor3 = isSafe(player.Name) and Color3.fromRGB(0, 255, 100) or Color3.fromRGB(255, 255, 255)
+        textLabel.TextStrokeTransparency = 0
+        textLabel.Font = Enum.Font.SourceSansBold
+        textLabel.TextSize = 13
+        textLabel.Parent = billboard
+        billboard.Parent = char
+
+        task.spawn(function()
+            while EspEnabled and char and char.Parent and head and head.Parent do
+                local myChar = lp.Character
+                if myChar and myChar:FindFirstChild("HumanoidRootPart") and char:FindFirstChild("HumanoidRootPart") then
+                    local dist = math.floor((myChar.HumanoidRootPart.Position - char.HumanoidRootPart.Position).Magnitude)
+                    textLabel.Text = player.Name .. "\n[" .. tostring(dist) .. " Studs]"
+                end
+                task.wait(0.2)
+            end
         end)
     end
 end
 
-togBtn.MouseButton1Click:Connect(function()
-    enabled = not enabled
-    if enabled then
-        togBtn.BackgroundColor3 = Color3.fromRGB(0, 200, 0)
-        togBtn.Text = "ON"
-        if conn then conn:Disconnect() end
-        conn = RunService.Heartbeat:Connect(function()
-            if not enabled then return end
-            local ch = lp.Character
-            if not ch then return end
-            local myhrp = ch:FindFirstChild("HumanoidRootPart")
-            if not myhrp then return end
-            
-            local nearest = nil
-            local nearDist = math.huge
-            for _, p in ipairs(Players:GetPlayers()) do
-                if p == lp or not p.Character then continue end
-                if isSafe(p.Name) then continue end
-                if not isTarget(p.Name) then continue end
-                
-                local hrp = p.Character:FindFirstChild("HumanoidRootPart")
-                local hum = p.Character:FindFirstChildOfClass("Humanoid")
-                
-                if hrp and hum and hum.Health > 0 then
-                    local dist = (hrp.Position - myhrp.Position).Magnitude
-                    if dist <= getRange() and dist < nearDist then
-                        nearDist = dist
-                        nearest = {hum = hum, pos = hrp.Position + hrp.CFrame.LookVector * 2}
-                    end
-                end
+local function refreshAllEsp()
+    for _, p in ipairs(Players:GetPlayers()) do
+        if p ~= lp and p.Character then
+            if EspEnabled then
+                applyEsp(p)
+            else
+                removeEsp(p.Character)
             end
-            
-            if nearest then
-                task.spawn(function()
-                    doHit(nearest.hum, nearest.pos)
-                end)
-            end
-        end)
-    else
-        togBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
-        togBtn.Text = "OFF"
-        if conn then
-            conn:Disconnect()
-            conn = nil
+        end
+    end
+end
+
+local function setupPlayerEsp(plr)
+    if plr == lp then return end
+    plr.CharacterAdded:Connect(function()
+        if EspEnabled then
+            task.wait(0.5)
+            applyEsp(plr)
+        end
+    end)
+end
+
+for _, p in ipairs(Players:GetPlayers()) do
+    setupPlayerEsp(p)
+end
+
+Players.PlayerAdded:Connect(function(plr)
+    setupPlayerEsp(plr)
+end)
+
+-- ===============================================
+-- [ 5 ] إنشاء الواجهة (Rayfield Window)
+-- ===============================================
+local Window = Rayfield:CreateWindow({
+   Name = "الأنفكتوس العراقي",
+   LoadingTitle = "Aura, AINZ, ESP & Name",
+   LoadingSubtitle = "by KHURAFI",
+   Theme = "Default",
+   DisableRayfieldPrompts = false,
+   DisableBuildWarnings = true,
+   ConfigurationSaving = { Enabled = false },
+   KeySystem = false
+})
+
+local MainTab = Window:CreateTab("Aura (الرئيسية)", 4483345998)
+local EspTab = Window:CreateTab("ESP (كشف الأماكن)", 4483345998)
+local AinzTab = Window:CreateTab("AINZ (السحب)", 4483345998)
+local NameTab = Window:CreateTab("تأثيرات الاسم", 4483345998)
+local SettingsTab = Window:CreateTab("الإعدادات", 4483345998)
+
+-- ================== [ تبويب Aura ] ==================
+MainTab:CreateToggle({
+   Name = "تفعيل الأورا (STATUS)",
+   CurrentValue = false,
+   Flag = "AuraToggle",
+   Callback = function(Value)
+       enabled = Value
+       if enabled then
+           if conn then conn:Disconnect() end
+           local lastHitTick = 0
+           conn = RunService.Heartbeat:Connect(function()
+               if not enabled then return end
+               local currentTick = tick()
+               if currentTick - lastHitTick < (1 / apsVal) then return end
+               lastHitTick = currentTick
+
+               local ch = lp.Character
+               if not ch then return end
+               local myhrp = ch:FindFirstChild("HumanoidRootPart")
+               if not myhrp then return end
+               
+               local nearest = nil
+               local nearDist = math.huge
+               
+               for _, p in ipairs(Players:GetPlayers()) do
+                   if p == lp or not p.Character then continue end
+                   if isSafe(p.Name) then continue end
+                   if not isTarget(p.Name) then continue end
+                   
+                   local hrp = p.Character:FindFirstChild("HumanoidRootPart")
+                   local hum = p.Character:FindFirstChildOfClass("Humanoid")
+                   
+                   if hrp and hum and hum.Health > 0 then
+                       local dist = (hrp.Position - myhrp.Position).Magnitude
+                       if dist <= rangeVal and dist < nearDist then
+                           nearDist = dist
+                           nearest = {hum = hum, pos = hrp.Position + hrp.CFrame.LookVector * 2}
+                       end
+                   end
+               end
+               
+               if nearest then
+                   task.spawn(function()
+                       doHit(nearest.hum, nearest.pos)
+                   end)
+               end
+           end)
+       else
+           if conn then
+               conn:Disconnect()
+               conn = nil
+           end
+       end
+   end,
+})
+
+MainTab:CreateSlider({
+   Name = "نطاق الضرر (RANGE)",
+   Range = {5, 100},
+   Increment = 1,
+   Suffix = "Studs",
+   CurrentValue = 50,
+   Flag = "RangeSlider",
+   Callback = function(Value) rangeVal = Value end,
+})
+
+MainTab:CreateSlider({
+   Name = "سرعة الضرب (APS)",
+   Range = {1, 60}, 
+   Increment = 1,
+   Suffix = "Hit/s",
+   CurrentValue = 15,
+   Flag = "APSSlider",
+   Callback = function(Value) apsVal = Value end,
+})
+
+local AuraTargetDropdown = MainTab:CreateDropdown({
+   Name = "الهدف (TARGET)",
+   Options = getPlayerNames(true),
+   CurrentOption = {"All"},
+   MultipleOptions = false,
+   Flag = "AuraTargetDropdown",
+   Callback = function(Options)
+       if Options[1] then
+           AuraTargetSelected = Options[1]
+       end
+   end,
+})
+
+MainTab:CreateButton({
+   Name = "تحديث قائمة أهداف الأورا",
+   Callback = function()
+       local currentPlayers = getPlayerNames(true)
+       AuraTargetDropdown:Refresh(currentPlayers)
+   end,
+})
+
+-- ================== [ تبويب ESP المدمج ] ==================
+EspTab:CreateSection("خيارات الرؤية عبر الجدران")
+
+EspTab:CreateToggle({
+   Name = "تفعيل كشف الأماكن (ESP)",
+   CurrentValue = false,
+   Flag = "EspMainToggle",
+   Callback = function(Value)
+       EspEnabled = Value
+       refreshAllEsp()
+   end,
+})
+
+EspTab:CreateToggle({
+   Name = "تظليل أجسام اللاعبين (Highlight)",
+   CurrentValue = true,
+   Flag = "EspBoxesToggle",
+   Callback = function(Value)
+       EspBoxes = Value
+       refreshAllEsp()
+   end,
+})
+
+EspTab:CreateToggle({
+   Name = "عرض الأسماء والمسافة (Names & Distance)",
+   CurrentValue = true,
+   Flag = "EspNamesToggle",
+   Callback = function(Value)
+       EspNames = Value
+       refreshAllEsp()
+   end,
+})
+
+-- ================== [ تبويب AINZ ] ==================
+AinzTab:CreateSection("إعدادات السحب (Auto Grab)")
+
+AinzTab:CreateToggle({
+   Name = "سحب مستمر (Auto Grab)",
+   CurrentValue = false,
+   Flag = "AutoGrabToggle",
+   Callback = function(Value) AutoGrab = Value end,
+})
+
+AinzTab:CreateToggle({
+   Name = "استهداف تلقائي للكل عند الاقتراب (All)",
+   CurrentValue = false,
+   Flag = "AutoTargetToggle",
+   Callback = function(Value) AutoTargetEnabled = Value end,
+})
+
+AinzTab:CreateSection("الاستهداف المخصص (Specific Target)")
+
+local TargetDropdown = AinzTab:CreateDropdown({
+   Name = "اختر اللاعب المستهدف",
+   Options = getPlayerNames(false),
+   CurrentOption = {""},
+   MultipleOptions = false,
+   Flag = "SpecificTargetDropdown",
+   Callback = function(Options)
+       if Options[1] and Options[1] ~= "" then
+           ChosenTargetPlayer = Players:FindFirstChild(Options[1])
+       end
+   end,
+})
+
+AinzTab:CreateToggle({
+   Name = "تفعيل السحب على اللاعب المحدد",
+   CurrentValue = false,
+   Flag = "SpecificTargetToggle",
+   Callback = function(Value) SpecificTargetEnabled = Value end,
+})
+
+AinzTab:CreateSection("الانتقال (Teleport)")
+
+local TpDropdown = AinzTab:CreateDropdown({
+   Name = "اختر لاعب للانتقال إليه",
+   Options = getPlayerNames(false),
+   CurrentOption = {""},
+   MultipleOptions = false,
+   Flag = "TpDropdown",
+   Callback = function(Options)
+       TpSelectedPlayer = Options[1]
+   end,
+})
+
+AinzTab:CreateButton({
+   Name = "انتقال إلى اللاعب المحدد (Teleport)",
+   Callback = function()
+       if TpSelectedPlayer then
+           local targetPlr = Players:FindFirstChild(TpSelectedPlayer)
+           local myChar = lp.Character
+           if targetPlr and targetPlr.Character and targetPlr.Character:FindFirstChild("HumanoidRootPart") and myChar and myChar:FindFirstChild("HumanoidRootPart") then
+               local targetHRP = targetPlr.Character.HumanoidRootPart
+               myChar.HumanoidRootPart.CFrame = targetHRP.CFrame * CFrame.new(0, 0, 0.8)
+           end
+       end
+   end,
+})
+
+AinzTab:CreateButton({
+   Name = "تحديث قوائم أسماء اللاعبين للسحب والانتقال",
+   Callback = function()
+       local currentPlayers = getPlayerNames(false)
+       TargetDropdown:Refresh(currentPlayers)
+       TpDropdown:Refresh(currentPlayers)
+   end,
+})
+
+AinzTab:CreateButton({
+   Name = "TP to (-124, 6, 537)",
+   Callback = function()
+       local character = lp.Character
+       local rootPart = character and character:FindFirstChild("HumanoidRootPart")
+       if rootPart then
+           rootPart.CFrame = CFrame.new(-124, 6, 537)
+       end
+   end,
+})
+
+-- ================== [ تبويب Name Effects ] ==================
+NameTab:CreateSection("تأثيرات لون الاسم")
+
+NameTab:CreateToggle({
+   Name = "تفعيل تأثيرات الاسم",
+   CurrentValue = false,
+   Flag = "NameEffectToggle",
+   Callback = function(Value)
+       BWNameActive = Value
+   end,
+})
+
+NameTab:CreateDropdown({
+   Name = "اختر نوع التأثير (Mode)",
+   Options = {"BW", "Rainbow", "Pulse", "Strobe", "Police"},
+   CurrentOption = {"Rainbow"},
+   MultipleOptions = false,
+   Flag = "NameEffectModeDropdown",
+   Callback = function(Options)
+       currentNameMode = Options[1]
+   end,
+})
+
+NameTab:CreateSlider({
+   Name = "سرعة التغيير (Speed)",
+   Range = {0.1, 3.0},
+   Increment = 0.1,
+   Suffix = "x",
+   CurrentValue = 0.7,
+   Flag = "NameSpeedSlider",
+   Callback = function(Value) rnSpeed = Value end,
+})
+
+NameTab:CreateSection("القفز اللانهائي (Infinite Jump)")
+
+NameTab:CreateToggle({
+   Name = "تفعيل القفز اللانهائي (Inf Jump)",
+   CurrentValue = false,
+   Flag = "InfJumpToggle",
+   Callback = function(Value)
+       isInfJump = Value
+   end,
+})
+
+-- ================== [ تبويب الإعدادات ] ==================
+SettingsTab:CreateSection("قائمة الحماية (Safe List)")
+
+SettingsTab:CreateInput({
+   Name = "SAFE 1",
+   PlaceholderText = "اسم اللاعب المحمي 1...",
+   RemoveTextAfterFocusLost = false,
+   CurrentValue = SAVE.safe1,
+   Callback = function(Text)
+       SAVE.safe1 = Text
+       saveData()
+       refreshAllEsp()
+   end,
+})
+
+SettingsTab:CreateInput({
+   Name = "SAFE 2",
+   PlaceholderText = "اسم اللاعب المحمي 2...",
+   RemoveTextAfterFocusLost = false,
+   CurrentValue = SAVE.safe2,
+   Callback = function(Text)
+       SAVE.safe2 = Text
+       saveData()
+       refreshAllEsp()
+   end,
+})
+
+SettingsTab:CreateInput({
+   Name = "SAFE 3",
+   PlaceholderText = "اسم اللاعب المحمي 3...",
+   RemoveTextAfterFocusLost = false,
+   CurrentValue = SAVE.safe3,
+   Callback = function(Text)
+       SAVE.safe3 = Text
+       saveData()
+       refreshAllEsp()
+   end,
+})
+
+SettingsTab:CreateButton({
+   Name = "حفظ البيانات يدوياً",
+   Callback = function()
+       saveData()
+       Rayfield:Notify({
+           Title = "تم الحفظ",
+           Content = "تم حفظ جميع البيانات بنجاح",
+           Duration = 3,
+           Image = 4483362458,
+       })
+   end,
+})
+
+-- ===============================================
+-- [ 6 ] محركات التشغيل (Engine Loops)
+-- ===============================================
+
+-- محرك القفز اللانهائي
+UserInputService.JumpRequest:Connect(function()
+    if isInfJump and lp.Character then
+        local humanoid = lp.Character:FindFirstChildOfClass("Humanoid")
+        if humanoid then
+            humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
         end
     end
 end)
 
-safe1Box.FocusLost:Connect(function()
-    SAVE.safe1 = safe1Box.Text
-    saveData()
+RunService.Heartbeat:Connect(function()
+    local shouldGrab = AutoGrab
+
+    if AutoTargetEnabled then
+        local myChar = lp.Character
+        if myChar and myChar:FindFirstChild("HumanoidRootPart") then
+            local myPos = myChar.HumanoidRootPart.Position
+            for _, player in ipairs(Players:GetPlayers()) do
+                if player ~= lp and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+                    if (myPos - player.Character.HumanoidRootPart.Position).Magnitude <= TriggerDistance then
+                        shouldGrab = true
+                        break
+                    end
+                end
+            end
+        end
+    end
+
+    if SpecificTargetEnabled and ChosenTargetPlayer and ChosenTargetPlayer.Parent then
+        local myChar = lp.Character
+        local targetChar = ChosenTargetPlayer.Character
+        if myChar and myChar:FindFirstChild("HumanoidRootPart") and targetChar and targetChar:FindFirstChild("HumanoidRootPart") then
+            local distance = (myChar.HumanoidRootPart.Position - targetChar.HumanoidRootPart.Position).Magnitude
+            if distance <= TriggerDistance then
+                shouldGrab = true
+            end
+        end
+    else
+        if ChosenTargetPlayer and not ChosenTargetPlayer.Parent then
+            SpecificTargetEnabled = false
+            ChosenTargetPlayer = nil
+        end
+    end
+
+    if shouldGrab and GrabRF then
+        for i = 1, 5 do
+            task.spawn(function()
+                pcall(function()
+                    GrabRF:InvokeServer()
+                end)
+            end)
+        end
+    end
 end)
 
-safe2Box.FocusLost:Connect(function()
-    SAVE.safe2 = safe2Box.Text
-    saveData()
-end)
+RunService.Heartbeat:Connect(function(dt)
+    if not rainbowNameRemote or not BWNameActive then return end
+    local now = os.clock()
 
-safe3Box.FocusLost:Connect(function()
-    SAVE.safe3 = safe3Box.Text
-    saveData()
-end)
-
-targetBox.FocusLost:Connect(function()
-    SAVE.targetList = targetBox.Text
-    saveData()
-end)
-
-print("الأنفكتوس العراقي LOADED")
+    rnHue = (rnHue + (dt * rnSpeed)) % 1
+    
+    if now - bwLastUpdate >= (currentNameMode == "Police" and 0.12 or rnUpdateRate) then
+        local targetColor
+        
+        if currentNameMode == "BW" then
+            local intensity = (math.sin(rnHue * math.pi * 2) + 1) / 2
+            targetColor = Color3.new(intensity, intensity, intensity)
+            
+        elseif currentNameMode == "Rainbow" then
+            targetColor = Color3.fromHSV(rnHue, 1, 1)
+            
+        elseif currentNameMode == "Pulse" then
+            targetColor = Color3.fromHSV(rnHue, 0.8, 1)
+            
+        elseif currentNameMode == "Strobe" then
+            targetColor = Color3.fromRGB(math.random(50, 255), math.random(50, 255), math.random(50, 255))
+            
+        elseif currentNameMode == "Police" then
+            policeToggle = not policeToggle
+            if policeToggle then
+                targetColor = Color3.f
