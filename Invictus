@@ -1,5 +1,5 @@
 -- ===============================================
--- [ نظام حماية التشغيل المحسن لـ Delta ]
+-- [ نظام حماية التشغيل المحسن لـ Delta - V7 ]
 -- ===============================================
 repeat task.wait() until game:IsLoaded()
 task.wait(0.5)
@@ -40,7 +40,7 @@ local lp = Players.LocalPlayer
 -- ===============================================
 -- [ 1 ] إعدادات البيانات والمواقع المحفوظة
 -- ===============================================
-local DATA_FILE = "khurafi_delta_data_v6.json"
+local DATA_FILE = "khurafi_delta_data_v7.json"
 local SAVE = {safe1 = "", safe2 = "", safe3 = "", safe4 = "", safe5 = ""}
 local SavedWaypoints = {}
 local SelectedWaypointName = nil
@@ -117,7 +117,7 @@ local function getWaypointNames()
 end
 
 -- ===============================================
--- [ 2 ] إعدادات الأورا والسحب الجاهز
+-- [ 2 ] إعدادات الأورا والسحب
 -- ===============================================
 local HitR = nil
 local function findHitRemote()
@@ -159,35 +159,9 @@ local ChosenTargetPlayer2 = nil
 local TriggerDistance = 15
 local TpSelectedPlayer = nil
 
--- إعدادات السحب الذكية والمغناطيس
+-- إعدادات السحب الذكية
 local AutoLookEnabled = false
 local AutoMagnetEnabled = false
-local GRAB_ANIMATION_ID = "117884597030388"
-
-local function isGrabReady()
-    local char = lp.Character
-    if not char then return false end
-    
-    local hum = char:FindFirstChildOfClass("Humanoid")
-    if not hum then return false end
-
-    -- 1. فحص وسم المشغولية
-    if char:GetAttribute("BusyLOCK") == true then
-        return false
-    end
-
-    -- 2. فحص أنيميشن الإمساك
-    local animator = hum:FindFirstChildOfClass("Animator")
-    if animator then
-        for _, track in ipairs(animator:GetPlayingAnimationTracks()) do
-            if track.Animation and string.find(tostring(track.Animation.AnimationId), GRAB_ANIMATION_ID) then
-                return false
-            end
-        end
-    end
-
-    return true
-end
 
 local function removeLookGyro()
     if lp.Character and lp.Character:FindFirstChild("HumanoidRootPart") then
@@ -365,8 +339,8 @@ local TargetDropdown2 = AinzTab:CreateDropdown({ Name = "اختر اللاعب �
 AinzTab:CreateToggle({ Name = "تفعيل السحب المحدد", CurrentValue = false, Flag = "SpecificTargetToggle", Callback = function(Value) SpecificTargetEnabled = Value end })
 
 AinzTab:CreateSlider({ Name = "نطاق تفعيل السحب (المسافة)", Range = {5, 100}, Increment = 1, Suffix = "Studs", CurrentValue = 15, Flag = "TriggerDistanceSlider", Callback = function(Value) TriggerDistance = Value end })
-AinzTab:CreateToggle({ Name = "🎯 توجيه تلقائي (النظر للهدف بنعومة)", CurrentValue = false, Flag = "AutoLookToggle", Callback = function(Value) AutoLookEnabled = Value; if not Value then removeLookGyro() end end })
-AinzTab:CreateToggle({ Name = "🧲 مغناطيس ذكي (ينقل فقط عند جاهزية السحب)", CurrentValue = false, Flag = "AutoMagnetToggle", Callback = function(Value) AutoMagnetEnabled = Value end })
+AinzTab:CreateToggle({ Name = "🎯 توجيه تلقائي (النظر للهدف)", CurrentValue = false, Flag = "AutoLookToggle", Callback = function(Value) AutoLookEnabled = Value; if not Value then removeLookGyro() end end })
+AinzTab:CreateToggle({ Name = "🧲 مغناطيس (ينتقل فقط عندما يكون GrabPower = 100)", CurrentValue = false, Flag = "AutoMagnetToggle", Callback = function(Value) AutoMagnetEnabled = Value end })
 
 AinzTab:CreateSection("الانتقال السريع إلى لاعب")
 local TpDropdown = AinzTab:CreateDropdown({ Name = "انتقال إلى لاعب", Options = getPlayerNames(false), CurrentOption = {""}, MultipleOptions = false, Flag = "TpDropdown", Callback = function(Options) TpSelectedPlayer = Options[1] end })
@@ -374,7 +348,16 @@ AinzTab:CreateButton({ Name = "انتقال (Teleport)", Callback = function() i
 AinzTab:CreateButton({ Name = "تحديث قوائم اللاعبين", Callback = function() TargetDropdown1:Refresh(getPlayerNames(false)); TargetDropdown2:Refresh(getPlayerNames(false)); TpDropdown:Refresh(getPlayerNames(false)) end })
 
 -- Player
-PlayerTab:CreateToggle({ Name = "إظهار زر التخفي العائم", CurrentValue = false, Flag = "InvisSystemToggle", Callback = function(Value) InvisGui.Enabled = Value; if not Value and IsInvisible then IsInvisible = fals
+PlayerTab:CreateToggle({ Name = "إظهار زر التخفي العائم", CurrentValue = false, Flag = "InvisSystemToggle", Callback = function(Value) InvisGui.Enabled = Value; if not Value and IsInvisible then IsInvisible = false; FloatBtn.BackgroundColor3 = Color3.fromRGB(220, 60, 60); FloatBtn.Text = "تخفي: ❌"; for _, item in pairs(invisParts) do if item.obj and item.obj.Parent then item.obj.Transparency = item.origTrans end end end end })
+PlayerTab:CreateToggle({ Name = "تثبيت السرعة", CurrentValue = false, Flag = "SpeedToggle", Callback = function(Value) isSpeedEnabled = Value; if not Value and lp.Character then local hum = lp.Character:FindFirstChildOfClass("Humanoid") if hum then hum.WalkSpeed = 16 end end end })
+PlayerTab:CreateSlider({ Name = "قيمة السرعة", Range = {16, 150}, Increment = 1, Suffix = "WS", CurrentValue = 35, Flag = "SpeedSlider", Callback = function(Value) currentWalkSpeed = Value end })
+PlayerTab:CreateToggle({ Name = "قفز لانهائي", CurrentValue = false, Flag = "InfJumpToggle", Callback = function(Value) isInfJump = Value end })
+
+-- Waypoints
+WaypointsTab:CreateSection("إدارة الأماكن المحفوظة")
+local NewWaypointName = ""
+WaypointsTab:CreateInput({ Name = "اسم المكان", PlaceholderText = "اكتب اسم المكان...", RemoveTextAfterFocusLost = false, Callback = function(Text) NewWaypointName = Text end })
+local WaypointDropdown
 WaypointsTab:CreateButton({ Name = "📌 حفظ الموقع الحالي", Callback = function() if NewWaypointName ~= "" and lp.Character and lp.Character:FindFirstChild("HumanoidRootPart") then SavedWaypoints[NewWaypointName] = lp.Character.HumanoidRootPart.CFrame; saveData(); Rayfield:Notify({Title = "تم الحفظ", Content = NewWaypointName, Duration = 2}); if WaypointDropdown then WaypointDropdown:Refresh(getWaypointNames()) end else Rayfield:Notify({Title = "خطأ", Content = "اكتب اسماً", Duration = 2}) end end })
 WaypointDropdown = WaypointsTab:CreateDropdown({ Name = "قائمة الأماكن", Options = getWaypointNames(), CurrentOption = {""}, MultipleOptions = false, Flag = "WaypointsDropdownList", Callback = function(Options) if Options[1] and Options[1] ~= "لا يوجد مواقع محفوظة" then SelectedWaypointName = Options[1] end end })
 WaypointsTab:CreateButton({ Name = "🚀 تنقل إلى المكان المحدد", Callback = function() if SelectedWaypointName and SavedWaypoints[SelectedWaypointName] and lp.Character and lp.Character:FindFirstChild("HumanoidRootPart") then lp.Character.HumanoidRootPart.CFrame = SavedWaypoints[SelectedWaypointName] end end })
@@ -469,7 +452,7 @@ RunService.Heartbeat:Connect(function(dt)
         end
     end
 
-    -- 3. سحب AINZ والتوجيه الذكي والمغناطيس الشرطي
+    -- 3. سحب AINZ والتوجيه المحدث
     local shouldGrab = AutoGrab
     local activeTargetHRP = nil 
 
@@ -511,12 +494,13 @@ RunService.Heartbeat:Connect(function(dt)
         end
     end
 
-    -- تنفيذ التوجيه والمغناطيس (المغناطيس مشروط بجاهزية الإمساك isGrabReady)
+    -- تنفيذ التوجيه السلس والمغناطيس (بناءً على طاقة السحب GrabPower == 100)
     if lp.Character and lp.Character:FindFirstChild("HumanoidRootPart") then
         local myRoot = lp.Character.HumanoidRootPart
+        local currentGrabPower = lp:GetAttribute("GrabPower") or 0 -- جلب قيمة طاقة السحب
         
         if activeTargetHRP then
-            -- 1. التوجيه بالفيزياء السلسة
+            -- 1. التوجيه
             if AutoLookEnabled then
                 local bg = myRoot:FindFirstChild("AutoLookGyro")
                 if not bg then
@@ -532,8 +516,8 @@ RunService.Heartbeat:Connect(function(dt)
                 removeLookGyro()
             end
             
-            -- 2. المغناطيس الشرطي: ينقل فقط إذا كان السحب جاهزاً (ليس مشغولاً وليس في حركة)
-            if AutoMagnetEnabled and isGrabReady() then
+            -- 2. المغناطيس: ينتقل فقط إذا كان GrabPower يساوي 100 (الميزة مشحونة وجاهزة)
+            if AutoMagnetEnabled and currentGrabPower >= 100 then
                 myRoot.CFrame = activeTargetHRP.CFrame * CFrame.new(0, 0, 2.5)
             end
         else
@@ -561,7 +545,7 @@ RunService.Heartbeat:Connect(function(dt)
     end
 end)
 
--- استعادة الإعدادات المحفوظة
+-- استعادة آخر حالة تم حفظها للواجهة تلقائياً عند التشغيل
 pcall(function()
     Rayfield:LoadConfiguration()
 end)
