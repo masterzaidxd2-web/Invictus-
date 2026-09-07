@@ -45,10 +45,12 @@ local CoreGui = game:GetService("CoreGui")
 local lp = Players.LocalPlayer
 
 -- ===============================================
--- [ 1 ] إعدادات البيانات
+-- [ 1 ] إعدادات البيانات والمواقع المحفوظة
 -- ===============================================
-local DATA_FILE = "aurakill_delta_data_v4.json"
+local DATA_FILE = "aurakill_delta_data_v5.json"
 local SAVE = {safe1 = "", safe2 = "", safe3 = ""}
+local SavedWaypoints = {}
+local SelectedWaypointName = nil
 
 local function loadData()
     pcall(function()
@@ -87,6 +89,15 @@ local function getPlayerNames(includeAll)
     for _, p in ipairs(Players:GetPlayers()) do
         if p ~= lp then table.insert(names, p.Name) end
     end
+    return names
+end
+
+local function getWaypointNames()
+    local names = {}
+    for name, _ in pairs(SavedWaypoints) do
+        table.insert(names, name)
+    end
+    if #names == 0 then table.insert(names, "لا يوجد مواقع محفوظة") end
     return names
 end
 
@@ -332,6 +343,7 @@ local Window = Rayfield:CreateWindow({
 
 local MainTab = Window:CreateTab("Aura", 4483345998)
 local PlayerTab = Window:CreateTab("اللاعب", 4483345998)
+local WaypointsTab = Window:CreateTab("المواقع", 4483345998)
 local EspTab = Window:CreateTab("ESP", 4483345998)
 local AinzTab = Window:CreateTab("AINZ", 4483345998)
 local NameTab = Window:CreateTab("الاسم", 4483345998)
@@ -379,12 +391,79 @@ PlayerTab:CreateToggle({
 PlayerTab:CreateSlider({ Name = "قيمة السرعة", Range = {16, 150}, Increment = 1, Suffix = "WS", CurrentValue = 35, Flag = "SpeedSlider", Callback = function(Value) currentWalkSpeed = Value end })
 PlayerTab:CreateToggle({ Name = "قفز لانهائي", CurrentValue = false, Flag = "InfJumpToggle", Callback = function(Value) isInfJump = Value end })
 
+-- Waypoints (المواقع المحفوظة والانتقال)
+WaypointsTab:CreateSection("حفظ الأماكن والإحداثيات")
+local NewWaypointName = ""
+WaypointsTab:CreateInput({
+    Name = "اسم المكان",
+    PlaceholderText = "اكتب اسم المكان (مثال: الحلبة)...",
+    RemoveTextAfterFocusLost = false,
+    Callback = function(Text)
+        NewWaypointName = Text
+    end
+})
+
+local WaypointDropdown
+
+WaypointsTab:CreateButton({
+    Name = "📌 حفظ الموقع الحالي",
+    Callback = function()
+        if NewWaypointName ~= "" and lp.Character and lp.Character:FindFirstChild("HumanoidRootPart") then
+            local pos = lp.Character.HumanoidRootPart.CFrame
+            SavedWaypoints[NewWaypointName] = pos
+            local posStr = string.format("X:%.0f Y:%.0f Z:%.0f", pos.X, pos.Y, pos.Z)
+            Rayfield:Notify({Title = "تم حفظ المكان", Content = NewWaypointName .. " (" .. posStr .. ")", Duration = 3})
+            if WaypointDropdown then WaypointDropdown:Refresh(getWaypointNames()) end
+        else
+            Rayfield:Notify({Title = "تنبيه", Content = "يرجى كتابة اسم للمكان أولاً", Duration = 3})
+        end
+    end
+})
+
+WaypointsTab:CreateSection("إدارة الأماكن المحفوظة")
+WaypointDropdown = WaypointsTab:CreateDropdown({
+    Name = "قائمة الأماكن",
+    Options = getWaypointNames(),
+    CurrentOption = {""},
+    MultipleOptions = false,
+    Flag = "WaypointsDropdownList",
+    Callback = function(Options)
+        if Options[1] and Options[1] ~= "لا يوجد مواقع محفوظة" then
+            SelectedWaypointName = Options[1]
+        end
+    end
+})
+
+WaypointsTab:CreateButton({
+    Name = "🚀 تنقل إلى المكان المحدد",
+    Callback = function()
+        if SelectedWaypointName and SavedWaypoints[SelectedWaypointName] and lp.Character and lp.Character:FindFirstChild("HumanoidRootPart") then
+            lp.Character.HumanoidRootPart.CFrame = SavedWaypoints[SelectedWaypointName]
+            Rayfield:Notify({Title = "تم الانتقال", Content = "تم الانتقال إلى " .. SelectedWaypointName, Duration = 2})
+        else
+            Rayfield:Notify({Title = "خطأ", Content = "يرجى تحديد مكان صحيح من القائمة", Duration = 3})
+        end
+    end
+})
+
+WaypointsTab:CreateButton({
+    Name = "🗑️ حذف المكان المحدد",
+    Callback = function()
+        if SelectedWaypointName and SavedWaypoints[SelectedWaypointName] then
+            SavedWaypoints[SelectedWaypointName] = nil
+            Rayfield:Notify({Title = "تم الحذف", Content = "تم حذف " .. SelectedWaypointName, Duration = 2})
+            SelectedWaypointName = nil
+            if WaypointDropdown then WaypointDropdown:Refresh(getWaypointNames()) end
+        end
+    end
+})
+
 -- ESP
 EspTab:CreateToggle({ Name = "تفعيل ESP", CurrentValue = false, Flag = "EspMainToggle", Callback = function(Value) EspEnabled = Value; refreshAllEsp() end })
 EspTab:CreateToggle({ Name = "تظليل (Highlight)", CurrentValue = true, Flag = "EspBoxesToggle", Callback = function(Value) EspBoxes = Value; refreshAllEsp() end })
 EspTab:CreateToggle({ Name = "أسماء ومسافة", CurrentValue = true, Flag = "EspNamesToggle", Callback = function(Value) EspNames = Value; refreshAllEsp() end })
 
--- AINZ (تم تحديث قسم الإمساك المخصص ليشمل هدفين)
+-- AINZ
 AinzTab:CreateToggle({ Name = "سحب مستمر", CurrentValue = false, Flag = "AutoGrabToggle", Callback = function(Value) AutoGrab = Value end })
 AinzTab:CreateToggle({ Name = "استهداف تلقائي للكل", CurrentValue = false, Flag = "AutoTargetToggle", Callback = function(Value) AutoTargetEnabled = Value end })
 
@@ -393,7 +472,7 @@ local TargetDropdown1 = AinzTab:CreateDropdown({ Name = "اختر اللاعب �
 local TargetDropdown2 = AinzTab:CreateDropdown({ Name = "اختر اللاعب المستهدف الثاني (2)", Options = getPlayerNames(false), CurrentOption = {""}, MultipleOptions = false, Flag = "SpecificTargetDropdown2", Callback = function(Options) if Options[1] and Options[1] ~= "" then ChosenTargetPlayer2 = Players:FindFirstChild(Options[1]) end end })
 AinzTab:CreateToggle({ Name = "تفعيل السحب على اللاعبين المحددين", CurrentValue = false, Flag = "SpecificTargetToggle", Callback = function(Value) SpecificTargetEnabled = Value end })
 
-AinzTab:CreateSection("الانتقال السريع")
+AinzTab:CreateSection("الانتقال السريع إلى لاعب")
 local TpDropdown = AinzTab:CreateDropdown({ Name = "انتقال إلى لاعب", Options = getPlayerNames(false), CurrentOption = {""}, MultipleOptions = false, Flag = "TpDropdown", Callback = function(Options) TpSelectedPlayer = Options[1] end })
 AinzTab:CreateButton({ Name = "انتقال (Teleport)", Callback = function() if TpSelectedPlayer then local targetPlr = Players:FindFirstChild(TpSelectedPlayer) local myChar = lp.Character if targetPlr and targetPlr.Character and targetPlr.Character:FindFirstChild("HumanoidRootPart") and myChar and myChar:FindFirstChild("HumanoidRootPart") then myChar.HumanoidRootPart.CFrame = targetPlr.Character.HumanoidRootPart.CFrame * CFrame.new(0, 0, 0.8) end end end })
 AinzTab:CreateButton({ Name = "تحديث قوائم اللاعبين", Callback = function() TargetDropdown1:Refresh(getPlayerNames(false)); TargetDropdown2:Refresh(getPlayerNames(false)); TpDropdown:Refresh(getPlayerNames(false)) end })
@@ -468,7 +547,7 @@ RunService.Heartbeat:Connect(function(dt)
         end
     end
 
-    -- 3. سحب AINZ (محدث لفحص الهدفين المحددين)
+    -- 3. سحب AINZ
     local shouldGrab = AutoGrab
     if AutoTargetEnabled then
         local myChar = lp.Character
@@ -486,7 +565,6 @@ RunService.Heartbeat:Connect(function(dt)
     if SpecificTargetEnabled then
         local myChar = lp.Character
         if myChar and myChar:FindFirstChild("HumanoidRootPart") then
-            -- فحص الهدف الأول
             if ChosenTargetPlayer1 and ChosenTargetPlayer1.Parent and ChosenTargetPlayer1.Character and ChosenTargetPlayer1.Character:FindFirstChild("HumanoidRootPart") then
                 if (myChar.HumanoidRootPart.Position - ChosenTargetPlayer1.Character.HumanoidRootPart.Position).Magnitude <= TriggerDistance then
                     shouldGrab = true
@@ -495,7 +573,6 @@ RunService.Heartbeat:Connect(function(dt)
                 if ChosenTargetPlayer1 and not ChosenTargetPlayer1.Parent then ChosenTargetPlayer1 = nil end
             end
 
-            -- فحص الهدف الثاني
             if ChosenTargetPlayer2 and ChosenTargetPlayer2.Parent and ChosenTargetPlayer2.Character and ChosenTargetPlayer2.Character:FindFirstChild("HumanoidRootPart") then
                 if (myChar.HumanoidRootPart.Position - ChosenTargetPlayer2.Character.HumanoidRootPart.Position).Magnitude <= TriggerDistance then
                     shouldGrab = true
