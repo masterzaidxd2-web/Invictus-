@@ -1,5 +1,5 @@
 -- ===============================================
--- [ نظام حماية التشغيل المحسن لـ Delta - V10 ]
+-- [ نظام حماية التشغيل المحسن لـ Delta - V11 ]
 -- ===============================================
 repeat task.wait() until game:IsLoaded()
 task.wait(0.5)
@@ -40,7 +40,7 @@ local lp = Players.LocalPlayer
 -- ===============================================
 -- [ 1 ] إعدادات البيانات والمواقع المحفوظة
 -- ===============================================
-local DATA_FILE = "khurafi_delta_data_v10.json"
+local DATA_FILE = "khurafi_delta_data_v11.json"
 local SAVE = {safe1 = "", safe2 = "", safe3 = "", safe4 = "", safe5 = ""}
 local SavedWaypoints = {}
 local SelectedWaypointName = nil
@@ -155,7 +155,6 @@ local AutoGrab = false
 local AutoTargetEnabled = false
 local SpecificTargetEnabled = false
 
--- حفظ الأسماء كنصوص لتفادي مشكلة الخروج من السيرفر
 local ChosenTargetName1 = ""
 local ChosenTargetName2 = ""
 
@@ -187,7 +186,7 @@ local function doHit(hum, pos)
 end
 
 -- ===============================================
--- [ 3 ] إعدادات تأثيرات الاسم و ESP و التخفي
+-- [ 3 ] إعدادات تأثيرات الاسم و ESP و التخفي و المغناطيس اليدوي
 -- ===============================================
 local BWNameActive = false; local currentNameMode = "NONE"; local rnHue = 0; local bwLastUpdate = 0
 local rnSpeed = 0.7; local rnUpdateRate = 0.02; local policeToggle = false  
@@ -197,18 +196,11 @@ rainbowNameRemote = rainbowNameRemote and rainbowNameRemote:FindFirstChild("SetR
 local EspEnabled = false; local EspBoxes = true; local EspNames = true
 
 local function getEspColor(playerName)
-    if isSafe(playerName) then 
-        return Color3.fromRGB(0, 255, 100) -- أصدقاء (أخضر)
-    end
-    
+    if isSafe(playerName) then return Color3.fromRGB(0, 255, 100) end
     local isAuraTarget = (AuraTargetSelected ~= "All" and AuraTargetSelected ~= "" and playerName == AuraTargetSelected)
     local isGrabTarget = (SpecificTargetEnabled and (playerName == ChosenTargetName1 or playerName == ChosenTargetName2))
-    
-    if isAuraTarget or isGrabTarget then
-        return Color3.fromRGB(255, 50, 50) -- الأهداف المخصصة (أحمر)
-    end
-    
-    return Color3.fromRGB(255, 255, 255) -- الجميع All (أبيض)
+    if isAuraTarget or isGrabTarget then return Color3.fromRGB(255, 50, 50) end
+    return Color3.fromRGB(255, 255, 255)
 end
 
 local function removeEsp(char)
@@ -224,7 +216,6 @@ local function applyEsp(player)
     if not EspEnabled then return end
 
     local targetColor = getEspColor(player.Name)
-
     if EspBoxes then
         local highlight = Instance.new("Highlight")
         highlight.Name = "ESP_Highlight"; highlight.Adornee = char
@@ -268,6 +259,7 @@ end
 for _, p in ipairs(Players:GetPlayers()) do if p ~= lp then p.CharacterAdded:Connect(function() if EspEnabled then task.wait(0.5) applyEsp(p) end end) end end
 Players.PlayerAdded:Connect(function(plr) if plr ~= lp then plr.CharacterAdded:Connect(function() if EspEnabled then task.wait(0.5) applyEsp(plr) end end) end end)
 
+-- UI التخفي
 local IsInvisible = false; local invisParts = {}
 local InvisGui = Instance.new("ScreenGui"); InvisGui.Name = "FloatingInvisUI"; InvisGui.ResetOnSpawn = false
 local successGui = pcall(function() InvisGui.Parent = CoreGui end)
@@ -275,7 +267,7 @@ if not successGui then InvisGui.Parent = lp:WaitForChild("PlayerGui") end
 InvisGui.Enabled = false 
 
 local FloatBtn = Instance.new("TextButton")
-FloatBtn.Size = UDim2.new(0, 100, 0, 45); FloatBtn.Position = UDim2.new(0.5, -50, 0.1, 0)
+FloatBtn.Size = UDim2.new(0, 100, 0, 45); FloatBtn.Position = UDim2.new(0.5, -110, 0.1, 0)
 FloatBtn.BackgroundColor3 = Color3.fromRGB(220, 60, 60); FloatBtn.Text = "تخفي: ❌"; FloatBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 FloatBtn.Font = Enum.Font.SourceSansBold; FloatBtn.TextSize = 18; FloatBtn.Active = true; FloatBtn.Draggable = true; FloatBtn.Parent = InvisGui
 local UICorner = Instance.new("UICorner"); UICorner.CornerRadius = UDim.new(0, 8); UICorner.Parent = FloatBtn
@@ -303,8 +295,35 @@ FloatBtn.MouseButton1Click:Connect(function()
     end
 end)
 
+-- UI زر المغناطيس باللمس (الجديد)
+local IsHoldingMagnet = false
+local MagnetGui = Instance.new("ScreenGui"); MagnetGui.Name = "FloatingMagnetUI"; MagnetGui.ResetOnSpawn = false
+local successMagGui = pcall(function() MagnetGui.Parent = CoreGui end)
+if not successMagGui then MagnetGui.Parent = lp:WaitForChild("PlayerGui") end
+MagnetGui.Enabled = false 
+
+local HoldMagBtn = Instance.new("TextButton")
+HoldMagBtn.Size = UDim2.new(0, 100, 0, 45); HoldMagBtn.Position = UDim2.new(0.5, 10, 0.1, 0)
+HoldMagBtn.BackgroundColor3 = Color3.fromRGB(60, 100, 220); HoldMagBtn.Text = "🧲 مغناطيس"; HoldMagBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+HoldMagBtn.Font = Enum.Font.SourceSansBold; HoldMagBtn.TextSize = 18; HoldMagBtn.Active = true; HoldMagBtn.Draggable = true; HoldMagBtn.Parent = MagnetGui
+local MagUICorner = Instance.new("UICorner"); MagUICorner.CornerRadius = UDim.new(0, 8); MagUICorner.Parent = HoldMagBtn
+
+HoldMagBtn.MouseButton1Down:Connect(function()
+    IsHoldingMagnet = true
+    HoldMagBtn.BackgroundColor3 = Color3.fromRGB(60, 220, 60)
+end)
+HoldMagBtn.MouseButton1Up:Connect(function()
+    IsHoldingMagnet = false
+    HoldMagBtn.BackgroundColor3 = Color3.fromRGB(60, 100, 220)
+end)
+HoldMagBtn.MouseLeave:Connect(function()
+    IsHoldingMagnet = false
+    HoldMagBtn.BackgroundColor3 = Color3.fromRGB(60, 100, 220)
+end)
+
 lp.CharacterAdded:Connect(function()
     IsInvisible = false; FloatBtn.BackgroundColor3 = Color3.fromRGB(220, 60, 60); FloatBtn.Text = "تخفي: ❌"
+    IsHoldingMagnet = false; HoldMagBtn.BackgroundColor3 = Color3.fromRGB(60, 100, 220)
     removeLookGyro()
 end)
 
@@ -361,8 +380,10 @@ AinzTab:CreateToggle({ Name = "تفعيل السحب المحدد", CurrentValue
 AinzTab:CreateSlider({ Name = "نطاق تفعيل السحب (المسافة)", Range = {5, 100}, Increment = 1, Suffix = "Studs", CurrentValue = 15, Flag = "TriggerDistanceSlider", Callback = function(Value) TriggerDistance = Value end })
 AinzTab:CreateSlider({ Name = "عدد تكرار أمر السحب", Range = {1, 15}, Increment = 1, Suffix = "مرة", CurrentValue = 3, Flag = "GrabRepeatSlider", Callback = function(Value) grabRepeatVal = Value end })
 
+AinzTab:CreateSection("المغناطيس والتوجيه")
 AinzTab:CreateToggle({ Name = "🎯 توجيه تلقائي (النظر للهدف)", CurrentValue = false, Flag = "AutoLookToggle", Callback = function(Value) AutoLookEnabled = Value; if not Value then removeLookGyro() end end })
-AinzTab:CreateToggle({ Name = "🧲 مغناطيس (ينتقل فقط عندما يكون GrabPower = 100)", CurrentValue = false, Flag = "AutoMagnetToggle", Callback = function(Value) AutoMagnetEnabled = Value end })
+AinzTab:CreateToggle({ Name = "🧲 مغناطيس تلقائي (لا يعمل بالقتال)", CurrentValue = false, Flag = "AutoMagnetToggle", Callback = function(Value) AutoMagnetEnabled = Value end })
+AinzTab:CreateToggle({ Name = "إظهار زر المغناطيس العائم (للوضع القتالي)", CurrentValue = false, Flag = "HoldMagnetToggle", Callback = function(Value) MagnetGui.Enabled = Value; if not Value then IsHoldingMagnet = false end end })
 
 AinzTab:CreateSection("الانتقال السريع إلى لاعب")
 local TpDropdown = AinzTab:CreateDropdown({ Name = "انتقال إلى لاعب", Options = getPlayerNames(false), CurrentOption = {""}, MultipleOptions = false, Flag = "TpDropdown", Callback = function(Options) TpSelectedPlayer = Options[1] end })
@@ -474,7 +495,7 @@ RunService.Heartbeat:Connect(function(dt)
         end
     end
 
-    -- 3. سحب AINZ والتوجيه المحدث (بحث عن طريق الاسم)
+    -- 3. سحب AINZ والتوجيه المحدث 
     local shouldGrab = AutoGrab
     local activeTargetHRP = nil 
 
@@ -496,8 +517,6 @@ RunService.Heartbeat:Connect(function(dt)
     if SpecificTargetEnabled then
         local myChar = lp.Character
         if myChar and myChar:FindFirstChild("HumanoidRootPart") then
-            
-            -- البحث عن اللاعب الأول عن طريق اسمه
             local p1 = ChosenTargetName1 ~= "" and Players:FindFirstChild(ChosenTargetName1) or nil
             if p1 and p1.Character and p1.Character:FindFirstChild("HumanoidRootPart") then
                 if (myChar.HumanoidRootPart.Position - p1.Character.HumanoidRootPart.Position).Magnitude <= TriggerDistance then
@@ -506,7 +525,6 @@ RunService.Heartbeat:Connect(function(dt)
                 end
             end
 
-            -- البحث عن اللاعب الثاني في حال لم يتم التقاط الأول
             if not activeTargetHRP then
                 local p2 = ChosenTargetName2 ~= "" and Players:FindFirstChild(ChosenTargetName2) or nil
                 if p2 and p2.Character and p2.Character:FindFirstChild("HumanoidRootPart") then
@@ -519,42 +537,52 @@ RunService.Heartbeat:Connect(function(dt)
         end
     end
 
-    -- تنفيذ التوجيه السلس والمغناطيس مع حماية الطيران الفزيائي
+    -- التوجيه والمغناطيس العادي + المغناطيس القتالي باللمس
     if lp.Character and lp.Character:FindFirstChild("HumanoidRootPart") then
         local myRoot = lp.Character.HumanoidRootPart
         local currentGrabPower = lp:GetAttribute("GrabPower") or 0
         local isFighting = lp:GetAttribute("Fighting")
         
-        if activeTargetHRP and not isFighting then
-            if AutoLookEnabled then
-                local targetPos = Vector3.new(activeTargetHRP.Position.X, myRoot.Position.Y, activeTargetHRP.Position.Z)
-                if (targetPos - myRoot.Position).Magnitude > 0.5 then
-                    local bg = myRoot:FindFirstChild("AutoLookGyro")
-                    if not bg then
-                        bg = Instance.new("BodyGyro")
-                        bg.Name = "AutoLookGyro"
-                        bg.MaxTorque = Vector3.new(0, 400000, 0)
-                        bg.P = 30000
-                        bg.D = 100
-                        bg.Parent = myRoot
+        if activeTargetHRP then
+            -- المغناطيس القديم والتوجيه التلقائي (يعمل فقط خارج القتال)
+            if not isFighting then
+                if AutoLookEnabled then
+                    local targetPos = Vector3.new(activeTargetHRP.Position.X, myRoot.Position.Y, activeTargetHRP.Position.Z)
+                    if (targetPos - myRoot.Position).Magnitude > 0.5 then
+                        local bg = myRoot:FindFirstChild("AutoLookGyro")
+                        if not bg then
+                            bg = Instance.new("BodyGyro")
+                            bg.Name = "AutoLookGyro"
+                            bg.MaxTorque = Vector3.new(0, 400000, 0)
+                            bg.P = 30000
+                            bg.D = 100
+                            bg.Parent = myRoot
+                        end
+                        bg.CFrame = CFrame.lookAt(myRoot.Position, targetPos)
+                    else
+                        removeLookGyro()
                     end
-                    bg.CFrame = CFrame.lookAt(myRoot.Position, targetPos)
                 else
                     removeLookGyro()
+                end
+                
+                if AutoMagnetEnabled and currentGrabPower >= 100 then
+                    myRoot.CFrame = activeTargetHRP.CFrame * CFrame.new(0, 0, 2.5)
                 end
             else
                 removeLookGyro()
             end
-            
-            if AutoMagnetEnabled and currentGrabPower >= 100 then
+
+            -- [ الإضافة الجديدة ] المغناطيس القتالي بالضغط المستمر (يتجاهل حالة القتال)
+            if IsHoldingMagnet and currentGrabPower >= 100 then
                 myRoot.CFrame = activeTargetHRP.CFrame * CFrame.new(0, 0, 2.5)
             end
+
         else
             removeLookGyro()
         end
     end
 
-    -- تنفيذ السحب الديناميكي بحسب القيمة في السلايدر
     if shouldGrab and GrabRF then
         for i = 1, grabRepeatVal do 
             task.spawn(function() 
