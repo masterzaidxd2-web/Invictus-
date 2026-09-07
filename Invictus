@@ -1,5 +1,5 @@
 -- ===============================================
--- [ نظام حماية التشغيل المحسن لـ Delta - V9 ]
+-- [ نظام حماية التشغيل المحسن لـ Delta - V10 ]
 -- ===============================================
 repeat task.wait() until game:IsLoaded()
 task.wait(0.5)
@@ -40,7 +40,7 @@ local lp = Players.LocalPlayer
 -- ===============================================
 -- [ 1 ] إعدادات البيانات والمواقع المحفوظة
 -- ===============================================
-local DATA_FILE = "khurafi_delta_data_v9.json"
+local DATA_FILE = "khurafi_delta_data_v10.json"
 local SAVE = {safe1 = "", safe2 = "", safe3 = "", safe4 = "", safe5 = ""}
 local SavedWaypoints = {}
 local SelectedWaypointName = nil
@@ -154,13 +154,15 @@ local lastHitTick = 0
 local AutoGrab = false
 local AutoTargetEnabled = false
 local SpecificTargetEnabled = false
-local ChosenTargetPlayer1 = nil
-local ChosenTargetPlayer2 = nil
-local TriggerDistance = 15
-local grabRepeatVal = 3 -- القيمة الافتراضية للتكرار
-local TpSelectedPlayer = nil
 
--- إعدادات السحب الذكية
+-- حفظ الأسماء كنصوص لتفادي مشكلة الخروج من السيرفر
+local ChosenTargetName1 = ""
+local ChosenTargetName2 = ""
+
+local TriggerDistance = 15
+local grabRepeatVal = 3
+local TpSelectedPlayer = ""
+
 local AutoLookEnabled = false
 local AutoMagnetEnabled = false
 
@@ -194,6 +196,21 @@ rainbowNameRemote = rainbowNameRemote and rainbowNameRemote:FindFirstChild("SetR
 
 local EspEnabled = false; local EspBoxes = true; local EspNames = true
 
+local function getEspColor(playerName)
+    if isSafe(playerName) then 
+        return Color3.fromRGB(0, 255, 100) -- أصدقاء (أخضر)
+    end
+    
+    local isAuraTarget = (AuraTargetSelected ~= "All" and AuraTargetSelected ~= "" and playerName == AuraTargetSelected)
+    local isGrabTarget = (SpecificTargetEnabled and (playerName == ChosenTargetName1 or playerName == ChosenTargetName2))
+    
+    if isAuraTarget or isGrabTarget then
+        return Color3.fromRGB(255, 50, 50) -- الأهداف المخصصة (أحمر)
+    end
+    
+    return Color3.fromRGB(255, 255, 255) -- الجميع All (أبيض)
+end
+
 local function removeEsp(char)
     if not char then return end
     if char:FindFirstChild("ESP_Highlight") then char.ESP_Highlight:Destroy() end
@@ -206,10 +223,12 @@ local function applyEsp(player)
     removeEsp(char)
     if not EspEnabled then return end
 
+    local targetColor = getEspColor(player.Name)
+
     if EspBoxes then
         local highlight = Instance.new("Highlight")
         highlight.Name = "ESP_Highlight"; highlight.Adornee = char
-        highlight.FillColor = isSafe(player.Name) and Color3.fromRGB(0, 255, 100) or Color3.fromRGB(255, 50, 50)
+        highlight.FillColor = targetColor
         highlight.OutlineColor = Color3.fromRGB(255, 255, 255); highlight.FillTransparency = 0.5
         highlight.OutlineTransparency = 0; highlight.Parent = char
     end
@@ -221,8 +240,8 @@ local function applyEsp(player)
         billboard.StudsOffset = Vector3.new(0, 2.5, 0); billboard.AlwaysOnTop = true
         local textLabel = Instance.new("TextLabel")
         textLabel.Size = UDim2.new(1, 0, 1, 0); textLabel.BackgroundTransparency = 1
-        textLabel.TextColor3 = isSafe(player.Name) and Color3.fromRGB(0, 255, 100) or Color3.fromRGB(255, 255, 255)
-        textLabel.TextStrokeTransparency = 0; textLabel.Font = Enum.Font.SourceSansBold
+        textLabel.TextColor3 = targetColor
+        textLabel.TextStrokeTransparency = 0.5; textLabel.Font = Enum.Font.SourceSansBold
         textLabel.TextSize = 13; textLabel.Parent = billboard; billboard.Parent = char
 
         task.spawn(function()
@@ -327,7 +346,7 @@ local SettingsTab = Window:CreateTab("الإعدادات", 4483345998)
 MainTab:CreateToggle({ Name = "تفعيل الأورا (STATUS)", CurrentValue = false, Flag = "AuraToggle", Callback = function(Value) AuraEnabled = Value end })
 MainTab:CreateSlider({ Name = "نطاق الضرر", Range = {5, 100}, Increment = 1, Suffix = "Studs", CurrentValue = 50, Flag = "RangeSlider", Callback = function(Value) rangeVal = Value end })
 MainTab:CreateSlider({ Name = "سرعة الضرب", Range = {1, 60}, Increment = 1, Suffix = "Hit/s", CurrentValue = 15, Flag = "APSSlider", Callback = function(Value) apsVal = Value end })
-local AuraTargetDropdown = MainTab:CreateDropdown({ Name = "الهدف", Options = getPlayerNames(true), CurrentOption = {"All"}, MultipleOptions = false, Flag = "AuraTargetDropdown", Callback = function(Options) if Options[1] then AuraTargetSelected = Options[1] end end })
+local AuraTargetDropdown = MainTab:CreateDropdown({ Name = "الهدف", Options = getPlayerNames(true), CurrentOption = {"All"}, MultipleOptions = false, Flag = "AuraTargetDropdown", Callback = function(Options) if Options[1] then AuraTargetSelected = Options[1]; refreshAllEsp() end end })
 MainTab:CreateButton({ Name = "تحديث الأهداف", Callback = function() AuraTargetDropdown:Refresh(getPlayerNames(true)) end })
 
 -- AINZ 
@@ -335,9 +354,9 @@ AinzTab:CreateToggle({ Name = "سحب مستمر (الكل)", CurrentValue = fal
 AinzTab:CreateToggle({ Name = "استهداف تلقائي (أي شخص يقترب)", CurrentValue = false, Flag = "AutoTargetToggle", Callback = function(Value) AutoTargetEnabled = Value end })
 
 AinzTab:CreateSection("إعدادات السحب المحدد (الذكية)")
-local TargetDropdown1 = AinzTab:CreateDropdown({ Name = "اختر اللاعب الأول (1)", Options = getPlayerNames(false), CurrentOption = {""}, MultipleOptions = false, Flag = "SpecificTargetDropdown1", Callback = function(Options) if Options[1] and Options[1] ~= "" then ChosenTargetPlayer1 = Players:FindFirstChild(Options[1]) end end })
-local TargetDropdown2 = AinzTab:CreateDropdown({ Name = "اختر اللاعب الثاني (2)", Options = getPlayerNames(false), CurrentOption = {""}, MultipleOptions = false, Flag = "SpecificTargetDropdown2", Callback = function(Options) if Options[1] and Options[1] ~= "" then ChosenTargetPlayer2 = Players:FindFirstChild(Options[1]) end end })
-AinzTab:CreateToggle({ Name = "تفعيل السحب المحدد", CurrentValue = false, Flag = "SpecificTargetToggle", Callback = function(Value) SpecificTargetEnabled = Value end })
+local TargetDropdown1 = AinzTab:CreateDropdown({ Name = "اختر اللاعب الأول (1)", Options = getPlayerNames(false), CurrentOption = {""}, MultipleOptions = false, Flag = "SpecificTargetDropdown1", Callback = function(Options) if Options[1] then ChosenTargetName1 = Options[1]; refreshAllEsp() end end })
+local TargetDropdown2 = AinzTab:CreateDropdown({ Name = "اختر اللاعب الثاني (2)", Options = getPlayerNames(false), CurrentOption = {""}, MultipleOptions = false, Flag = "SpecificTargetDropdown2", Callback = function(Options) if Options[1] then ChosenTargetName2 = Options[1]; refreshAllEsp() end end })
+AinzTab:CreateToggle({ Name = "تفعيل السحب المحدد", CurrentValue = false, Flag = "SpecificTargetToggle", Callback = function(Value) SpecificTargetEnabled = Value; refreshAllEsp() end })
 
 AinzTab:CreateSlider({ Name = "نطاق تفعيل السحب (المسافة)", Range = {5, 100}, Increment = 1, Suffix = "Studs", CurrentValue = 15, Flag = "TriggerDistanceSlider", Callback = function(Value) TriggerDistance = Value end })
 AinzTab:CreateSlider({ Name = "عدد تكرار أمر السحب", Range = {1, 15}, Increment = 1, Suffix = "مرة", CurrentValue = 3, Flag = "GrabRepeatSlider", Callback = function(Value) grabRepeatVal = Value end })
@@ -347,8 +366,8 @@ AinzTab:CreateToggle({ Name = "🧲 مغناطيس (ينتقل فقط عندما
 
 AinzTab:CreateSection("الانتقال السريع إلى لاعب")
 local TpDropdown = AinzTab:CreateDropdown({ Name = "انتقال إلى لاعب", Options = getPlayerNames(false), CurrentOption = {""}, MultipleOptions = false, Flag = "TpDropdown", Callback = function(Options) TpSelectedPlayer = Options[1] end })
-AinzTab:CreateButton({ Name = "انتقال (Teleport)", Callback = function() if TpSelectedPlayer then local targetPlr = Players:FindFirstChild(TpSelectedPlayer) local myChar = lp.Character if targetPlr and targetPlr.Character and targetPlr.Character:FindFirstChild("HumanoidRootPart") and myChar and myChar:FindFirstChild("HumanoidRootPart") then myChar.HumanoidRootPart.CFrame = targetPlr.Character.HumanoidRootPart.CFrame * CFrame.new(0, 0, 0.8) end end end })
-AinzTab:CreateButton({ Name = "تحديث قوائم اللاعبين", Callback = function() TargetDropdown1:Refresh(getPlayerNames(false)); TargetDropdown2:Refresh(getPlayerNames(false)); TpDropdown:Refresh(getPlayerNames(false)) end })
+AinzTab:CreateButton({ Name = "انتقال (Teleport)", Callback = function() if TpSelectedPlayer ~= "" then local targetPlr = Players:FindFirstChild(TpSelectedPlayer) local myChar = lp.Character if targetPlr and targetPlr.Character and targetPlr.Character:FindFirstChild("HumanoidRootPart") and myChar and myChar:FindFirstChild("HumanoidRootPart") then myChar.HumanoidRootPart.CFrame = targetPlr.Character.HumanoidRootPart.CFrame * CFrame.new(0, 0, 0.8) end end end })
+AinzTab:CreateButton({ Name = "تحديث قوائم اللاعبين", Callback = function() local n = getPlayerNames(false) TargetDropdown1:Refresh(n); TargetDropdown2:Refresh(n); TpDropdown:Refresh(n) end })
 
 -- Player
 PlayerTab:CreateToggle({ Name = "إظهار زر التخفي العائم", CurrentValue = false, Flag = "InvisSystemToggle", Callback = function(Value) InvisGui.Enabled = Value; if not Value and IsInvisible then IsInvisible = false; FloatBtn.BackgroundColor3 = Color3.fromRGB(220, 60, 60); FloatBtn.Text = "تخفي: ❌"; for _, item in pairs(invisParts) do if item.obj and item.obj.Parent then item.obj.Transparency = item.origTrans end end end end })
@@ -455,7 +474,7 @@ RunService.Heartbeat:Connect(function(dt)
         end
     end
 
-    -- 3. سحب AINZ والتوجيه المحدث
+    -- 3. سحب AINZ والتوجيه المحدث (بحث عن طريق الاسم)
     local shouldGrab = AutoGrab
     local activeTargetHRP = nil 
 
@@ -477,22 +496,25 @@ RunService.Heartbeat:Connect(function(dt)
     if SpecificTargetEnabled then
         local myChar = lp.Character
         if myChar and myChar:FindFirstChild("HumanoidRootPart") then
-            if ChosenTargetPlayer1 and ChosenTargetPlayer1.Parent and ChosenTargetPlayer1.Character and ChosenTargetPlayer1.Character:FindFirstChild("HumanoidRootPart") then
-                if (myChar.HumanoidRootPart.Position - ChosenTargetPlayer1.Character.HumanoidRootPart.Position).Magnitude <= TriggerDistance then
+            
+            -- البحث عن اللاعب الأول عن طريق اسمه
+            local p1 = ChosenTargetName1 ~= "" and Players:FindFirstChild(ChosenTargetName1) or nil
+            if p1 and p1.Character and p1.Character:FindFirstChild("HumanoidRootPart") then
+                if (myChar.HumanoidRootPart.Position - p1.Character.HumanoidRootPart.Position).Magnitude <= TriggerDistance then
                     shouldGrab = true
-                    activeTargetHRP = ChosenTargetPlayer1.Character.HumanoidRootPart
+                    activeTargetHRP = p1.Character.HumanoidRootPart
                 end
-            else
-                if ChosenTargetPlayer1 and not ChosenTargetPlayer1.Parent then ChosenTargetPlayer1 = nil end
             end
 
-            if not activeTargetHRP and ChosenTargetPlayer2 and ChosenTargetPlayer2.Parent and ChosenTargetPlayer2.Character and ChosenTargetPlayer2.Character:FindFirstChild("HumanoidRootPart") then
-                if (myChar.HumanoidRootPart.Position - ChosenTargetPlayer2.Character.HumanoidRootPart.Position).Magnitude <= TriggerDistance then
-                    shouldGrab = true
-                    activeTargetHRP = ChosenTargetPlayer2.Character.HumanoidRootPart
+            -- البحث عن اللاعب الثاني في حال لم يتم التقاط الأول
+            if not activeTargetHRP then
+                local p2 = ChosenTargetName2 ~= "" and Players:FindFirstChild(ChosenTargetName2) or nil
+                if p2 and p2.Character and p2.Character:FindFirstChild("HumanoidRootPart") then
+                    if (myChar.HumanoidRootPart.Position - p2.Character.HumanoidRootPart.Position).Magnitude <= TriggerDistance then
+                        shouldGrab = true
+                        activeTargetHRP = p2.Character.HumanoidRootPart
+                    end
                 end
-            else
-                if ChosenTargetPlayer2 and not ChosenTargetPlayer2.Parent then ChosenTargetPlayer2 = nil end
             end
         end
     end
