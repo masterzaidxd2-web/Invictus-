@@ -1,5 +1,5 @@
 -- ===============================================
--- [ نظام حماية التشغيل المحسن لـ Delta - V8 ]
+-- [ نظام حماية التشغيل المحسن لـ Delta - V9 ]
 -- ===============================================
 repeat task.wait() until game:IsLoaded()
 task.wait(0.5)
@@ -40,7 +40,7 @@ local lp = Players.LocalPlayer
 -- ===============================================
 -- [ 1 ] إعدادات البيانات والمواقع المحفوظة
 -- ===============================================
-local DATA_FILE = "khurafi_delta_data_v8.json"
+local DATA_FILE = "khurafi_delta_data_v9.json"
 local SAVE = {safe1 = "", safe2 = "", safe3 = "", safe4 = "", safe5 = ""}
 local SavedWaypoints = {}
 local SelectedWaypointName = nil
@@ -157,6 +157,7 @@ local SpecificTargetEnabled = false
 local ChosenTargetPlayer1 = nil
 local ChosenTargetPlayer2 = nil
 local TriggerDistance = 15
+local grabRepeatVal = 3 -- القيمة الافتراضية للتكرار
 local TpSelectedPlayer = nil
 
 -- إعدادات السحب الذكية
@@ -339,6 +340,8 @@ local TargetDropdown2 = AinzTab:CreateDropdown({ Name = "اختر اللاعب �
 AinzTab:CreateToggle({ Name = "تفعيل السحب المحدد", CurrentValue = false, Flag = "SpecificTargetToggle", Callback = function(Value) SpecificTargetEnabled = Value end })
 
 AinzTab:CreateSlider({ Name = "نطاق تفعيل السحب (المسافة)", Range = {5, 100}, Increment = 1, Suffix = "Studs", CurrentValue = 15, Flag = "TriggerDistanceSlider", Callback = function(Value) TriggerDistance = Value end })
+AinzTab:CreateSlider({ Name = "عدد تكرار أمر السحب", Range = {1, 15}, Increment = 1, Suffix = "مرة", CurrentValue = 3, Flag = "GrabRepeatSlider", Callback = function(Value) grabRepeatVal = Value end })
+
 AinzTab:CreateToggle({ Name = "🎯 توجيه تلقائي (النظر للهدف)", CurrentValue = false, Flag = "AutoLookToggle", Callback = function(Value) AutoLookEnabled = Value; if not Value then removeLookGyro() end end })
 AinzTab:CreateToggle({ Name = "🧲 مغناطيس (ينتقل فقط عندما يكون GrabPower = 100)", CurrentValue = false, Flag = "AutoMagnetToggle", Callback = function(Value) AutoMagnetEnabled = Value end })
 
@@ -497,16 +500,12 @@ RunService.Heartbeat:Connect(function(dt)
     -- تنفيذ التوجيه السلس والمغناطيس مع حماية الطيران الفزيائي
     if lp.Character and lp.Character:FindFirstChild("HumanoidRootPart") then
         local myRoot = lp.Character.HumanoidRootPart
-        local currentGrabPower = lp:GetAttribute("GrabPower") or 0 -- جلب طاقة السحب
-        local isFighting = lp:GetAttribute("Fighting") -- جلب حالة القتال (هل اللاعب يقوم بالإمساك حالياً؟)
+        local currentGrabPower = lp:GetAttribute("GrabPower") or 0
+        local isFighting = lp:GetAttribute("Fighting")
         
-        -- التوجيه والمغناطيس يعملان فقط إذا لم تكن في حالة قتال/إمساك
         if activeTargetHRP and not isFighting then
-            
-            -- 1. التوجيه
             if AutoLookEnabled then
                 local targetPos = Vector3.new(activeTargetHRP.Position.X, myRoot.Position.Y, activeTargetHRP.Position.Z)
-                -- حماية المسافة: يمنع خطأ الـ NaN CFrame الذي يسبب الطيران
                 if (targetPos - myRoot.Position).Magnitude > 0.5 then
                     local bg = myRoot:FindFirstChild("AutoLookGyro")
                     if not bg then
@@ -525,18 +524,21 @@ RunService.Heartbeat:Connect(function(dt)
                 removeLookGyro()
             end
             
-            -- 2. المغناطيس: ينتقل فقط إذا كان GrabPower يساوي 100
             if AutoMagnetEnabled and currentGrabPower >= 100 then
                 myRoot.CFrame = activeTargetHRP.CFrame * CFrame.new(0, 0, 2.5)
             end
         else
-            -- إيقاف التوجيه فوراً بمجرد بدء حركة الإمساك لمنع التضارب الفيزيائي
             removeLookGyro()
         end
     end
 
+    -- تنفيذ السحب الديناميكي بحسب القيمة في السلايدر
     if shouldGrab and GrabRF then
-        for i = 1, 10 do task.spawn(function() pcall(function() GrabRF:InvokeServer() end) end) end
+        for i = 1, grabRepeatVal do 
+            task.spawn(function() 
+                pcall(function() GrabRF:InvokeServer() end) 
+            end) 
+        end
     end
 
     if rainbowNameRemote and BWNameActive then
@@ -555,7 +557,6 @@ RunService.Heartbeat:Connect(function(dt)
     end
 end)
 
--- استعادة آخر حالة تم حفظها للواجهة تلقائياً عند التشغيل
 pcall(function()
     Rayfield:LoadConfiguration()
 end)
