@@ -128,7 +128,8 @@ local lastHitTick = 0
 local AutoGrab = false
 local AutoTargetEnabled = false
 local SpecificTargetEnabled = false
-local ChosenTargetPlayer = nil
+local ChosenTargetPlayer1 = nil
+local ChosenTargetPlayer2 = nil
 local TriggerDistance = 15
 local TpSelectedPlayer = nil
 
@@ -241,26 +242,25 @@ end)
 local IsInvisible = false
 local invisParts = {}
 
--- إنشاء واجهة الزر العائم
 local InvisGui = Instance.new("ScreenGui")
 InvisGui.Name = "FloatingInvisUI"
 InvisGui.ResetOnSpawn = false
 local successGui = pcall(function() InvisGui.Parent = CoreGui end)
 if not successGui then InvisGui.Parent = lp:WaitForChild("PlayerGui") end
-InvisGui.Enabled = false -- مخفية افتراضياً
+InvisGui.Enabled = false 
 
 local FloatBtn = Instance.new("TextButton")
 FloatBtn.Size = UDim2.new(0, 100, 0, 45)
 FloatBtn.Position = UDim2.new(0.5, -50, 0.1, 0)
-FloatBtn.BackgroundColor3 = Color3.fromRGB(220, 60, 60) -- أحمر (معطل)
+FloatBtn.BackgroundColor3 = Color3.fromRGB(220, 60, 60)
 FloatBtn.Text = "تخفي: ❌"
 FloatBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 FloatBtn.Font = Enum.Font.SourceSansBold
 FloatBtn.TextSize = 18
 FloatBtn.Active = true
-FloatBtn.Draggable = true -- يمكن سحبه في أي مكان
+FloatBtn.Draggable = true 
 FloatBtn.Parent = InvisGui
--- لمسة تصميم: حواف دائرية للزر العائم
+
 local UICorner = Instance.new("UICorner")
 UICorner.CornerRadius = UDim.new(0, 8)
 UICorner.Parent = FloatBtn
@@ -281,7 +281,7 @@ end
 FloatBtn.MouseButton1Click:Connect(function()
     IsInvisible = not IsInvisible
     if IsInvisible then
-        FloatBtn.BackgroundColor3 = Color3.fromRGB(60, 220, 60) -- أخضر (مفعل)
+        FloatBtn.BackgroundColor3 = Color3.fromRGB(60, 220, 60)
         FloatBtn.Text = "تخفي: ✅"
         updateInvisParts()
         for _, item in pairs(invisParts) do
@@ -353,7 +353,6 @@ PlayerTab:CreateToggle({
     Callback = function(Value) 
         InvisGui.Enabled = Value 
         if not Value and IsInvisible then
-            -- إلغاء التخفي فوراً عند إخفاء الزر
             IsInvisible = false
             FloatBtn.BackgroundColor3 = Color3.fromRGB(220, 60, 60)
             FloatBtn.Text = "تخفي: ❌"
@@ -385,14 +384,19 @@ EspTab:CreateToggle({ Name = "تفعيل ESP", CurrentValue = false, Flag = "Esp
 EspTab:CreateToggle({ Name = "تظليل (Highlight)", CurrentValue = true, Flag = "EspBoxesToggle", Callback = function(Value) EspBoxes = Value; refreshAllEsp() end })
 EspTab:CreateToggle({ Name = "أسماء ومسافة", CurrentValue = true, Flag = "EspNamesToggle", Callback = function(Value) EspNames = Value; refreshAllEsp() end })
 
--- AINZ
+-- AINZ (تم تحديث قسم الإمساك المخصص ليشمل هدفين)
 AinzTab:CreateToggle({ Name = "سحب مستمر", CurrentValue = false, Flag = "AutoGrabToggle", Callback = function(Value) AutoGrab = Value end })
 AinzTab:CreateToggle({ Name = "استهداف تلقائي للكل", CurrentValue = false, Flag = "AutoTargetToggle", Callback = function(Value) AutoTargetEnabled = Value end })
-local TargetDropdown = AinzTab:CreateDropdown({ Name = "اختر لاعب", Options = getPlayerNames(false), CurrentOption = {""}, MultipleOptions = false, Flag = "SpecificTargetDropdown", Callback = function(Options) if Options[1] and Options[1] ~= "" then ChosenTargetPlayer = Players:FindFirstChild(Options[1]) end end })
-AinzTab:CreateToggle({ Name = "سحب اللاعب المحدد", CurrentValue = false, Flag = "SpecificTargetToggle", Callback = function(Value) SpecificTargetEnabled = Value end })
+
+AinzTab:CreateSection("الإمساك المخصص (لاعبين محددين)")
+local TargetDropdown1 = AinzTab:CreateDropdown({ Name = "اختر اللاعب المستهدف الأول (1)", Options = getPlayerNames(false), CurrentOption = {""}, MultipleOptions = false, Flag = "SpecificTargetDropdown1", Callback = function(Options) if Options[1] and Options[1] ~= "" then ChosenTargetPlayer1 = Players:FindFirstChild(Options[1]) end end })
+local TargetDropdown2 = AinzTab:CreateDropdown({ Name = "اختر اللاعب المستهدف الثاني (2)", Options = getPlayerNames(false), CurrentOption = {""}, MultipleOptions = false, Flag = "SpecificTargetDropdown2", Callback = function(Options) if Options[1] and Options[1] ~= "" then ChosenTargetPlayer2 = Players:FindFirstChild(Options[1]) end end })
+AinzTab:CreateToggle({ Name = "تفعيل السحب على اللاعبين المحددين", CurrentValue = false, Flag = "SpecificTargetToggle", Callback = function(Value) SpecificTargetEnabled = Value end })
+
+AinzTab:CreateSection("الانتقال السريع")
 local TpDropdown = AinzTab:CreateDropdown({ Name = "انتقال إلى لاعب", Options = getPlayerNames(false), CurrentOption = {""}, MultipleOptions = false, Flag = "TpDropdown", Callback = function(Options) TpSelectedPlayer = Options[1] end })
 AinzTab:CreateButton({ Name = "انتقال (Teleport)", Callback = function() if TpSelectedPlayer then local targetPlr = Players:FindFirstChild(TpSelectedPlayer) local myChar = lp.Character if targetPlr and targetPlr.Character and targetPlr.Character:FindFirstChild("HumanoidRootPart") and myChar and myChar:FindFirstChild("HumanoidRootPart") then myChar.HumanoidRootPart.CFrame = targetPlr.Character.HumanoidRootPart.CFrame * CFrame.new(0, 0, 0.8) end end end })
-AinzTab:CreateButton({ Name = "تحديث قوائم اللاعبين", Callback = function() TargetDropdown:Refresh(getPlayerNames(false)); TpDropdown:Refresh(getPlayerNames(false)) end })
+AinzTab:CreateButton({ Name = "تحديث قوائم اللاعبين", Callback = function() TargetDropdown1:Refresh(getPlayerNames(false)); TargetDropdown2:Refresh(getPlayerNames(false)); TpDropdown:Refresh(getPlayerNames(false)) end })
 
 -- Names
 NameTab:CreateToggle({ Name = "تفعيل التأثيرات", CurrentValue = false, Flag = "NameEffectToggle", Callback = function(Value) BWNameActive = Value end })
@@ -409,7 +413,7 @@ SettingsTab:CreateButton({ Name = "حفظ البيانات", Callback = function
 -- [ 8 ] المحرك الأساسي (يعمل لكل شيء)
 -- ===============================================
 RunService.Heartbeat:Connect(function(dt)
-    -- 0. نظام التخفي (Invisibility Engine)
+    -- 0. نظام التخفي
     if IsInvisible and lp.Character then
         local rootPart = lp.Character:FindFirstChild("HumanoidRootPart")
         local humanoid = lp.Character:FindFirstChild("Humanoid")
@@ -427,7 +431,7 @@ RunService.Heartbeat:Connect(function(dt)
         end
     end
 
-    -- 1. تثبيت السرعة (Anti-Slow)
+    -- 1. تثبيت السرعة
     if isSpeedEnabled and lp.Character then
         local hum = lp.Character:FindFirstChildOfClass("Humanoid")
         if hum and hum.WalkSpeed ~= currentWalkSpeed then
@@ -464,7 +468,7 @@ RunService.Heartbeat:Connect(function(dt)
         end
     end
 
-    -- 3. سحب AINZ
+    -- 3. سحب AINZ (محدث لفحص الهدفين المحددين)
     local shouldGrab = AutoGrab
     if AutoTargetEnabled then
         local myChar = lp.Character
@@ -478,14 +482,30 @@ RunService.Heartbeat:Connect(function(dt)
             end
         end
     end
-    if SpecificTargetEnabled and ChosenTargetPlayer and ChosenTargetPlayer.Parent then
-        local myChar, targetChar = lp.Character, ChosenTargetPlayer.Character
-        if myChar and myChar:FindFirstChild("HumanoidRootPart") and targetChar and targetChar:FindFirstChild("HumanoidRootPart") then
-            if (myChar.HumanoidRootPart.Position - targetChar.HumanoidRootPart.Position).Magnitude <= TriggerDistance then shouldGrab = true end
+
+    if SpecificTargetEnabled then
+        local myChar = lp.Character
+        if myChar and myChar:FindFirstChild("HumanoidRootPart") then
+            -- فحص الهدف الأول
+            if ChosenTargetPlayer1 and ChosenTargetPlayer1.Parent and ChosenTargetPlayer1.Character and ChosenTargetPlayer1.Character:FindFirstChild("HumanoidRootPart") then
+                if (myChar.HumanoidRootPart.Position - ChosenTargetPlayer1.Character.HumanoidRootPart.Position).Magnitude <= TriggerDistance then
+                    shouldGrab = true
+                end
+            else
+                if ChosenTargetPlayer1 and not ChosenTargetPlayer1.Parent then ChosenTargetPlayer1 = nil end
+            end
+
+            -- فحص الهدف الثاني
+            if ChosenTargetPlayer2 and ChosenTargetPlayer2.Parent and ChosenTargetPlayer2.Character and ChosenTargetPlayer2.Character:FindFirstChild("HumanoidRootPart") then
+                if (myChar.HumanoidRootPart.Position - ChosenTargetPlayer2.Character.HumanoidRootPart.Position).Magnitude <= TriggerDistance then
+                    shouldGrab = true
+                end
+            else
+                if ChosenTargetPlayer2 and not ChosenTargetPlayer2.Parent then ChosenTargetPlayer2 = nil end
+            end
         end
-    else
-        if ChosenTargetPlayer and not ChosenTargetPlayer.Parent then SpecificTargetEnabled = false; ChosenTargetPlayer = nil end
     end
+
     if shouldGrab and GrabRF then
         for i = 1, 5 do task.spawn(function() pcall(function() GrabRF:InvokeServer() end) end) end
     end
