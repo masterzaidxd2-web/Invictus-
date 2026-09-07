@@ -48,18 +48,29 @@ local lp = Players.LocalPlayer
 -- [ 1 ] إعدادات البيانات والمواقع المحفوظة
 -- ===============================================
 local DATA_FILE = "aurakill_delta_data_v5.json"
-local SAVE = {safe1 = "", safe2 = "", safe3 = ""}
+local SAVE = {safe1 = "", safe2 = "", safe3 = "", safe4 = "", safe5 = ""}
 local SavedWaypoints = {}
 local SelectedWaypointName = nil
 
 local function loadData()
     pcall(function()
-        if writefile and isfile and isfile(DATA_FILE) then
+        if readfile and isfile and isfile(DATA_FILE) then
             local data = HttpService:JSONDecode(readfile(DATA_FILE))
             if data and type(data) == "table" then
                 SAVE.safe1 = data.safe1 or ""
                 SAVE.safe2 = data.safe2 or ""
                 SAVE.safe3 = data.safe3 or ""
+                SAVE.safe4 = data.safe4 or ""
+                SAVE.safe5 = data.safe5 or ""
+                
+                if data.waypoints and type(data.waypoints) == "table" then
+                    SavedWaypoints = {}
+                    for wpName, cfData in pairs(data.waypoints) do
+                        if type(cfData) == "table" then
+                            SavedWaypoints[wpName] = CFrame.new(unpack(cfData))
+                        end
+                    end
+                end
             end
         end
     end)
@@ -67,17 +78,33 @@ end
 
 local function saveData()
     pcall(function()
-        if writefile then writefile(DATA_FILE, HttpService:JSONEncode(SAVE)) end
+        if writefile then
+            local waypointsData = {}
+            for wpName, cf in pairs(SavedWaypoints) do
+                waypointsData[wpName] = {cf:GetComponents()}
+            end
+            local dataToSave = {
+                safe1 = SAVE.safe1,
+                safe2 = SAVE.safe2,
+                safe3 = SAVE.safe3,
+                safe4 = SAVE.safe4,
+                safe5 = SAVE.safe5,
+                waypoints = waypointsData
+            }
+            writefile(DATA_FILE, HttpService:JSONEncode(dataToSave))
+        end
     end)
 end
 loadData()
 
 local function isSafe(name)
     local lowerName = name:lower()
-    local boxes = {SAVE.safe1, SAVE.safe2, SAVE.safe3}
+    local boxes = {SAVE.safe1, SAVE.safe2, SAVE.safe3, SAVE.safe4, SAVE.safe5}
     for _, boxText in ipairs(boxes) do
-        for s in boxText:gmatch("%S+") do
-            if lowerName:find(s:lower(), 1, true) then return true end
+        if boxText and boxText ~= "" then
+            for s in boxText:gmatch("%S+") do
+                if lowerName:find(s:lower(), 1, true) then return true end
+            end
         end
     end
     return false
@@ -411,8 +438,9 @@ WaypointsTab:CreateButton({
         if NewWaypointName ~= "" and lp.Character and lp.Character:FindFirstChild("HumanoidRootPart") then
             local pos = lp.Character.HumanoidRootPart.CFrame
             SavedWaypoints[NewWaypointName] = pos
+            saveData()
             local posStr = string.format("X:%.0f Y:%.0f Z:%.0f", pos.X, pos.Y, pos.Z)
-            Rayfield:Notify({Title = "تم حفظ المكان", Content = NewWaypointName .. " (" .. posStr .. ")", Duration = 3})
+            Rayfield:Notify({Title = "تم حفظ المكان بنجاح", Content = NewWaypointName .. " (" .. posStr .. ")", Duration = 3})
             if WaypointDropdown then WaypointDropdown:Refresh(getWaypointNames()) end
         else
             Rayfield:Notify({Title = "تنبيه", Content = "يرجى كتابة اسم للمكان أولاً", Duration = 3})
@@ -451,6 +479,7 @@ WaypointsTab:CreateButton({
     Callback = function()
         if SelectedWaypointName and SavedWaypoints[SelectedWaypointName] then
             SavedWaypoints[SelectedWaypointName] = nil
+            saveData()
             Rayfield:Notify({Title = "تم الحذف", Content = "تم حذف " .. SelectedWaypointName, Duration = 2})
             SelectedWaypointName = nil
             if WaypointDropdown then WaypointDropdown:Refresh(getWaypointNames()) end
@@ -483,10 +512,28 @@ NameTab:CreateDropdown({ Name = "النوع", Options = {"BW", "Rainbow", "Pulse
 NameTab:CreateSlider({ Name = "السرعة", Range = {0.1, 3.0}, Increment = 0.1, Suffix = "x", CurrentValue = 0.7, Flag = "NameSpeedSlider", Callback = function(Value) rnSpeed = Value end })
 
 -- Settings
-SettingsTab:CreateInput({ Name = "SAFE 1", PlaceholderText = "اسم اللاعب 1...", RemoveTextAfterFocusLost = false, CurrentValue = SAVE.safe1, Callback = function(Text) SAVE.safe1 = Text; saveData(); refreshAllEsp() end })
-SettingsTab:CreateInput({ Name = "SAFE 2", PlaceholderText = "اسم اللاعب 2...", RemoveTextAfterFocusLost = false, CurrentValue = SAVE.safe2, Callback = function(Text) SAVE.safe2 = Text; saveData(); refreshAllEsp() end })
-SettingsTab:CreateInput({ Name = "SAFE 3", PlaceholderText = "اسم اللاعب 3...", RemoveTextAfterFocusLost = false, CurrentValue = SAVE.safe3, Callback = function(Text) SAVE.safe3 = Text; saveData(); refreshAllEsp() end })
-SettingsTab:CreateButton({ Name = "حفظ البيانات", Callback = function() saveData(); Rayfield:Notify({Title = "تم الحفظ", Content = "تم بنجاح", Duration = 3}) end })
+SettingsTab:CreateSection("قائمة اللاعبين الآمنين (SAFE)")
+local SafeDropdown1, SafeDropdown2, SafeDropdown3, SafeDropdown4, SafeDropdown5
+
+SafeDropdown1 = SettingsTab:CreateDropdown({ Name = "SAFE 1", Options = getPlayerNames(false), CurrentOption = {SAVE.safe1 ~= "" and SAVE.safe1 or ""}, MultipleOptions = false, Flag = "SafeDropdown1", Callback = function(Options) if Options[1] then SAVE.safe1 = Options[1]; saveData(); refreshAllEsp() end end })
+SafeDropdown2 = SettingsTab:CreateDropdown({ Name = "SAFE 2", Options = getPlayerNames(false), CurrentOption = {SAVE.safe2 ~= "" and SAVE.safe2 or ""}, MultipleOptions = false, Flag = "SafeDropdown2", Callback = function(Options) if Options[1] then SAVE.safe2 = Options[1]; saveData(); refreshAllEsp() end end })
+SafeDropdown3 = SettingsTab:CreateDropdown({ Name = "SAFE 3", Options = getPlayerNames(false), CurrentOption = {SAVE.safe3 ~= "" and SAVE.safe3 or ""}, MultipleOptions = false, Flag = "SafeDropdown3", Callback = function(Options) if Options[1] then SAVE.safe3 = Options[1]; saveData(); refreshAllEsp() end end })
+SafeDropdown4 = SettingsTab:CreateDropdown({ Name = "SAFE 4", Options = getPlayerNames(false), CurrentOption = {SAVE.safe4 ~= "" and SAVE.safe4 or ""}, MultipleOptions = false, Flag = "SafeDropdown4", Callback = function(Options) if Options[1] then SAVE.safe4 = Options[1]; saveData(); refreshAllEsp() end end })
+SafeDropdown5 = SettingsTab:CreateDropdown({ Name = "SAFE 5", Options = getPlayerNames(false), CurrentOption = {SAVE.safe5 ~= "" and SAVE.safe5 or ""}, MultipleOptions = false, Flag = "SafeDropdown5", Callback = function(Options) if Options[1] then SAVE.safe5 = Options[1]; saveData(); refreshAllEsp() end end })
+
+SettingsTab:CreateButton({
+    Name = "تحديث قائمة اللاعبين الآمنين",
+    Callback = function()
+        local names = getPlayerNames(false)
+        SafeDropdown1:Refresh(names)
+        SafeDropdown2:Refresh(names)
+        SafeDropdown3:Refresh(names)
+        SafeDropdown4:Refresh(names)
+        SafeDropdown5:Refresh(names)
+    end
+})
+
+SettingsTab:CreateButton({ Name = "حفظ البيانات manual", Callback = function() saveData(); Rayfield:Notify({Title = "تم الحفظ", Content = "تم حفظ الإعدادات بنجاح", Duration = 3}) end })
 
 -- ===============================================
 -- [ 8 ] المحرك الأساسي (يعمل لكل شيء)
