@@ -1,5 +1,5 @@
 -- ===============================================
--- [ نظام حماية التشغيل المحسن لـ Delta - V7 ]
+-- [ نظام حماية التشغيل المحسن لـ Delta - V8 ]
 -- ===============================================
 repeat task.wait() until game:IsLoaded()
 task.wait(0.5)
@@ -40,7 +40,7 @@ local lp = Players.LocalPlayer
 -- ===============================================
 -- [ 1 ] إعدادات البيانات والمواقع المحفوظة
 -- ===============================================
-local DATA_FILE = "khurafi_delta_data_v7.json"
+local DATA_FILE = "khurafi_delta_data_v8.json"
 local SAVE = {safe1 = "", safe2 = "", safe3 = "", safe4 = "", safe5 = ""}
 local SavedWaypoints = {}
 local SelectedWaypointName = nil
@@ -494,33 +494,43 @@ RunService.Heartbeat:Connect(function(dt)
         end
     end
 
-    -- تنفيذ التوجيه السلس والمغناطيس (بناءً على طاقة السحب GrabPower == 100)
+    -- تنفيذ التوجيه السلس والمغناطيس مع حماية الطيران الفزيائي
     if lp.Character and lp.Character:FindFirstChild("HumanoidRootPart") then
         local myRoot = lp.Character.HumanoidRootPart
-        local currentGrabPower = lp:GetAttribute("GrabPower") or 0 -- جلب قيمة طاقة السحب
+        local currentGrabPower = lp:GetAttribute("GrabPower") or 0 -- جلب طاقة السحب
+        local isFighting = lp:GetAttribute("Fighting") -- جلب حالة القتال (هل اللاعب يقوم بالإمساك حالياً؟)
         
-        if activeTargetHRP then
+        -- التوجيه والمغناطيس يعملان فقط إذا لم تكن في حالة قتال/إمساك
+        if activeTargetHRP and not isFighting then
+            
             -- 1. التوجيه
             if AutoLookEnabled then
-                local bg = myRoot:FindFirstChild("AutoLookGyro")
-                if not bg then
-                    bg = Instance.new("BodyGyro")
-                    bg.Name = "AutoLookGyro"
-                    bg.MaxTorque = Vector3.new(0, 400000, 0)
-                    bg.P = 30000
-                    bg.D = 100
-                    bg.Parent = myRoot
+                local targetPos = Vector3.new(activeTargetHRP.Position.X, myRoot.Position.Y, activeTargetHRP.Position.Z)
+                -- حماية المسافة: يمنع خطأ الـ NaN CFrame الذي يسبب الطيران
+                if (targetPos - myRoot.Position).Magnitude > 0.5 then
+                    local bg = myRoot:FindFirstChild("AutoLookGyro")
+                    if not bg then
+                        bg = Instance.new("BodyGyro")
+                        bg.Name = "AutoLookGyro"
+                        bg.MaxTorque = Vector3.new(0, 400000, 0)
+                        bg.P = 30000
+                        bg.D = 100
+                        bg.Parent = myRoot
+                    end
+                    bg.CFrame = CFrame.lookAt(myRoot.Position, targetPos)
+                else
+                    removeLookGyro()
                 end
-                bg.CFrame = CFrame.lookAt(myRoot.Position, Vector3.new(activeTargetHRP.Position.X, myRoot.Position.Y, activeTargetHRP.Position.Z))
             else
                 removeLookGyro()
             end
             
-            -- 2. المغناطيس: ينتقل فقط إذا كان GrabPower يساوي 100 (الميزة مشحونة وجاهزة)
+            -- 2. المغناطيس: ينتقل فقط إذا كان GrabPower يساوي 100
             if AutoMagnetEnabled and currentGrabPower >= 100 then
                 myRoot.CFrame = activeTargetHRP.CFrame * CFrame.new(0, 0, 2.5)
             end
         else
+            -- إيقاف التوجيه فوراً بمجرد بدء حركة الإمساك لمنع التضارب الفيزيائي
             removeLookGyro()
         end
     end
