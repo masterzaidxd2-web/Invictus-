@@ -262,21 +262,22 @@ Players.PlayerAdded:Connect(function(plr) if plr ~= lp then plr.CharacterAdded:C
 -- UI التخفي (ثابت فوق يمين)
 local IsInvisible = false; local invisParts = {}
 local InvisGui = Instance.new("ScreenGui"); InvisGui.Name = "FloatingInvisUI"; InvisGui.ResetOnSpawn = false
+InvisGui.IgnoreGuiInset = true -- [هذا هو السطر السحري الذي يكسر الحاجز]
 local successGui = pcall(function() InvisGui.Parent = CoreGui end)
 if not successGui then InvisGui.Parent = lp:WaitForChild("PlayerGui") end
 InvisGui.Enabled = false 
 
 local FloatBtn = Instance.new("TextButton")
 FloatBtn.Size = UDim2.new(0, 100, 0, 45)
-FloatBtn.AnchorPoint = Vector2.new(1, 0) -- نقطة الارتكاز لليمين
-FloatBtn.Position = UDim2.new(1, -120, 0, 2) -- الموقع فوق يمين بجانب المغناطيس
+FloatBtn.AnchorPoint = Vector2.new(1, 0)
+FloatBtn.Position = UDim2.new(1, -120, 0, 5) -- 5 بيكسل فقط من سقف الشاشة
 FloatBtn.BackgroundColor3 = Color3.fromRGB(220, 60, 60)
 FloatBtn.Text = "تخفي: ❌"
 FloatBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 FloatBtn.Font = Enum.Font.SourceSansBold
 FloatBtn.TextSize = 18
 FloatBtn.Active = true
-FloatBtn.Draggable = false -- غير قابل للحركة
+FloatBtn.Draggable = false
 FloatBtn.Parent = InvisGui
 local UICorner = Instance.new("UICorner"); UICorner.CornerRadius = UDim.new(0, 8); UICorner.Parent = FloatBtn
 
@@ -306,23 +307,25 @@ end)
 -- UI زر المغناطيس باللمس (ثابت فوق أقصى اليمين)
 local IsHoldingMagnet = false
 local MagnetGui = Instance.new("ScreenGui"); MagnetGui.Name = "FloatingMagnetUI"; MagnetGui.ResetOnSpawn = false
+MagnetGui.IgnoreGuiInset = true -- [هذا هو السطر السحري الذي يكسر الحاجز]
 local successMagGui = pcall(function() MagnetGui.Parent = CoreGui end)
 if not successMagGui then MagnetGui.Parent = lp:WaitForChild("PlayerGui") end
 MagnetGui.Enabled = false 
 
 local HoldMagBtn = Instance.new("TextButton")
 HoldMagBtn.Size = UDim2.new(0, 100, 0, 45)
-HoldMagBtn.AnchorPoint = Vector2.new(1, 0) -- نقطة الارتكاز لليمين
-HoldMagBtn.Position = UDim2.new(1, -10, 0, 2) -- الموقع فوق أقصى اليمين
+HoldMagBtn.AnchorPoint = Vector2.new(1, 0)
+HoldMagBtn.Position = UDim2.new(1, -10, 0, 5) -- 5 بيكسل فقط من سقف الشاشة
 HoldMagBtn.BackgroundColor3 = Color3.fromRGB(60, 100, 220)
 HoldMagBtn.Text = "🧲 مغناطيس"
 HoldMagBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 HoldMagBtn.Font = Enum.Font.SourceSansBold
 HoldMagBtn.TextSize = 18
 HoldMagBtn.Active = true
-HoldMagBtn.Draggable = false -- غير قابل للحركة
+HoldMagBtn.Draggable = false
 HoldMagBtn.Parent = MagnetGui
 local MagUICorner = Instance.new("UICorner"); MagUICorner.CornerRadius = UDim.new(0, 8); MagUICorner.Parent = HoldMagBtn
+
 
 HoldMagBtn.MouseButton1Down:Connect(function()
     IsHoldingMagnet = true
