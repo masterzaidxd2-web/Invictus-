@@ -609,17 +609,35 @@ RunService.Heartbeat:Connect(function(dt)
                     removeLookGyro()
                 end
                 
+                                -- 🧲 التحديث: المغناطيس التلقائي (في وضع الاختفاء/خارج القتال) مع التنبؤ ولمس وهمي
                 if AutoMagnetEnabled and currentGrabPower >= 100 then
-                    myRoot.CFrame = activeTargetHRP.CFrame * CFrame.new(0, 0, 2.5)
+                    local targetVelocity = activeTargetHRP.AssemblyLinearVelocity
+                    local pingPrediction = targetVelocity * 0.05 -- التنبؤ بالموقع بناءً على السرعة
+                    myRoot.CFrame = (activeTargetHRP.CFrame + pingPrediction) * CFrame.new(0, 0, 2.5)
+                    
+                    if firetouchinterest then
+                        firetouchinterest(myRoot, activeTargetHRP, 0)
+                        task.wait()
+                        firetouchinterest(myRoot, activeTargetHRP, 1)
+                    end
                 end
             else
                 removeLookGyro()
             end
 
-            -- [ الإضافة الجديدة ] المغناطيس القتالي بالضغط المستمر (يتجاهل حالة القتال)
+            -- 🧲 التحديث: المغناطيس القتالي (الزر العائم بالضغط المستمر) مع التنبؤ ولمس وهمي
             if IsHoldingMagnet and currentGrabPower >= 100 then
-                myRoot.CFrame = activeTargetHRP.CFrame * CFrame.new(0, 0, 2.5)
+                local targetVelocity = activeTargetHRP.AssemblyLinearVelocity
+                local pingPrediction = targetVelocity * 0.05 -- التنبؤ بالموقع بناءً على السرعة
+                myRoot.CFrame = (activeTargetHRP.CFrame + pingPrediction) * CFrame.new(0, 0, 2.5)
+                
+                if firetouchinterest then
+                    firetouchinterest(myRoot, activeTargetHRP, 0)
+                    task.wait()
+                    firetouchinterest(myRoot, activeTargetHRP, 1)
+                end
             end
+
 
         else
             removeLookGyro()
