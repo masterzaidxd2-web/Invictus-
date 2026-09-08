@@ -256,8 +256,32 @@ local function refreshAllEsp()
     end
 end
 
-for _, p in ipairs(Players:GetPlayers()) do if p ~= lp then p.CharacterAdded:Connect(function() if EspEnabled then task.wait(0.5) applyEsp(p) end end) end end
-Players.PlayerAdded:Connect(function(plr) if plr ~= lp then plr.CharacterAdded:Connect(function() if EspEnabled then task.wait(0.5) applyEsp(plr) end end) end end)
+-- ✅ الكود الجديد المحسن (يعالج الدخول الفوري وإعادة الدخول):
+local function trackPlayerEsp(plr)
+    if plr == lp then return end
+
+    -- 1. إذا كان مجسم اللاعب موجوداً بالفعل لحظة دخوله/إعادة دخوله
+    if plr.Character then
+        task.spawn(function()
+            task.wait(0.5)
+            if EspEnabled then applyEsp(plr) end
+        end)
+    end
+
+    -- 2. الاستماع لأي ترسبن جديد أو إعادة ظهور للشخصية
+    plr.CharacterAdded:Connect(function()
+        task.wait(0.5)
+        if EspEnabled then applyEsp(plr) end
+    end)
+end
+
+-- تطبيق التتبع على جميع اللاعبين الموجودين حالياً
+for _, p in ipairs(Players:GetPlayers()) do
+    trackPlayerEsp(p)
+end
+
+-- تطبيق التتبع فور دخول أي لاعب جديد أو إعادة دخوله للسيرفر
+Players.PlayerAdded:Connect(trackPlayerEsp)
 
 -- UI التخفي (ثابت فوق يمين)
 local IsInvisible = false; local invisParts = {}
