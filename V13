@@ -468,7 +468,7 @@ MainTab:CreateSlider({ Name = "سرعة الضرب", Range = {1, 60}, Increment 
 local AuraTargetDropdown = MainTab:CreateDropdown({ Name = "الهدف", Options = getPlayerNames(true), CurrentOption = {"All"}, MultipleOptions = false, Flag = "AuraTargetDropdown", Callback = function(Options) if Options[1] then AuraTargetSelected = Options[1]; refreshAllEsp() end end })
 MainTab:CreateButton({ Name = "تحديث الأهداف", Callback = function() AuraTargetDropdown:Refresh(getPlayerNames(true)) end })
 
--- AINZ 
+-- الأمساك
 AinzTab:CreateToggle({ Name = "سحب مستمر (الكل)", CurrentValue = false, Flag = "AutoGrabToggle", Callback = function(Value) AutoGrab = Value end })
 AinzTab:CreateToggle({ Name = "استهداف تلقائي (أي شخص يقترب)", CurrentValue = false, Flag = "AutoTargetToggle", Callback = function(Value) AutoTargetEnabled = Value end })
 
