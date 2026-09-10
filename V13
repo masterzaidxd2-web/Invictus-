@@ -209,68 +209,62 @@ local function removeEsp(char)
 end
 
 local function applyEsp(player)
-   if player == lp or not player.Character then return end
-   local char = player.Character
-   removeEsp(char)
-   if not EspEnabled then return end
+    if player == lp or not player.Character then return end
+    local char = player.Character
+    removeEsp(char)
+    if not EspEnabled then return end
 
-   local targetColor = getEspColor(player.Name)
+    local targetColor = getEspColor(player.Name)
 
-   if EspBoxes and not char:FindFirstChild("ESP_Highlight") then
-       local highlight = Instance.new("Highlight")
-       highlight.Name = "ESP_Highlight"
-       highlight.Adornee = char
-       highlight.FillColor = targetColor
-       highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
-       highlight.FillTransparency = 0.5
-       highlight.OutlineTransparency = 0
-       highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
-       highlight.Parent = char
-   end
+    if EspBoxes and not char:FindFirstChild("ESP_Highlight") then
+        local highlight = Instance.new("Highlight")
+        highlight.Name = "ESP_Highlight"
+        highlight.Adornee = char
+        highlight.FillColor = targetColor
+        highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
+        highlight.FillTransparency = 0.5
+        highlight.OutlineTransparency = 0
+        highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+        highlight.Parent = char
+    end
 
-   local head = char:FindFirstChild("Head") or char:WaitForChild("Head", 3)
-   if head and EspNames and not char:FindFirstChild("ESP_Billboard") then
-       local billboard = Instance.new("BillboardGui")
-       billboard.Name = "ESP_Billboard"
-       billboard.Adornee = head
-       billboard.Size = UDim2.new(0, 150, 0, 45)
-       billboard.StudsOffset = Vector3.new(0, 2.8, 0)
-       billboard.AlwaysOnTop = true
-       
-       local textLabel = Instance.new("TextLabel")
-       textLabel.Size = UDim2.new(1, 0, 1, 0)
-       textLabel.BackgroundTransparency = 1
-       textLabel.TextColor3 = targetColor
-       textLabel.TextStrokeTransparency = 0.4
-       textLabel.Font = Enum.Font.SourceSansBold
-       textLabel.TextSize = 12
-       textLabel.Parent = billboard
-       billboard.Parent = char
+    local head = char:FindFirstChild("Head") or char:WaitForChild("Head", 3)
+    if head and EspNames and not char:FindFirstChild("ESP_Billboard") then
+        local billboard = Instance.new("BillboardGui")
+        billboard.Name = "ESP_Billboard"
+        billboard.Adornee = head
+        billboard.Size = UDim2.new(0, 150, 0, 45)
+        billboard.StudsOffset = Vector3.new(0, 2.8, 0)
+        billboard.AlwaysOnTop = true
+        
+        local textLabel = Instance.new("TextLabel")
+        textLabel.Size = UDim2.new(1, 0, 1, 0)
+        textLabel.BackgroundTransparency = 1
+        textLabel.TextColor3 = targetColor
+        textLabel.TextStrokeTransparency = 0.4
+        textLabel.Font = Enum.Font.SourceSansBold
+        textLabel.TextSize = 12
+        textLabel.Parent = billboard
+        billboard.Parent = char
 
-       task.spawn(function()
-           while EspEnabled and player and player.Parent and char and char.Parent and head and head.Parent do
-               if not char:FindFirstChild("ESP_Billboard") or (EspBoxes and not char:FindFirstChild("ESP_Highlight")) then
-                   applyEsp(player)
-                   break
-               end
+        task.spawn(function()
+            while EspEnabled and player and player.Parent and char and char.Parent and head and head.Parent do
+                if not char:FindFirstChild("ESP_Billboard") or (EspBoxes and not char:FindFirstChild("ESP_Highlight")) then
+                    applyEsp(player)
+                    break
+                end
 
-               local myChar = lp.Character
-               if myChar and myChar:FindFirstChild("HumanoidRootPart") and char:FindFirstChild("HumanoidRootPart") then
-                   local dist = math.floor((myChar.HumanoidRootPart.Position - char.HumanoidRootPart.Position).Magnitude)
-                   local userName = player.Name
-                   local displayName = player.DisplayName
-                   
-                   if displayName and displayName ~= "" and displayName ~= userName then
-                       textLabel.Text = "@" .. userName .. " (" .. displayName .. ")\n[" .. tostring(dist) .. " Studs]"
-                   else
-                       textLabel.Text = "@" .. userName .. "\n[" .. tostring(dist) .. " Studs]"
-                   end
-               end
-               task.wait(0.4)
-           end
-       end)
-   end
+                local myChar = lp.Character
+                if myChar and myChar:FindFirstChild("HumanoidRootPart") and char:FindFirstChild("HumanoidRootPart") then
+                    local dist = math.floor((myChar.HumanoidRootPart.Position - char.HumanoidRootPart.Position).Magnitude)
+                    textLabel.Text = "@" .. player.Name .. "\n[" .. tostring(dist) .. " Studs]"
+                end
+                task.wait(0.4)
+            end
+        end)
+    end
 end
+
 
 local function refreshAllEsp()
    for _, p in ipairs(Players:GetPlayers()) do
