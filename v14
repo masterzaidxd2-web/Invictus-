@@ -188,27 +188,45 @@ local function executeAutoReset(reason)
 end
 
 local function setupAntiGrab(char)
-   if not char then return end
-   
-   char.DescendantAdded:Connect(function(child)
-       if not AntiGrabEnabled then return end
-       local name = child.Name:lower()
-       if child:IsA("Weld") or child:IsA("WeldConstraint") or child:IsA("Motor6D")
-       or child:IsA("AlignPosition") or name:find("grab") or name:find("weld") or name:find("hold") then
-           executeAutoReset("رابط الإمساك: " .. child.Name)
-       end
-   end)
-   
-   local hum = char:WaitForChild("Humanoid", 3)
-   if hum then
-       hum.StateChanged:Connect(function(_, newState)
-           if not AntiGrabEnabled then return end
-           if newState == Enum.HumanoidStateType.Seated or newState == Enum.HumanoidStateType.PlatformStanding then
-               executeAutoReset("الحالة: " .. newState.Name)
-           end
-       end)
-   end
+    if not char then return end
+    
+    char.DescendantAdded:Connect(function(child)
+        if not AntiGrabEnabled then return end
+        
+        task.wait(0.1) 
+        
+        if child:IsA("Weld") or child:IsA("WeldConstraint") or child:IsA("Motor6D") then
+            local part0 = child.Part0
+            local part1 = child.Part1
+            
+            if part0 and part1 then
+                if part0:IsDescendantOf(char) and not part1:IsDescendantOf(char) then
+                    return 
+                end
+                
+                if not part0:IsDescendantOf(char) and part1:IsDescendantOf(char) then
+                    executeAutoReset("تم الإمساك بك!")
+                end
+            end
+        else
+            local name = child.Name:lower()
+            if name:find("grabbed") or name:find("stunned") then
+                executeAutoReset("تأثير الإمساك: " .. child.Name)
+            end
+        end
+    end)
+    
+    local hum = char:WaitForChild("Humanoid", 3)
+    if hum then
+        hum.StateChanged:Connect(function(_, newState)
+            if not AntiGrabEnabled then return end
+            if newState == Enum.HumanoidStateType.PlatformStanding then
+                executeAutoReset("تم تقييد حركتك (PlatformStanding)")
+            end
+        end)
+    end
 end
+
 
 if lp.Character then setupAntiGrab(lp.Character) end
 lp.CharacterAdded:Connect(setupAntiGrab)
