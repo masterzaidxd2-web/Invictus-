@@ -198,89 +198,69 @@ end
 
 local function setupAntiGrab(char)
    if not char then return end
+   local hum = char:WaitForChild("Humanoid", 3)
    
-   -- 1. فحص العناصر واللحامات الجديدة عند إضافتها للشخصية
+   -- وظيفة مساعدة لتسجيل الهدف وتفعيل الرسباون
+   local function triggerRespawn(attackerName, reason)
+       if attackerName and Players:FindFirstChild(attackerName) then
+           if ChosenTargetName1 == "" or ChosenTargetName1 == attackerName then
+               ChosenTargetName1 = attackerName
+               pcall(function() TargetDropdown1:Set({attackerName}) end)
+           elseif ChosenTargetName2 == "" or ChosenTargetName2 == attackerName then
+               ChosenTargetName2 = attackerName
+               pcall(function() TargetDropdown2:Set({attackerName}) end)
+           else
+               ChosenTargetName3 = attackerName
+               pcall(function() TargetDropdown3:Set({attackerName}) end)
+           end
+           SpecificTargetEnabled = true
+           pcall(function()
+               Rayfield:Notify({
+                   Title = "نظام الانتقام 🎯",
+                   Content = "تم تحديد [" .. attackerName .. "] كهدف!",
+                   Duration = 3
+               })
+           end)
+       end
+       executeAutoReset(reason)
+   end
+
+   -- 1. فحص العناصر المضافة (مؤثرات الإمساك فقط)
    char.DescendantAdded:Connect(function(child)
        if not AntiGrabEnabled then return end
-       
        task.wait(0.05) 
        
+       -- تم إيقاف فحص اللحام (Weld) من هنا لأنه يتفعل بالخطأ عندما تهاجم أنت
        if child:IsA("Weld") or child:IsA("WeldConstraint") or child:IsA("Motor6D") then
-           local part0 = child.Part0
-           local part1 = child.Part1
-           
-           if part0 and part1 then
-               local p0InChar = part0:IsDescendantOf(char)
-               local p1InChar = part1:IsDescendantOf(char)
-               
-               -- [ التعديل 1 ]: إذا كنت أنت المهاجم (أنت Part0)، أوقف الفحص فوراً ولا تقتل نفسك
-               if p0InChar and not p1InChar then
-                   return
-               end
-               
-               -- [ التعديل 2 ]: إذا كان الخصم هو من يمسك بك (أنت الضحية Part1 والخصم Part0)
-               if not p0InChar and p1InChar then
-                   local attackerChar = part0.Parent
-                   
-                   -- التأكد من أن الكيان الخارجي يتبع لشخصية لاعب
-                   if attackerChar and attackerChar:FindFirstChildOfClass("Humanoid") then
-                       local attackerName = attackerChar.Name
-                       
-                       if Players:FindFirstChild(attackerName) then
-                           if ChosenTargetName1 == "" or ChosenTargetName1 == attackerName then
-                               ChosenTargetName1 = attackerName
-                               pcall(function() TargetDropdown1:Set({attackerName}) end)
-                           elseif ChosenTargetName2 == "" or ChosenTargetName2 == attackerName then
-                               ChosenTargetName2 = attackerName
-                               pcall(function() TargetDropdown2:Set({attackerName}) end)
-                           else
-                               ChosenTargetName3 = attackerName
-                               pcall(function() TargetDropdown3:Set({attackerName}) end)
-                           end
-                           
-                           SpecificTargetEnabled = true
-                           
-                           pcall(function()
-                               Rayfield:Notify({
-                                   Title = "نظام الانتقام 🎯",
-                                   Content = "تم تحديد [" .. attackerName .. "] كهدف!",
-                                   Duration = 3
-                               })
-                           end)
-                       end
-                       
-                       executeAutoReset("تم الإمساك بك بواسطة: " .. attackerName)
-                   end
-               end
-           end
-       else
-           -- [ التعديل 3 ]: تغيير الكلمات لتكون بصيغة المبني للمجهول حتى لا تموت إذا استخدمت أنت مهارة الإمساك
-           local name = child.Name:lower()
-           if name:find("grabbed") or name:find("stunned") then
+           return
+       end
+       
+       local name = child.Name:lower()
+       if name:find("grab") or name:find("stun") or name:find("hold") or name:find("carry") then
+           -- يتفعل فقط إذا تم تقييد حركتك حقاً (حتى لا تقتل نفسك إذا استخدمت المهارة)
+           if hum and (hum:GetState() == Enum.HumanoidStateType.PlatformStanding or hum.WalkSpeed < 5) then
                executeAutoReset("تأثير الإمساك: " .. child.Name)
            end
        end
    end)
    
-   -- 2. فحص تقييد الحركة مع التأكد من وجود ربط مع لاعب آخر
-   local hum = char:WaitForChild("Humanoid", 3)
+   -- 2. الفحص الفيزيائي الدقيق (عندما يمسك بك الخصم وتفقد السيطرة)
    if hum then
        hum.StateChanged:Connect(function(_, newState)
            if not AntiGrabEnabled then return end
-           if newState == Enum.HumanoidStateType.PlatformStanding then
+           
+           if newState == Enum.HumanoidStateType.PlatformStanding or newState == Enum.HumanoidStateType.Physics then
                task.wait(0.05)
-               for _, v in pairs(char:GetDescendants()) do
-                   if v:IsA("Weld") or v:IsA("WeldConstraint") or v:IsA("Motor6D") then
-                       local p0, p1 = v.Part0, v.Part1
-                       if p0 and p1 then
-                           local p0InChar = p0:IsDescendantOf(char)
-                           local p1InChar = p1:IsDescendantOf(char)
-                           
-                           -- [ التعديل 4 ]: هنا أيضاً نتأكد أنك الضحية ولست المهاجم قبل الرسباون
-                           if not p0InChar and p1InChar then
-                               executeAutoReset("تم تقييد حركتك (PlatformStanding)")
-                               break
-                           end
+               
+               local root = char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso") or char:FindFirstChild("UpperTorso")
+               if root then
+                   -- استخدام محرك الفيزياء لمعرفة من يلتصق بك (GetConnectedParts)
+                   for _, part in ipairs(root:GetConnectedParts()) do
+                       local potentialEnemy = part.Parent
+                       -- إذا وجدنا أن هناك لاعب آخر متصل بك فيزيائياً
+                       if potentialEnemy and potentialEnemy ~= char and potentialEnemy:FindFirstChildOfClass("Humanoid") then
+                           triggerRespawn(potentialEnemy.Name, "تم الإمساك بك بواسطة: " .. potentialEnemy.Name)
+                           return
                        end
                    end
                end
@@ -288,6 +268,7 @@ local function setupAntiGrab(char)
        end)
    end
 end
+
 
 
 
