@@ -199,83 +199,90 @@ end
 local function setupAntiGrab(char)
    if not char then return end
    
+   -- 1. فحص العناصر واللحامات الجديدة عند إضافتها للشخصية
    char.DescendantAdded:Connect(function(child)
        if not AntiGrabEnabled then return end
        
-       task.wait(0.1) 
+       task.wait(0.05) 
        
        if child:IsA("Weld") or child:IsA("WeldConstraint") or child:IsA("Motor6D") then
            local part0 = child.Part0
            local part1 = child.Part1
            
            if part0 and part1 then
-               if part0:IsDescendantOf(char) and not part1:IsDescendantOf(char) then
-                   return 
-               end
+               local p0InChar = part0:IsDescendantOf(char)
+               local p1InChar = part1:IsDescendantOf(char)
                
-               if not part0:IsDescendantOf(char) and part1:IsDescendantOf(char) then
-                   local attackerChar = part0.Parent
-                   local attackerName = attackerChar and attackerChar.Name or "مجهول"
+               -- إذا كان اللحام يربط جزءاً من شخصيتك بجزء خارجي (لاعب آخر)
+               if (p0InChar and not p1InChar) or (not p0InChar and p1InChar) then
+                   local externalPart = p0InChar and part1 or part0
+                   local attackerChar = externalPart and externalPart.Parent
                    
-                   if attackerChar and Players:FindFirstChild(attackerName) then
-                       if ChosenTargetName1 == "" or ChosenTargetName1 == attackerName then
-                           ChosenTargetName1 = attackerName
-                           pcall(function() TargetDropdown1:Set({attackerName}) end)
-                       elseif ChosenTargetName2 == "" or ChosenTargetName2 == attackerName then
-                           ChosenTargetName2 = attackerName
-                           pcall(function() TargetDropdown2:Set({attackerName}) end)
-                       else
-                           ChosenTargetName3 = attackerName
-                           pcall(function() TargetDropdown3:Set({attackerName}) end)
+                   -- التأكد من أن الكيان الخارجي يتبع لشخصية لاعب
+                   if attackerChar and attackerChar:FindFirstChildOfClass("Humanoid") then
+                       local attackerName = attackerChar.Name
+                       
+                       if Players:FindFirstChild(attackerName) then
+                           if ChosenTargetName1 == "" or ChosenTargetName1 == attackerName then
+                               ChosenTargetName1 = attackerName
+                               pcall(function() TargetDropdown1:Set({attackerName}) end)
+                           elseif ChosenTargetName2 == "" or ChosenTargetName2 == attackerName then
+                               ChosenTargetName2 = attackerName
+                               pcall(function() TargetDropdown2:Set({attackerName}) end)
+                           else
+                               ChosenTargetName3 = attackerName
+                               pcall(function() TargetDropdown3:Set({attackerName}) end)
+                           end
+                           
+                           SpecificTargetEnabled = true
+                           
+                           pcall(function()
+                               Rayfield:Notify({
+                                   Title = "نظام الانتقام 🎯",
+                                   Content = "تم تحديد [" .. attackerName .. "] كهدف!",
+                                   Duration = 3
+                               })
+                           end)
                        end
                        
-                       SpecificTargetEnabled = true
-                       
-                       pcall(function()
-                           Rayfield:Notify({
-                               Title = "نظام الانتقام 🎯",
-                               Content = "تم تحديد [" .. attackerName .. "] كهدف!",
-                               Duration = 3
-                           })
-                       end)
+                       executeAutoReset("تم الإمساك بك بواسطة: " .. attackerName)
                    end
-                   
-                   executeAutoReset("تم الإمساك بك بواسطة: " .. attackerName)
                end
            end
        else
+           -- كشف أي مؤثرات أو قيم إمساك عامة
            local name = child.Name:lower()
-           if name:find("grabbed") or name:find("stunned") then
+           if name:find("grab") or name:find("stun") or name:find("hold") or name:find("carry") then
                executeAutoReset("تأثير الإمساك: " .. child.Name)
            end
        end
    end)
    
+   -- 2. فحص تقييد الحركة مع التأكد من وجود ربط مع لاعب آخر
    local hum = char:WaitForChild("Humanoid", 3)
    if hum then
        hum.StateChanged:Connect(function(_, newState)
            if not AntiGrabEnabled then return end
            if newState == Enum.HumanoidStateType.PlatformStanding then
-               -- التحقق مما إذا كان هناك إمساك حقيقي من لاعب آخر قبل إعادة الترسيب
-               local isBeingGrabbed = false
+               task.wait(0.05)
                for _, v in pairs(char:GetDescendants()) do
                    if v:IsA("Weld") or v:IsA("WeldConstraint") or v:IsA("Motor6D") then
                        local p0, p1 = v.Part0, v.Part1
                        if p0 and p1 then
-                           if (p0:IsDescendantOf(char) and not p1:IsDescendantOf(char)) or (not p0:IsDescendantOf(char) and p1:IsDescendantOf(char)) then
-                               isBeingGrabbed = true
+                           local p0InChar = p0:IsDescendantOf(char)
+                           local p1InChar = p1:IsDescendantOf(char)
+                           if (p0InChar and not p1InChar) or (not p0InChar and p1InChar) then
+                               executeAutoReset("تم تقييد حركتك (PlatformStanding)")
                                break
                            end
                        end
                    end
                end
-               if isBeingGrabbed then
-                   executeAutoReset("تم تقييد حركتك (PlatformStanding)")
-               end
            end
        end)
    end
 end
+
 
 
 if lp.Character then setupAntiGrab(lp.Character) end
