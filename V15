@@ -213,10 +213,14 @@ local function setupAntiGrab(char)
                local p0InChar = part0:IsDescendantOf(char)
                local p1InChar = part1:IsDescendantOf(char)
                
-               -- إذا كان اللحام يربط جزءاً من شخصيتك بجزء خارجي (لاعب آخر)
-               if (p0InChar and not p1InChar) or (not p0InChar and p1InChar) then
-                   local externalPart = p0InChar and part1 or part0
-                   local attackerChar = externalPart and externalPart.Parent
+               -- [إصلاح المشكلة]: إذا كنت أنت من يمسك بالخصم (أنت Part0)، فتجاهل الأمر ولا تقتل نفسك
+               if p0InChar and not p1InChar then
+                   return
+               end
+               
+               -- إذا كان الخصم هو من يمسك بك (أنت Part1 والخصم Part0)
+               if not p0InChar and p1InChar then
+                   local attackerChar = part0.Parent
                    
                    -- التأكد من أن الكيان الخارجي يتبع لشخصية لاعب
                    if attackerChar and attackerChar:FindFirstChildOfClass("Humanoid") then
@@ -250,15 +254,15 @@ local function setupAntiGrab(char)
                end
            end
        else
-           -- كشف أي مؤثرات أو قيم إمساك عامة
+           -- استخدام كلمات مبنية للمجهول فقط حتى لا تتفعل عند استخدامك لمهاراتك
            local name = child.Name:lower()
-           if name:find("grab") or name:find("stun") or name:find("hold") or name:find("carry") then
+           if name:find("grabbed") or name:find("stunned") then
                executeAutoReset("تأثير الإمساك: " .. child.Name)
            end
        end
    end)
    
-   -- 2. فحص تقييد الحركة مع التأكد من وجود ربط مع لاعب آخر
+   -- 2. فحص تقييد الحركة مع التأكد من وجود ربط مع لاعب آخر (وأنك الضحية ولست المهاجم)
    local hum = char:WaitForChild("Humanoid", 3)
    if hum then
        hum.StateChanged:Connect(function(_, newState)
@@ -271,7 +275,9 @@ local function setupAntiGrab(char)
                        if p0 and p1 then
                            local p0InChar = p0:IsDescendantOf(char)
                            local p1InChar = p1:IsDescendantOf(char)
-                           if (p0InChar and not p1InChar) or (not p0InChar and p1InChar) then
+                           
+                           -- نتأكد أننا الضحية (Part1) وليس المهاجم (Part0)
+                           if not p0InChar and p1InChar then
                                executeAutoReset("تم تقييد حركتك (PlatformStanding)")
                                break
                            end
