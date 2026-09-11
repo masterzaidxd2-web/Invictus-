@@ -1,0 +1,850 @@
+﻿repeat task.wait() until game:IsLoaded()
+task.wait(0.5)
+
+pcall(function()
+ game:GetService("StarterGui"):SetCore("SendNotification", {
+     Title = "نظام التشغيل",
+     Text = "جاري تحميل واجهة Invictus V14...",
+     Duration = 3
+ })
+end)
+
+local success, Rayfield = pcall(function()
+ return loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
+end)
+
+if not success or type(Rayfield) ~= "table" then
+ success, Rayfield = pcall(function()
+     return loadstring(game:HttpGet('https://raw.githubusercontent.com/sirius-xyz/Rayfield/main/source.lua'))()
+ end)
+end
+
+if not success or type(Rayfield) ~= "table" then
+ return 
+end
+
+-- ===============================================
+-- استدعاء الخدمات الأساسية
+-- ===============================================
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local HttpService = game:GetService("HttpService")
+local UserInputService = game:GetService("UserInputService")
+local CoreGui = game:GetService("CoreGui")
+local lp = Players.LocalPlayer
+
+-- ===============================================
+-- [ 1 ] إعدادات البيانات والمواقع المحفوظة
+-- ===============================================
+local DATA_FILE = "khurafi_delta_data_v11.json"
+local SAVE = {safe1 = "", safe2 = "", safe3 = "", safe4 = "", safe5 = ""}
+local SavedWaypoints = {}
+local SelectedWaypointName = nil
+
+local function loadData()
+ pcall(function()
+     if readfile and isfile and isfile(DATA_FILE) then
+         local data = HttpService:JSONDecode(readfile(DATA_FILE))
+         if data and type(data) == "table" then
+             SAVE.safe1 = data.safe1 or ""
+             SAVE.safe2 = data.safe2 or ""
+             SAVE.safe3 = data.safe3 or ""
+             SAVE.safe4 = data.safe4 or ""
+             SAVE.safe5 = data.safe5 or ""
+             
+             if data.waypoints and type(data.waypoints) == "table" then
+                 SavedWaypoints = {}
+                 for wpName, cfData in pairs(data.waypoints) do
+                     if type(cfData) == "table" then
+                         SavedWaypoints[wpName] = CFrame.new(unpack(cfData))
+                     end
+                 end
+             end
+         end
+     end
+ end)
+end
+
+local function saveData()
+ pcall(function()
+     if writefile then
+         local waypointsData = {}
+         for wpName, cf in pairs(SavedWaypoints) do
+             waypointsData[wpName] = {cf:GetComponents()}
+         end
+         local dataToSave = {
+             safe1 = SAVE.safe1, safe2 = SAVE.safe2,
+             safe3 = SAVE.safe3, safe4 = SAVE.safe4,
+             safe5 = SAVE.safe5, waypoints = waypointsData
+         }
+         writefile(DATA_FILE, HttpService:JSONEncode(dataToSave))
+     end
+ end)
+end
+loadData()
+
+local function isSafe(name)
+ local lowerName = name:lower()
+ local boxes = {SAVE.safe1, SAVE.safe2, SAVE.safe3, SAVE.safe4, SAVE.safe5}
+ for _, boxText in ipairs(boxes) do
+     if boxText and boxText ~= "" then
+         for s in boxText:gmatch("%S+") do
+             if lowerName:find(s:lower(), 1, true) then return true end
+         end
+     end
+ end
+ return false
+end
+
+local function getPlayerNames(includeAll)
+ local names = {}
+ if includeAll then table.insert(names, "All") end
+ for _, p in ipairs(Players:GetPlayers()) do
+     if p ~= lp then table.insert(names, p.Name) end
+ end
+ return names
+end
+
+local function getPlayerNamesForTargets()
+ local names = {"لا أحد"}
+ for _, p in ipairs(Players:GetPlayers()) do
+     if p ~= lp then table.insert(names, p.Name) end
+ end
+ return names
+end
+
+local function getWaypointNames()
+ local names = {}
+ for name, _ in pairs(SavedWaypoints) do table.insert(names, name) end
+ if #names == 0 then table.insert(names, "لا يوجد مواقع محفوظة") end
+ return names
+end
+
+-- ===============================================
+-- [ 2 ] إعدادات الأورا والسحب وحماية الإمساك
+-- ===============================================
+local HitR = nil
+local function findHitRemote()
+ local function search(obj)
+     for _, child in pairs(obj:GetChildren()) do
+         if (child:IsA("RemoteFunction") or child:IsA("RemoteEvent")) and child.Name == "Hit" then return child end
+         local found = search(child)
+         if found then return found end
+     end
+     return nil
+ end
+ HitR = search(ReplicatedStorage)
+ if not HitR then
+     local combat = ReplicatedStorage:FindFirstChild("Packages")
+     if combat then combat = combat:FindFirstChild("Knit") end
+     if combat then combat = combat:FindFirstChild("Services") end
+     if combat then combat = combat:FindFirstChild("CombatService") end
+     if combat then
+         local rf = combat:FindFirstChild("RF")
+         if rf then HitR = rf:FindFirstChild("Hit") end
+     end
+ end
+end
+findHitRemote()
+
+local GrabRF = ReplicatedStorage:FindFirstChild("OldPackages") and ReplicatedStorage.OldPackages.Knit.Services.CombatService.RF.Grab
+
+local AuraEnabled = false
+local rangeVal = 50
+local apsVal = 15
+local AuraTargetSelected = "All"
+local lastHitTick = 0
+
+local AutoGrab = false
+local AutoTargetEnabled = false
+local SpecificTargetEnabled = false
+
+local ChosenTargetName1 = ""
+local ChosenTargetName2 = ""
+local ChosenTargetName3 = ""
+
+local TargetDropdown1, TargetDropdown2, TargetDropdown3
+
+local TriggerDistance = 15
+local grabRepeatVal = 3
+local TpSelectedPlayer = ""
+
+local AutoLookEnabled = false
+local AutoMagnetEnabled = false
+
+-- ===============================================
+-- منطق حماية الإمساك والانتقام التلقائي المعدل (Anti-Grab Auto Reset & Revenge)
+-- ===============================================
+local AntiGrabEnabled = false
+
+local function executeAutoReset(reason)
+  if not AntiGrabEnabled then return end
+  
+  local char = lp.Character
+  local hum = char and char:FindFirstChild("Humanoid")
+  if hum and hum.Health > 0 then
+      pcall(function()
+          Rayfield:Notify({
+              Title = "حماية الإمساك 🛡️",
+              Content = "تم كشف الإمساك! جاري إعادة الترسيب التلقائي...",
+              Duration = 2
+          })
+      end)
+      
+      local neck = char:FindFirstChild("Head") and char.Head:FindFirstChild("Neck")
+      if neck then neck:Destroy() end
+      hum.Health = 0
+  end
+end
+
+local function getPlayerFromPart(part)
+   local current = part
+   while current and current ~= game do
+       local plr = Players:GetPlayerFromCharacter(current)
+       if plr then return plr end
+       current = current.Parent
+   end
+   return nil
+end
+
+local function setupAntiGrab(char)
+  if not char then return end
+  
+  char.DescendantAdded:Connect(function(child)
+      if not AntiGrabEnabled then return end
+      
+      task.wait(0.1) 
+      
+      if child:IsA("Weld") or child:IsA("WeldConstraint") or child:IsA("Motor6D") then
+          local part0 = child.Part0
+          local part1 = child.Part1
+          
+          if part0 and part1 then
+              local isPart0Me = part0:IsDescendantOf(char)
+              local isPart1Me = part1:IsDescendantOf(char)
+              
+              local attackerPart = nil
+              
+              -- تحديد جزء المهاجم بغض النظر عن اتجاه الالتصاق
+              if isPart0Me and not isPart1Me then
+                  attackerPart = part1
+              elseif not isPart0Me and isPart1Me then
+                  attackerPart = part0
+              end
+              
+              if attackerPart then
+                  local attackerPlayer = getPlayerFromPart(attackerPart)
+                  
+                  if attackerPlayer then
+                      local attackerName = attackerPlayer.Name
+                      
+                      if ChosenTargetName1 == "" or ChosenTargetName1 == attackerName then
+                          ChosenTargetName1 = attackerName
+                          pcall(function() TargetDropdown1:Set({attackerName}) end)
+                      elseif ChosenTargetName2 == "" or ChosenTargetName2 == attackerName then
+                          ChosenTargetName2 = attackerName
+                          pcall(function() TargetDropdown2:Set({attackerName}) end)
+                      else
+                          ChosenTargetName3 = attackerName
+                          pcall(function() TargetDropdown3:Set({attackerName}) end)
+                      end
+                      
+                      SpecificTargetEnabled = true
+                      
+                      pcall(function()
+                          Rayfield:Notify({
+                              Title = "نظام الانتقام 🎯",
+                              Content = "تم تحديد [" .. attackerName .. "] كهدف!",
+                              Duration = 3
+                          })
+                      end)
+                      
+                      executeAutoReset("تم الإمساك بك بواسطة: " .. attackerName)
+                  end
+              end
+          end
+      else
+          local name = child.Name:lower()
+          if name:find("grabbed") or name:find("stunned") then
+              executeAutoReset("تأثير الإمساك: " .. child.Name)
+          end
+      end
+  end)
+  
+  local hum = char:WaitForChild("Humanoid", 3)
+  if hum then
+      hum.StateChanged:Connect(function(_, newState)
+          if not AntiGrabEnabled then return end
+          if newState == Enum.HumanoidStateType.PlatformStanding then
+              executeAutoReset("تم تقييد حركتك (PlatformStanding)")
+          end
+      end)
+  end
+end
+
+if lp.Character then setupAntiGrab(lp.Character) end
+lp.CharacterAdded:Connect(setupAntiGrab)
+
+local function removeLookGyro()
+ if lp.Character and lp.Character:FindFirstChild("HumanoidRootPart") then
+     local bg = lp.Character.HumanoidRootPart:FindFirstChild("AutoLookGyro")
+     if bg then bg:Destroy() end
+ end
+end
+
+local function isTarget(name)
+ if AuraTargetSelected == "All" or AuraTargetSelected == "" then return true end
+ return name:lower() == AuraTargetSelected:lower()
+end
+
+local function doHit(hum, pos)
+ if not hum or not hum.Parent then return end
+ if HitR then
+     if HitR:IsA("RemoteEvent") then HitR:FireServer(hum, Vector3.new(pos.X, pos.Y, pos.Z))
+     elseif HitR:IsA("RemoteFunction") then HitR:InvokeServer(hum, Vector3.new(pos.X, pos.Y, pos.Z)) end
+ end
+end
+
+-- ===============================================
+-- [ 3 ] إعدادات التأثيرات والـ ESP المطور والإشعارات
+-- ===============================================
+local BWNameActive = false; local currentNameMode = "NONE"; local rnHue = 0; local bwLastUpdate = 0
+local rnSpeed = 0.7; local rnUpdateRate = 0.02; local policeToggle = false  
+local rainbowNameRemote = ReplicatedStorage:WaitForChild("Remotes", 10)
+rainbowNameRemote = rainbowNameRemote and rainbowNameRemote:FindFirstChild("SetRPNameColor")
+
+local EspEnabled = false; local EspBoxes = true; local EspNames = true
+
+local function getEspColor(playerName)
+ if isSafe(playerName) then return Color3.fromRGB(0, 255, 100) end
+ local isAuraTarget = (AuraTargetSelected ~= "All" and AuraTargetSelected ~= "" and playerName == AuraTargetSelected)
+ local isGrabTarget = (SpecificTargetEnabled and (playerName == ChosenTargetName1 or playerName == ChosenTargetName2 or playerName == ChosenTargetName3))
+ if isAuraTarget or isGrabTarget then return Color3.fromRGB(255, 50, 50) end
+ return Color3.fromRGB(255, 255, 255)
+end
+
+local function removeEsp(char)
+ if not char then return end
+ if char:FindFirstChild("ESP_Highlight") then char.ESP_Highlight:Destroy() end
+ if char:FindFirstChild("ESP_Billboard") then char.ESP_Billboard:Destroy() end
+end
+
+local function applyEsp(player)
+  if player == lp or not player.Character then return end
+  local char = player.Character
+  removeEsp(char)
+  if not EspEnabled then return end
+
+  local targetColor = getEspColor(player.Name)
+
+  if EspBoxes and not char:FindFirstChild("ESP_Highlight") then
+      local highlight = Instance.new("Highlight")
+      highlight.Name = "ESP_Highlight"
+      highlight.Adornee = char
+      highlight.FillColor = targetColor
+      highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
+      highlight.FillTransparency = 0.5
+      highlight.OutlineTransparency = 0
+      highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+      highlight.Parent = char
+  end
+
+  local head = char:FindFirstChild("Head") or char:WaitForChild("Head", 3)
+  if head and EspNames and not char:FindFirstChild("ESP_Billboard") then
+      local billboard = Instance.new("BillboardGui")
+      billboard.Name = "ESP_Billboard"
+      billboard.Adornee = head
+      billboard.Size = UDim2.new(0, 150, 0, 45)
+      billboard.StudsOffset = Vector3.new(0, 2.8, 0)
+      billboard.AlwaysOnTop = true
+      
+      local textLabel = Instance.new("TextLabel")
+      textLabel.Size = UDim2.new(1, 0, 1, 0)
+      textLabel.BackgroundTransparency = 1
+      textLabel.TextColor3 = targetColor
+      textLabel.TextStrokeTransparency = 0.4
+      textLabel.Font = Enum.Font.SourceSansBold
+      textLabel.TextSize = 12
+      textLabel.Parent = billboard
+      billboard.Parent = char
+
+      task.spawn(function()
+          while EspEnabled and player and player.Parent and char and char.Parent and head and head.Parent do
+              if not char:FindFirstChild("ESP_Billboard") or (EspBoxes and not char:FindFirstChild("ESP_Highlight")) then
+                  applyEsp(player)
+                  break
+              end
+
+              local myChar = lp.Character
+              if myChar and myChar:FindFirstChild("HumanoidRootPart") and char:FindFirstChild("HumanoidRootPart") then
+                  local dist = math.floor((myChar.HumanoidRootPart.Position - char.HumanoidRootPart.Position).Magnitude)
+                  textLabel.Text = "@" .. player.Name .. "\n[" .. tostring(dist) .. " Studs]"
+              end
+              task.wait(0.4)
+          end
+      end)
+  end
+end
+
+local function refreshAllEsp()
+ for _, p in ipairs(Players:GetPlayers()) do
+     if p ~= lp and p.Character then
+         if EspEnabled then applyEsp(p) else removeEsp(p.Character) end
+     end
+ end
+end
+
+local function trackPlayerEsp(plr)
+ if plr == lp then return end
+
+ if plr.Character then
+     task.spawn(function()
+         task.wait(0.5)
+         if EspEnabled then applyEsp(plr) end
+     end)
+ end
+
+ plr.CharacterAdded:Connect(function()
+     task.wait(0.5)
+     if EspEnabled then applyEsp(plr) end
+ end)
+end
+
+local function checkPlayerNotification(plr, eventType)
+ local isSafePlayer = isSafe(plr.Name)
+ local isTargetPlayer = (AuraTargetSelected ~= "All" and AuraTargetSelected ~= "" and plr.Name == AuraTargetSelected)
+                     or (SpecificTargetEnabled and (plr.Name == ChosenTargetName1 or plr.Name == ChosenTargetName2 or plr.Name == ChosenTargetName3))
+
+ if isSafePlayer or isTargetPlayer then
+     local statusTag = isSafePlayer and "🟢 [SAFE]" or "🔴 [TARGET]"
+     local actionText = (eventType == "join") and "دخل السيرفر" or "غادر السيرفر"
+     local title = statusTag .. " " .. actionText
+     local content = "@" .. plr.Name .. " (" .. (plr.DisplayName or "") .. ")"
+
+     pcall(function()
+         Rayfield:Notify({
+             Title = title,
+             Content = content,
+             Duration = 4
+         })
+     end)
+ end
+end
+
+for _, p in ipairs(Players:GetPlayers()) do
+ trackPlayerEsp(p)
+end
+
+Players.PlayerAdded:Connect(function(plr)
+ trackPlayerEsp(plr)
+ checkPlayerNotification(plr, "join")
+end)
+
+Players.PlayerRemoving:Connect(function(plr)
+ checkPlayerNotification(plr, "leave")
+end)
+
+task.spawn(function()
+ while task.wait(2) do
+     if EspEnabled then
+         for _, p in ipairs(Players:GetPlayers()) do
+             if p ~= lp and p.Character then
+                 local hasHighlight = p.Character:FindFirstChild("ESP_Highlight")
+                 local hasBillboard = p.Character:FindFirstChild("ESP_Billboard")
+                 
+                 if (EspBoxes and not hasHighlight) or (EspNames and not hasBillboard) then
+                     applyEsp(p)
+                 end
+             end
+         end
+     end
+ end
+end)
+
+-- Floating UI
+local IsInvisible = false; local invisParts = {}
+local InvisGui = Instance.new("ScreenGui"); InvisGui.Name = "FloatingInvisUI"; InvisGui.ResetOnSpawn = false
+InvisGui.IgnoreGuiInset = true
+local successGui = pcall(function() InvisGui.Parent = CoreGui end)
+if not successGui then InvisGui.Parent = lp:WaitForChild("PlayerGui") end
+InvisGui.Enabled = false 
+
+local FloatBtn = Instance.new("TextButton")
+FloatBtn.Size = UDim2.new(0, 100, 0, 45)
+FloatBtn.AnchorPoint = Vector2.new(1, 0)
+FloatBtn.Position = UDim2.new(1, -120, 0, 5)
+FloatBtn.BackgroundColor3 = Color3.fromRGB(220, 60, 60)
+FloatBtn.Text = "تخفي: ❌"
+FloatBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+FloatBtn.Font = Enum.Font.SourceSansBold
+FloatBtn.TextSize = 18
+FloatBtn.Active = true
+FloatBtn.Draggable = false
+FloatBtn.Parent = InvisGui
+local UICorner = Instance.new("UICorner"); UICorner.CornerRadius = UDim.new(0, 8); UICorner.Parent = FloatBtn
+
+local function updateInvisParts()
+ invisParts = {}
+ if lp.Character then
+     for _, obj in pairs(lp.Character:GetDescendants()) do
+         if (obj:IsA("BasePart") or obj:IsA("Decal")) and obj.Name ~= "HumanoidRootPart" then
+             if obj.Transparency < 1 then table.insert(invisParts, {obj = obj, origTrans = obj.Transparency}) end
+         end
+     end
+ end
+end
+
+FloatBtn.MouseButton1Click:Connect(function()
+ IsInvisible = not IsInvisible
+ if IsInvisible then
+     FloatBtn.BackgroundColor3 = Color3.fromRGB(60, 220, 60); FloatBtn.Text = "تخفي: ✅"
+     updateInvisParts()
+     for _, item in pairs(invisParts) do if item.obj and item.obj.Parent then item.obj.Transparency = 0.5 end end
+ else
+     FloatBtn.BackgroundColor3 = Color3.fromRGB(220, 60, 60); FloatBtn.Text = "تخفي: ❌"
+     for _, item in pairs(invisParts) do if item.obj and item.obj.Parent then item.obj.Transparency = item.origTrans end end
+ end
+end)
+
+local IsHoldingMagnet = false
+local MagnetGui = Instance.new("ScreenGui"); MagnetGui.Name = "FloatingMagnetUI"; MagnetGui.ResetOnSpawn = false
+MagnetGui.IgnoreGuiInset = true
+local successMagGui = pcall(function() MagnetGui.Parent = CoreGui end)
+if not successMagGui then MagnetGui.Parent = lp:WaitForChild("PlayerGui") end
+MagnetGui.Enabled = false 
+
+local HoldMagBtn = Instance.new("TextButton")
+HoldMagBtn.Size = UDim2.new(0, 100, 0, 45)
+HoldMagBtn.AnchorPoint = Vector2.new(1, 0)
+HoldMagBtn.Position = UDim2.new(1, -10, 0, 5)
+HoldMagBtn.BackgroundColor3 = Color3.fromRGB(60, 100, 220)
+HoldMagBtn.Text = "🧲 مغناطيس"
+HoldMagBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+HoldMagBtn.Font = Enum.Font.SourceSansBold
+HoldMagBtn.TextSize = 18
+HoldMagBtn.Active = true
+HoldMagBtn.Draggable = false
+HoldMagBtn.Parent = MagnetGui
+local MagUICorner = Instance.new("UICorner"); MagUICorner.CornerRadius = UDim.new(0, 8); MagUICorner.Parent = HoldMagBtn
+
+HoldMagBtn.MouseButton1Down:Connect(function()
+ IsHoldingMagnet = true
+ HoldMagBtn.BackgroundColor3 = Color3.fromRGB(60, 220, 60)
+end)
+HoldMagBtn.MouseButton1Up:Connect(function()
+ IsHoldingMagnet = false
+ HoldMagBtn.BackgroundColor3 = Color3.fromRGB(60, 100, 220)
+end)
+HoldMagBtn.MouseLeave:Connect(function()
+ IsHoldingMagnet = false
+ HoldMagBtn.BackgroundColor3 = Color3.fromRGB(60, 100, 220)
+end)
+
+lp.CharacterAdded:Connect(function()
+ IsInvisible = false; FloatBtn.BackgroundColor3 = Color3.fromRGB(220, 60, 60); FloatBtn.Text = "تخفي: ❌"
+ IsHoldingMagnet = false; HoldMagBtn.BackgroundColor3 = Color3.fromRGB(60, 100, 220)
+ removeLookGyro()
+end)
+
+local isInfJump = false; local isSpeedEnabled = false; local currentWalkSpeed = 35
+UserInputService.JumpRequest:Connect(function()
+ if isInfJump and lp.Character then
+     local humanoid = lp.Character:FindFirstChildOfClass("Humanoid")
+     if humanoid then humanoid:ChangeState(Enum.HumanoidStateType.Jumping) end
+ end
+end)
+
+-- ===============================================
+-- [ 4 ] بناء واجهة Rayfield
+-- ===============================================
+local Window = Rayfield:CreateWindow({
+Name = "الأنفكتوس العراقي",
+LoadingTitle = "Aura, Grab, ESP & More",
+LoadingSubtitle = "by KHURAFI",
+Theme = "Default",
+DisableRayfieldPrompts = false,
+DisableBuildWarnings = true,
+ConfigurationSaving = {
+   Enabled = true,
+   FolderName = "KHURAFI_Data",
+   FileName = "AuraDeltaSettings"
+},
+KeySystem = false
+})
+
+local MainTab = Window:CreateTab("Aura", 4483345998)
+local GrabTab = Window:CreateTab("الإمساك", 4483345998)
+local PlayerTab = Window:CreateTab("اللاعب", 4483345998)
+local WaypointsTab = Window:CreateTab("المواقع", 4483345998)
+local EspTab = Window:CreateTab("ESP", 4483345998)
+local NameTab = Window:CreateTab("الاسم", 4483345998)
+local SettingsTab = Window:CreateTab("الإعدادات", 4483345998)
+
+-- Aura
+MainTab:CreateToggle({ Name = "تفعيل الأورا (STATUS)", CurrentValue = false, Flag = "AuraToggle", Callback = function(Value) AuraEnabled = Value end })
+MainTab:CreateSlider({ Name = "نطاق الضرر", Range = {5, 100}, Increment = 1, Suffix = "Studs", CurrentValue = 50, Flag = "RangeSlider", Callback = function(Value) rangeVal = Value end })
+MainTab:CreateSlider({ Name = "سرعة الضرب", Range = {1, 60}, Increment = 1, Suffix = "Hit/s", CurrentValue = 15, Flag = "APSSlider", Callback = function(Value) apsVal = Value end })
+local AuraTargetDropdown = MainTab:CreateDropdown({ Name = "الهدف", Options = getPlayerNames(true), CurrentOption = {"All"}, MultipleOptions = false, Flag = "AuraTargetDropdown", Callback = function(Options) if Options[1] then AuraTargetSelected = Options[1]; refreshAllEsp() end end })
+MainTab:CreateButton({ Name = "تحديث الأهداف", Callback = function() AuraTargetDropdown:Refresh(getPlayerNames(true)) end })
+
+-- الإمساك
+GrabTab:CreateSection("حماية الإمساك والانتقام (Anti-Grab & Revenge)")
+GrabTab:CreateToggle({ Name = "الهروب وتحديد المهاجم كهدف تلقائياً", CurrentValue = false, Flag = "AntiGrabToggle", Callback = function(Value) AntiGrabEnabled = Value end })
+
+GrabTab:CreateSection("إعدادات السحب العام")
+GrabTab:CreateToggle({ Name = "سحب مستمر (الكل)", CurrentValue = false, Flag = "AutoGrabToggle", Callback = function(Value) AutoGrab = Value end })
+GrabTab:CreateToggle({ Name = "استهداف تلقائي (أي شخص يقترب)", CurrentValue = false, Flag = "AutoTargetToggle", Callback = function(Value) AutoTargetEnabled = Value end })
+
+GrabTab:CreateSection("إعدادات السحب المحدد (الذكية)")
+TargetDropdown1 = GrabTab:CreateDropdown({ Name = "اختر اللاعب الأول (1)", Options = getPlayerNamesForTargets(), CurrentOption = {"لا أحد"}, MultipleOptions = false, Flag = "SpecificTargetDropdown1", Callback = function(Options) if Options[1] then ChosenTargetName1 = (Options[1] == "لا أحد") and "" or Options[1]; refreshAllEsp() end end })
+TargetDropdown2 = GrabTab:CreateDropdown({ Name = "اختر اللاعب الثاني (2)", Options = getPlayerNamesForTargets(), CurrentOption = {"لا أحد"}, MultipleOptions = false, Flag = "SpecificTargetDropdown2", Callback = function(Options) if Options[1] then ChosenTargetName2 = (Options[1] == "لا أحد") and "" or Options[1]; refreshAllEsp() end end })
+TargetDropdown3 = GrabTab:CreateDropdown({ Name = "اختر اللاعب الثالث (3)", Options = getPlayerNamesForTargets(), CurrentOption = {"لا أحد"}, MultipleOptions = false, Flag = "SpecificTargetDropdown3", Callback = function(Options) if Options[1] then ChosenTargetName3 = (Options[1] == "لا أحد") and "" or Options[1]; refreshAllEsp() end end })
+
+GrabTab:CreateToggle({ Name = "تفعيل السحب المحدد", CurrentValue = false, Flag = "SpecificTargetToggle", Callback = function(Value) SpecificTargetEnabled = Value; refreshAllEsp() end })
+
+GrabTab:CreateSlider({ Name = "نطاق تفعيل السحب (المسافة)", Range = {5, 100}, Increment = 1, Suffix = "Studs", CurrentValue = 15, Flag = "TriggerDistanceSlider", Callback = function(Value) TriggerDistance = Value end })
+GrabTab:CreateSlider({ Name = "عدد تكرار أمر السحب", Range = {1, 15}, Increment = 1, Suffix = "مرة", CurrentValue = 3, Flag = "GrabRepeatSlider", Callback = function(Value) grabRepeatVal = Value end })
+
+GrabTab:CreateSection("المغناطيس والتوجيه")
+GrabTab:CreateToggle({ Name = "🎯 توجيه تلقائي (النظر للهدف)", CurrentValue = false, Flag = "AutoLookToggle", Callback = function(Value) AutoLookEnabled = Value; if not Value then removeLookGyro() end end })
+GrabTab:CreateToggle({ Name = "🧲 مغناطيس تلقائي (لا يعمل بالقتال)", CurrentValue = false, Flag = "AutoMagnetToggle", Callback = function(Value) AutoMagnetEnabled = Value end })
+GrabTab:CreateToggle({ Name = "إظهار زر المغناطيس العائم (للوضع القتالي)", CurrentValue = false, Flag = "HoldMagnetToggle", Callback = function(Value) MagnetGui.Enabled = Value; if not Value then IsHoldingMagnet = false end end })
+
+GrabTab:CreateSection("الانتقال السريع إلى لاعب")
+local TpDropdown = GrabTab:CreateDropdown({ Name = "انتقال إلى لاعب", Options = getPlayerNames(false), CurrentOption = {""}, MultipleOptions = false, Flag = "TpDropdown", Callback = function(Options) TpSelectedPlayer = Options[1] end })
+GrabTab:CreateButton({ Name = "انتقال (Teleport)", Callback = function() if TpSelectedPlayer ~= "" then local targetPlr = Players:FindFirstChild(TpSelectedPlayer) local myChar = lp.Character if targetPlr and targetPlr.Character and targetPlr.Character:FindFirstChild("HumanoidRootPart") and myChar and myChar:FindFirstChild("HumanoidRootPart") then myChar.HumanoidRootPart.CFrame = targetPlr.Character.HumanoidRootPart.CFrame * CFrame.new(0, 0, 0.8) end end end })
+GrabTab:CreateButton({ Name = "تحديث قوائم اللاعبين", Callback = function() local n = getPlayerNamesForTargets() TargetDropdown1:Refresh(n); TargetDropdown2:Refresh(n); TargetDropdown3:Refresh(n); TpDropdown:Refresh(getPlayerNames(false)) end })
+
+-- Player
+PlayerTab:CreateToggle({ Name = "إظهار زر التخفي العائم", CurrentValue = false, Flag = "InvisSystemToggle", Callback = function(Value) InvisGui.Enabled = Value; if not Value and IsInvisible then IsInvisible = false; FloatBtn.BackgroundColor3 = Color3.fromRGB(220, 60, 60); FloatBtn.Text = "تخفي: ❌"; for _, item in pairs(invisParts) do if item.obj and item.obj.Parent then item.obj.Transparency = item.origTrans end end end end })
+PlayerTab:CreateToggle({ Name = "تثبيت السرعة", CurrentValue = false, Flag = "SpeedToggle", Callback = function(Value) isSpeedEnabled = Value; if not Value and lp.Character then local hum = lp.Character:FindFirstChildOfClass("Humanoid") if hum then hum.WalkSpeed = 16 end end end })
+PlayerTab:CreateSlider({ Name = "قيمة السرعة", Range = {16, 150}, Increment = 1, Suffix = "WS", CurrentValue = 35, Flag = "SpeedSlider", Callback = function(Value) currentWalkSpeed = Value end })
+PlayerTab:CreateToggle({ Name = "قفز لانهائي", CurrentValue = false, Flag = "InfJumpToggle", Callback = function(Value) isInfJump = Value end })
+
+-- Waypoints
+WaypointsTab:CreateSection("إدارة الأماكن المحفوظة")
+local NewWaypointName = ""
+WaypointsTab:CreateInput({ Name = "اسم المكان", PlaceholderText = "اكتب اسم المكان...", RemoveTextAfterFocusLost = false, Callback = function(Text) NewWaypointName = Text end })
+local WaypointDropdown
+WaypointsTab:CreateButton({ Name = "📌 حفظ الموقع الحالي", Callback = function() if NewWaypointName ~= "" and lp.Character and lp.Character:FindFirstChild("HumanoidRootPart") then SavedWaypoints[NewWaypointName] = lp.Character.HumanoidRootPart.CFrame; saveData(); Rayfield:Notify({Title = "تم الحفظ", Content = NewWaypointName, Duration = 2}); if WaypointDropdown then WaypointDropdown:Refresh(getWaypointNames()) end else Rayfield:Notify({Title = "خطأ", Content = "اكتب اسماً", Duration = 2}) end end })
+WaypointDropdown = WaypointsTab:CreateDropdown({ Name = "قائمة الأماكن", Options = getWaypointNames(), CurrentOption = {""}, MultipleOptions = false, Flag = "WaypointsDropdownList", Callback = function(Options) if Options[1] and Options[1] ~= "لا يوجد مواقع محفوظة" then SelectedWaypointName = Options[1] end end })
+WaypointsTab:CreateButton({ Name = "🚀 تنقل إلى المكان المحدد", Callback = function() if SelectedWaypointName and SavedWaypoints[SelectedWaypointName] and lp.Character and lp.Character:FindFirstChild("HumanoidRootPart") then lp.Character.HumanoidRootPart.CFrame = SavedWaypoints[SelectedWaypointName] end end })
+WaypointsTab:CreateButton({ Name = "🗑️ حذف المكان المحدد", Callback = function() if SelectedWaypointName and SavedWaypoints[SelectedWaypointName] then SavedWaypoints[SelectedWaypointName] = nil; saveData(); SelectedWaypointName = nil; if WaypointDropdown then WaypointDropdown:Refresh(getWaypointNames()) end end end })
+
+-- ESP
+EspTab:CreateToggle({ Name = "تفعيل ESP", CurrentValue = false, Flag = "EspMainToggle", Callback = function(Value) EspEnabled = Value; refreshAllEsp() end })
+EspTab:CreateToggle({ Name = "تظليل (Highlight)", CurrentValue = true, Flag = "EspBoxesToggle", Callback = function(Value) EspBoxes = Value; refreshAllEsp() end })
+EspTab:CreateToggle({ Name = "أسماء ومسافة", CurrentValue = true, Flag = "EspNamesToggle", Callback = function(Value) EspNames = Value; refreshAllEsp() end })
+
+-- Names
+NameTab:CreateToggle({ Name = "تفعيل التأثيرات", CurrentValue = false, Flag = "NameEffectToggle", Callback = function(Value) BWNameActive = Value end })
+NameTab:CreateDropdown({ Name = "النوع", Options = {"BW", "Rainbow", "Pulse", "Strobe", "Police"}, CurrentOption = {"Rainbow"}, MultipleOptions = false, Flag = "NameEffectModeDropdown", Callback = function(Options) currentNameMode = Options[1] end })
+NameTab:CreateSlider({ Name = "السرعة", Range = {0.1, 3.0}, Increment = 0.1, Suffix = "x", CurrentValue = 0.7, Flag = "NameSpeedSlider", Callback = function(Value) rnSpeed = Value end })
+
+-- Settings
+SettingsTab:CreateSection("إدارة الحفظ (Settings)")
+SettingsTab:CreateButton({
+ Name = "💾 حفظ إعدادات الواجهة (الكل)",
+ Callback = function()
+     pcall(function() Rayfield:SaveConfiguration() end)
+     Rayfield:Notify({Title = "تم الحفظ!", Content = "تم حفظ جميع أزرار وتفعيلات الواجهة", Duration = 3})
+ end
+})
+
+SettingsTab:CreateSection("قائمة اللاعبين الآمنين (SAFE)")
+local SafeDropdown1, SafeDropdown2, SafeDropdown3, SafeDropdown4, SafeDropdown5
+SafeDropdown1 = SettingsTab:CreateDropdown({ Name = "SAFE 1", Options = getPlayerNames(false), CurrentOption = {SAVE.safe1 ~= "" and SAVE.safe1 or ""}, MultipleOptions = false, Flag = "SafeDropdown1", Callback = function(Options) if Options[1] then SAVE.safe1 = Options[1]; saveData(); refreshAllEsp() end end })
+SafeDropdown2 = SettingsTab:CreateDropdown({ Name = "SAFE 2", Options = getPlayerNames(false), CurrentOption = {SAVE.safe2 ~= "" and SAVE.safe2 or ""}, MultipleOptions = false, Flag = "SafeDropdown2", Callback = function(Options) if Options[1] then SAVE.safe2 = Options[1]; saveData(); refreshAllEsp() end end })
+SafeDropdown3 = SettingsTab:CreateDropdown({ Name = "SAFE 3", Options = getPlayerNames(false), CurrentOption = {SAVE.safe3 ~= "" and SAVE.safe3 or ""}, MultipleOptions = false, Flag = "SafeDropdown3", Callback = function(Options) if Options[1] then SAVE.safe3 = Options[1]; saveData(); refreshAllEsp() end end })
+SafeDropdown4 = SettingsTab:CreateDropdown({ Name = "SAFE 4", Options = getPlayerNames(false), CurrentOption = {SAVE.safe4 ~= "" and SAVE.safe4 or ""}, MultipleOptions = false, Flag = "SafeDropdown4", Callback = function(Options) if Options[1] then SAVE.safe4 = Options[1]; saveData(); refreshAllEsp() end end })
+SafeDropdown5 = SettingsTab:CreateDropdown({ Name = "SAFE 5", Options = getPlayerNames(false), CurrentOption = {SAVE.safe5 ~= "" and SAVE.safe5 or ""}, MultipleOptions = false, Flag = "SafeDropdown5", Callback = function(Options) if Options[1] then SAVE.safe5 = Options[1]; saveData(); refreshAllEsp() end end })
+
+SettingsTab:CreateButton({
+ Name = "تحديث قائمة اللاعبين الآمنين",
+ Callback = function()
+     local names = getPlayerNames(false)
+     SafeDropdown1:Refresh(names); SafeDropdown2:Refresh(names); SafeDropdown3:Refresh(names); SafeDropdown4:Refresh(names); SafeDropdown5:Refresh(names)
+ end
+})
+
+-- ===============================================
+-- [ 5 ] المحرك الأساسي (يعمل لكل شيء)
+-- ===============================================
+RunService.Heartbeat:Connect(function(dt)
+ if IsInvisible and lp.Character then
+     local rootPart = lp.Character:FindFirstChild("HumanoidRootPart")
+     local humanoid = lp.Character:FindFirstChild("Humanoid")
+     if rootPart and humanoid then
+         local cf = rootPart.CFrame
+         local camOffset = humanoid.CameraOffset
+         local hidden = cf * CFrame.new(0, -200000, 0)
+         rootPart.CFrame = hidden
+         humanoid.CameraOffset = hidden:ToObjectSpace(CFrame.new(cf.Position)).Position
+         RunService.RenderStepped:Wait()
+         if rootPart.Parent then 
+             rootPart.CFrame = cf
+             humanoid.CameraOffset = camOffset
+         end
+     end
+ end
+
+ if isSpeedEnabled and lp.Character then
+     local hum = lp.Character:FindFirstChildOfClass("Humanoid")
+     if hum and hum.WalkSpeed ~= currentWalkSpeed then hum.WalkSpeed = currentWalkSpeed end
+ end
+
+ if AuraEnabled then
+     local currentTick = tick()
+     if currentTick - lastHitTick >= (1 / apsVal) then
+         lastHitTick = currentTick
+         local ch = lp.Character
+         if ch then
+             local myhrp = ch:FindFirstChild("HumanoidRootPart")
+             if myhrp then
+                 local nearest, nearDist = nil, math.huge
+                 for _, p in ipairs(Players:GetPlayers()) do
+                     if p ~= lp and p.Character and not isSafe(p.Name) and isTarget(p.Name) then
+                         local hrp = p.Character:FindFirstChild("HumanoidRootPart")
+                         local hum = p.Character:FindFirstChildOfClass("Humanoid")
+                         if hrp and hum and hum.Health > 0 then
+                             local dist = (hrp.Position - myhrp.Position).Magnitude
+                             if dist <= rangeVal and dist < nearDist then
+                                 nearDist = dist; nearest = {hum = hum, pos = hrp.Position + hrp.CFrame.LookVector * 2}
+                             end
+                         end
+                     end
+                 end
+                 if nearest then task.spawn(function() doHit(nearest.hum, nearest.pos) end) end
+             end
+         end
+     end
+ end
+
+ local shouldGrab = AutoGrab
+ local activeTargetHRP = nil 
+
+ if AutoTargetEnabled then
+     local myChar = lp.Character
+     if myChar and myChar:FindFirstChild("HumanoidRootPart") then
+         for _, player in ipairs(Players:GetPlayers()) do
+             if player ~= lp and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+                 if (myChar.HumanoidRootPart.Position - player.Character.HumanoidRootPart.Position).Magnitude <= TriggerDistance then
+                     shouldGrab = true
+                     activeTargetHRP = player.Character.HumanoidRootPart
+                     break
+                 end
+             end
+         end
+     end
+ end
+
+ if SpecificTargetEnabled then
+     local myChar = lp.Character
+     if myChar and myChar:FindFirstChild("HumanoidRootPart") then
+         
+         local function checkTarget(targetName)
+             if targetName ~= "" and targetName ~= "لا أحد" then
+                 local p = Players:FindFirstChild(targetName)
+                 if p and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
+                     if (myChar.HumanoidRootPart.Position - p.Character.HumanoidRootPart.Position).Magnitude <= TriggerDistance then
+                         return p.Character.HumanoidRootPart
+                     end
+                 end
+             end
+             return nil
+         end
+
+         activeTargetHRP = checkTarget(ChosenTargetName1)
+         if not activeTargetHRP then activeTargetHRP = checkTarget(ChosenTargetName2) end
+         if not activeTargetHRP then activeTargetHRP = checkTarget(ChosenTargetName3) end
+         
+         if activeTargetHRP then shouldGrab = true end
+     end
+ end
+
+ if lp.Character and lp.Character:FindFirstChild("HumanoidRootPart") then
+     local myRoot = lp.Character.HumanoidRootPart
+     local currentGrabPower = lp:GetAttribute("GrabPower") or 0
+     local isFighting = lp:GetAttribute("Fighting")
+     
+     if activeTargetHRP then
+         if not isFighting then
+             if AutoLookEnabled then
+                 local targetPos = Vector3.new(activeTargetHRP.Position.X, myRoot.Position.Y, activeTargetHRP.Position.Z)
+                 if (targetPos - myRoot.Position).Magnitude > 0.5 then
+                     local bg = myRoot:FindFirstChild("AutoLookGyro")
+                     if not bg then
+                         bg = Instance.new("BodyGyro")
+                         bg.Name = "AutoLookGyro"
+                         bg.MaxTorque = Vector3.new(0, 400000, 0)
+                         bg.P = 30000
+                         bg.D = 100
+                         bg.Parent = myRoot
+                     end
+                     bg.CFrame = CFrame.lookAt(myRoot.Position, targetPos)
+                 else
+                     removeLookGyro()
+                 end
+             else
+                 removeLookGyro()
+             end
+             
+             if AutoMagnetEnabled and currentGrabPower >= 100 then
+                 local targetVelocity = activeTargetHRP.AssemblyLinearVelocity
+                 local pingPrediction = targetVelocity * 0.05
+                 myRoot.CFrame = (activeTargetHRP.CFrame + pingPrediction) * CFrame.new(0, 0, 2.5)
+                 
+                 if firetouchinterest then
+                     firetouchinterest(myRoot, activeTargetHRP, 0)
+                     task.wait()
+                     firetouchinterest(myRoot, activeTargetHRP, 1)
+                 end
+             end
+         else
+             removeLookGyro()
+         end
+
+         if IsHoldingMagnet and currentGrabPower >= 100 then
+             local targetVelocity = activeTargetHRP.AssemblyLinearVelocity
+             local pingPrediction = targetVelocity * 0.05
+             myRoot.CFrame = (activeTargetHRP.CFrame + pingPrediction) * CFrame.new(0, 0, 2.5)
+             
+             if firetouchinterest then
+                 firetouchinterest(myRoot, activeTargetHRP, 0)
+                 task.wait()
+                 firetouchinterest(myRoot, activeTargetHRP, 1)
+             end
+         end
+     else
+         removeLookGyro()
+     end
+ end
+
+ if shouldGrab and GrabRF then
+     for i = 1, grabRepeatVal do 
+         task.spawn(function() 
+             pcall(function() GrabRF:InvokeServer() end) 
+         end) 
+     end
+ end
+
+ if rainbowNameRemote and BWNameActive then
+     local now = os.clock()
+     rnHue = (rnHue + (dt * rnSpeed)) % 1
+     if now - bwLastUpdate >= (currentNameMode == "Police" and 0.12 or rnUpdateRate) then
+         local targetColor
+         if currentNameMode == "BW" then local intensity = (math.sin(rnHue * math.pi * 2) + 1) / 2; targetColor = Color3.new(intensity, intensity, intensity)
+         elseif currentNameMode == "Rainbow" then targetColor = Color3.fromHSV(rnHue, 1, 1)
+         elseif currentNameMode == "Pulse" then targetColor = Color3.fromHSV(rnHue, 0.8, 1)
+         elseif currentNameMode == "Strobe" then targetColor = Color3.fromRGB(math.random(50,255), math.random(50,255), math.random(50,255))
+         elseif currentNameMode == "Police" then policeToggle = not policeToggle; targetColor = policeToggle and Color3.fromRGB(0, 100, 255) or Color3.fromRGB(255, 0, 0) end
+         if targetColor then pcall(function() rainbowNameRemote:FireServer(targetColor) end) end
+         bwLastUpdate = now
+     end
+ end
+end)
+
+pcall(function()
+ Rayfield:LoadConfiguration()
+end)
