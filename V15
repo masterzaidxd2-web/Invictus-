@@ -213,10 +213,14 @@ local function setupAntiGrab(char)
                local p0InChar = part0:IsDescendantOf(char)
                local p1InChar = part1:IsDescendantOf(char)
                
-               -- إذا كان اللحام يربط جزءاً من شخصيتك بجزء خارجي (لاعب آخر)
-               if (p0InChar and not p1InChar) or (not p0InChar and p1InChar) then
-                   local externalPart = p0InChar and part1 or part0
-                   local attackerChar = externalPart and externalPart.Parent
+               -- [ التعديل 1 ]: إذا كنت أنت المهاجم (أنت Part0)، أوقف الفحص فوراً ولا تقتل نفسك
+               if p0InChar and not p1InChar then
+                   return
+               end
+               
+               -- [ التعديل 2 ]: إذا كان الخصم هو من يمسك بك (أنت الضحية Part1 والخصم Part0)
+               if not p0InChar and p1InChar then
+                   local attackerChar = part0.Parent
                    
                    -- التأكد من أن الكيان الخارجي يتبع لشخصية لاعب
                    if attackerChar and attackerChar:FindFirstChildOfClass("Humanoid") then
@@ -250,9 +254,9 @@ local function setupAntiGrab(char)
                end
            end
        else
-           -- كشف أي مؤثرات أو قيم إمساك عامة
+           -- [ التعديل 3 ]: تغيير الكلمات لتكون بصيغة المبني للمجهول حتى لا تموت إذا استخدمت أنت مهارة الإمساك
            local name = child.Name:lower()
-           if name:find("grab") or name:find("stun") or name:find("hold") or name:find("carry") then
+           if name:find("grabbed") or name:find("stunned") then
                executeAutoReset("تأثير الإمساك: " .. child.Name)
            end
        end
@@ -271,7 +275,9 @@ local function setupAntiGrab(char)
                        if p0 and p1 then
                            local p0InChar = p0:IsDescendantOf(char)
                            local p1InChar = p1:IsDescendantOf(char)
-                           if (p0InChar and not p1InChar) or (not p0InChar and p1InChar) then
+                           
+                           -- [ التعديل 4 ]: هنا أيضاً نتأكد أنك الضحية ولست المهاجم قبل الرسباون
+                           if not p0InChar and p1InChar then
                                executeAutoReset("تم تقييد حركتك (PlatformStanding)")
                                break
                            end
@@ -282,6 +288,7 @@ local function setupAntiGrab(char)
        end)
    end
 end
+
 
 
 if lp.Character then setupAntiGrab(lp.Character) end
