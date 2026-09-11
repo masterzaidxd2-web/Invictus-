@@ -400,46 +400,102 @@ local function setupAntiGrab(char)
                                })
                            end)
                        end
+local function setupAntiGrab(char)
+   if not char then return end
+   
+   -- 1. فحص اللحامات عند إضافتها (في مسار خلفي لمنع تجميد السكربت)
+   char.DescendantAdded:Connect(function(child)
+       task.spawn(function()
+           task.wait(0.1) -- انتظار بسيط حتى يتم تعريف الأجزاء
+           if not AntiGrabEnabled then return end
+           
+           -- استخدام pcall لمنع أي أخطاء من إيقاف السكربت
+           pcall(function()
+               if child:IsA("Weld") or child:IsA("WeldConstraint") or child:IsA("Motor6D") then
+                   local part0 = child.Part0
+                   local part1 = child.Part1
+                   
+                   if part0 and part1 then
+                       local p0InChar = part0:IsDescendantOf(char)
+                       local p1InChar = part1:IsDescendantOf(char)
                        
-                       executeAutoReset("تم الإمساك بك بواسطة: " .. attackerName)
+                       -- إذا كنت أنت المهاجم (أنت Part0)، أوقف الفحص حتى لا تقتل نفسك
+                       if p0InChar and not p1InChar then return end
+                       
+                       -- إذا كنت أنت الضحية (الخصم هو Part0 وأنت Part1)
+                       if not p0InChar and p1InChar then
+                           local attackerChar = part0.Parent
+                           if attackerChar and attackerChar:FindFirstChildOfClass("Humanoid") then
+                               local attackerName = attackerChar.Name
+                               
+                               if Players:FindFirstChild(attackerName) then
+                                   if ChosenTargetName1 == "" or ChosenTargetName1 == attackerName then
+                                       ChosenTargetName1 = attackerName
+                                       pcall(function() TargetDropdown1:Set({attackerName}) end)
+                                   elseif ChosenTargetName2 == "" or ChosenTargetName2 == attackerName then
+                                       ChosenTargetName2 = attackerName
+                                       pcall(function() TargetDropdown2:Set({attackerName}) end)
+                                   else
+                                       ChosenTargetName3 = attackerName
+                                       pcall(function() TargetDropdown3:Set({attackerName}) end)
+                                   end
+                                   
+                                   SpecificTargetEnabled = true
+                                   pcall(function()
+                                       Rayfield:Notify({
+                                           Title = "نظام الانتقام 🎯",
+                                           Content = "تم تحديد [" .. attackerName .. "] كهدف!",
+                                           Duration = 3
+                                       })
+                                   end)
+                               end
+                               
+                               executeAutoReset("تم الإمساك بك بواسطة: " .. attackerName)
+                           end
+                       end
+                   end
+               else
+                   -- الكشف عن تأثيرات الإمساك العادية
+                   local name = child.Name:lower()
+                   if name:find("grabbed") or name:find("stunned") then
+                       executeAutoReset("تأثير الإمساك: " .. child.Name)
                    end
                end
-           end
-       else
-           -- كشف أي مؤثرات أو قيم إمساك عامة
-           local name = child.Name:lower()
-           if name:find("grabbed") or name:find("stunned") then
-               executeAutoReset("تأثير الإمساك: " .. child.Name)
-           end
-       end
+           end)
+       end)
    end)
    
-   -- 2. تشغيل فحص حالة الحركة في مسار منفصل (task.spawn) لعدم تجميد السكربت
+   -- 2. فحص تقييد الحركة (معزول تماماً حتى لا يعطل الواجهة)
    task.spawn(function()
-       local hum = char:WaitForChild("Humanoid", 3)
+       local hum = char:WaitForChild("Humanoid", 5)
        if hum then
            hum.StateChanged:Connect(function(_, newState)
                if not AntiGrabEnabled then return end
                if newState == Enum.HumanoidStateType.PlatformStanding then
-                   task.wait(0.05)
-                   for _, v in pairs(char:GetDescendants()) do
-                       if v:IsA("Weld") or v:IsA("WeldConstraint") or v:IsA("Motor6D") then
-                           local p0, p1 = v.Part0, v.Part1
-                           if p0 and p1 then
-                               local p0InChar = p0:IsDescendantOf(char)
-                               local p1InChar = p1:IsDescendantOf(char)
-                               if (p0InChar and not p1InChar) or (not p0InChar and p1InChar) then
-                                   executeAutoReset("تم تقييد حركتك (PlatformStanding)")
-                                   break
+                   task.wait(0.1)
+                   pcall(function()
+                       for _, v in pairs(char:GetDescendants()) do
+                           if v:IsA("Weld") or v:IsA("WeldConstraint") or v:IsA("Motor6D") then
+                               local p0, p1 = v.Part0, v.Part1
+                               if p0 and p1 then
+                                   local p0In = p0:IsDescendantOf(char)
+                                   local p1In = p1:IsDescendantOf(char)
+                                   
+                                   -- نتأكد مجدداً أنك الضحية ولست المهاجم
+                                   if not p0In and p1In then
+                                       executeAutoReset("تم تقييد حركتك (PlatformStanding)")
+                                       break
+                                   end
                                end
                            end
                        end
-                   end
+                   end)
                end
            end)
        end
    end)
 end
+
 
 
 
