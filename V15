@@ -262,23 +262,104 @@ local function setupAntiGrab(char)
        end
    end)
    
-   -- 2. فحص تقييد الحركة مع التأكد من وجود ربط مع لاعب آخر (وأنك الضحية ولست المهاجم)
+local function setupAntiGrab(char)
+   if not char then return end
    local hum = char:WaitForChild("Humanoid", 3)
+   
+   -- 1. فحص العناصر واللحامات الجديدة
+   char.DescendantAdded:Connect(function(child)
+       if not AntiGrabEnabled then return end
+       
+       task.wait(0.1) 
+       
+       if child:IsA("Weld") or child:IsA("WeldConstraint") or child:IsA("Motor6D") then
+           local part0 = child.Part0
+           local part1 = child.Part1
+           
+           if part0 and part1 then
+               local p0InChar = part0:IsDescendantOf(char)
+               local p1InChar = part1:IsDescendantOf(char)
+               
+               -- إذا كان هناك ربط بينك وبين شخصية أخرى
+               if (p0InChar and not p1InChar) or (not p0InChar and p1InChar) then
+                   
+                   -- [ الفلتر الحاسم ]: التأكد من أنك "الضحية" ولست المهاجم!
+                   -- عندما يتم الإمساك بك، تدخل شخصيتك في حالة عجز وسقوط
+                   local isVictim = false
+                   if hum then
+                       local state = hum:GetState()
+                       if state == Enum.HumanoidStateType.PlatformStanding or 
+                          state == Enum.HumanoidStateType.Physics or 
+                          state == Enum.HumanoidStateType.FallingDown then
+                           isVictim = true
+                       end
+                   end
+                   
+                   -- إذا لم تكن في حالة عجز (أي أنت من قمت بالهجوم)، نتجاهل الأمر حتى لا تقتل نفسك
+                   if not isVictim then
+                       return 
+                   end
+                   
+                   -- إذا وصلت إلى هنا، فهذا يعني أنك الضحية وتم الإمساك بك فعلياً!
+                   local externalPart = p0InChar and part1 or part0
+                   local attackerChar = externalPart and externalPart.Parent
+                   
+                   if attackerChar and attackerChar:FindFirstChildOfClass("Humanoid") then
+                       local attackerName = attackerChar.Name
+                       
+                       if Players:FindFirstChild(attackerName) then
+                           if ChosenTargetName1 == "" or ChosenTargetName1 == attackerName then
+                               ChosenTargetName1 = attackerName
+                               pcall(function() TargetDropdown1:Set({attackerName}) end)
+                           elseif ChosenTargetName2 == "" or ChosenTargetName2 == attackerName then
+                               ChosenTargetName2 = attackerName
+                               pcall(function() TargetDropdown2:Set({attackerName}) end)
+                           else
+                               ChosenTargetName3 = attackerName
+                               pcall(function() TargetDropdown3:Set({attackerName}) end)
+                           end
+                           
+                           SpecificTargetEnabled = true
+                           
+                           pcall(function()
+                               Rayfield:Notify({
+                                   Title = "نظام الانتقام 🎯",
+                                   Content = "تم تحديد [" .. attackerName .. "] كهدف!",
+                                   Duration = 3
+                               })
+                           end)
+                       end
+                       
+                       executeAutoReset("تم الإمساك بك بواسطة: " .. attackerName)
+                   end
+               end
+           end
+       else
+           local name = child.Name:lower()
+           if name:find("grabbed") or name:find("stunned") then
+               executeAutoReset("تأثير الإمساك: " .. child.Name)
+           end
+       end
+   end)
+   
+   -- 2. دعم إضافي موثوق: في حال تحول وضعك للطيران/الشلل فجأة لوجود خصم قريب
    if hum then
        hum.StateChanged:Connect(function(_, newState)
            if not AntiGrabEnabled then return end
            if newState == Enum.HumanoidStateType.PlatformStanding then
-               task.wait(0.05)
+               task.wait(0.1)
                for _, v in pairs(char:GetDescendants()) do
                    if v:IsA("Weld") or v:IsA("WeldConstraint") or v:IsA("Motor6D") then
                        local p0, p1 = v.Part0, v.Part1
                        if p0 and p1 then
                            local p0InChar = p0:IsDescendantOf(char)
                            local p1InChar = p1:IsDescendantOf(char)
-                           
-                           -- نتأكد أننا الضحية (Part1) وليس المهاجم (Part0)
-                           if not p0InChar and p1InChar then
-                               executeAutoReset("تم تقييد حركتك (PlatformStanding)")
+                           if (p0InChar and not p1InChar) or (not p0InChar and p1InChar) then
+                               local externalPart = p0InChar and p1 or p0
+                               local attackerChar = externalPart and externalPart.Parent
+                               local attackerName = (attackerChar and attackerChar.Name) or "مجهول"
+                               
+                               executeAutoReset("تم تقييد حركتك بواسطة: " .. attackerName)
                                break
                            end
                        end
