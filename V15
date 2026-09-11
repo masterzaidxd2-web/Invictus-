@@ -256,11 +256,27 @@ local function setupAntiGrab(char)
        hum.StateChanged:Connect(function(_, newState)
            if not AntiGrabEnabled then return end
            if newState == Enum.HumanoidStateType.PlatformStanding then
-               executeAutoReset("تم تقييد حركتك (PlatformStanding)")
+               -- التحقق مما إذا كان هناك إمساك حقيقي من لاعب آخر قبل إعادة الترسيب
+               local isBeingGrabbed = false
+               for _, v in pairs(char:GetDescendants()) do
+                   if v:IsA("Weld") or v:IsA("WeldConstraint") or v:IsA("Motor6D") then
+                       local p0, p1 = v.Part0, v.Part1
+                       if p0 and p1 then
+                           if (p0:IsDescendantOf(char) and not p1:IsDescendantOf(char)) or (not p0:IsDescendantOf(char) and p1:IsDescendantOf(char)) then
+                               isBeingGrabbed = true
+                               break
+                           end
+                       end
+                   end
+               end
+               if isBeingGrabbed then
+                   executeAutoReset("تم تقييد حركتك (PlatformStanding)")
+               end
            end
        end)
    end
 end
+
 
 if lp.Character then setupAntiGrab(lp.Character) end
 lp.CharacterAdded:Connect(setupAntiGrab)
