@@ -284,6 +284,28 @@ local function setupAntiGrab(char)
                if (p0InChar and not p1InChar) or (not p0InChar and p1InChar) then
                    
                    -- [ الفلتر الحاسم ]: التأكد من أنك "الضحية" ولست المهاجم!
+local function setupAntiGrab(char)
+   if not char then return end
+   local hum = char:WaitForChild("Humanoid", 3)
+   
+   -- 1. فحص العناصر واللحامات الجديدة
+   char.DescendantAdded:Connect(function(child)
+       if not AntiGrabEnabled then return end
+       
+       task.wait(0.1) 
+       
+       if child:IsA("Weld") or child:IsA("WeldConstraint") or child:IsA("Motor6D") then
+           local part0 = child.Part0
+           local part1 = child.Part1
+           
+           if part0 and part1 then
+               local p0InChar = part0:IsDescendantOf(char)
+               local p1InChar = part1:IsDescendantOf(char)
+               
+               -- إذا كان هناك ربط بينك وبين شخصية أخرى
+               if (p0InChar and not p1InChar) or (not p0InChar and p1InChar) then
+                   
+                   -- [ الفلتر الحاسم ]: التأكد من أنك "الضحية" ولست المهاجم!
                    -- عندما يتم الإمساك بك، تدخل شخصيتك في حالة عجز وسقوط
                    local isVictim = false
                    if hum then
