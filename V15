@@ -200,6 +200,14 @@ local function setupAntiGrab(char)
    if not char then return end
    local hum = char:WaitForChild("Humanoid", 3)
    
+   -- [ الإضافة الجديدة لحل المشكلة ]: منع اللاعب من السقوط على وجهه أو التعثر نهائياً
+   if hum then
+       pcall(function()
+           hum:SetStateEnabled(Enum.HumanoidStateType.FallingDown, false)
+           hum:SetStateEnabled(Enum.HumanoidStateType.Ragdoll, false)
+       end)
+   end
+   
    -- وظيفة مساعدة لتسجيل الهدف وتفعيل الرسباون
    local function triggerRespawn(attackerName, reason)
        if attackerName and Players:FindFirstChild(attackerName) then
@@ -230,14 +238,12 @@ local function setupAntiGrab(char)
        if not AntiGrabEnabled then return end
        task.wait(0.05) 
        
-       -- تم إيقاف فحص اللحام (Weld) من هنا لأنه يتفعل بالخطأ عندما تهاجم أنت
        if child:IsA("Weld") or child:IsA("WeldConstraint") or child:IsA("Motor6D") then
            return
        end
        
        local name = child.Name:lower()
        if name:find("grab") or name:find("stun") or name:find("hold") or name:find("carry") then
-           -- يتفعل فقط إذا تم تقييد حركتك حقاً (حتى لا تقتل نفسك إذا استخدمت المهارة)
            if hum and (hum:GetState() == Enum.HumanoidStateType.PlatformStanding or hum.WalkSpeed < 5) then
                executeAutoReset("تأثير الإمساك: " .. child.Name)
            end
@@ -254,10 +260,8 @@ local function setupAntiGrab(char)
                
                local root = char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso") or char:FindFirstChild("UpperTorso")
                if root then
-                   -- استخدام محرك الفيزياء لمعرفة من يلتصق بك (GetConnectedParts)
                    for _, part in ipairs(root:GetConnectedParts()) do
                        local potentialEnemy = part.Parent
-                       -- إذا وجدنا أن هناك لاعب آخر متصل بك فيزيائياً
                        if potentialEnemy and potentialEnemy ~= char and potentialEnemy:FindFirstChildOfClass("Humanoid") then
                            triggerRespawn(potentialEnemy.Name, "تم الإمساك بك بواسطة: " .. potentialEnemy.Name)
                            return
@@ -268,7 +272,6 @@ local function setupAntiGrab(char)
        end)
    end
 end
-
 
 
 
