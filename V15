@@ -609,6 +609,75 @@ GrabTab:CreateButton({ Name = "انتقال (Teleport)", Callback = function() i
 GrabTab:CreateButton({ Name = "تحديث قوائم اللاعبين", Callback = function() local n = getPlayerNamesForTargets() TargetDropdown1:Refresh(n); TargetDropdown2:Refresh(n); TargetDropdown3:Refresh(n); TpDropdown:Refresh(getPlayerNames(false)) end })
 
 -- Player
+-- ===============================================
+-- متغيرات الطيران واختراق الجدران
+-- ===============================================
+local isFlying = false
+local flySpeed = 50
+local isNoClip = false
+local bg, bv
+
+local function toggleFly(state)
+    isFlying = state
+    local char = lp.Character
+    if not char or not char:FindFirstChild("HumanoidRootPart") or not char:FindFirstChild("Humanoid") then return end
+    
+    if isFlying then
+        local hrp = char.HumanoidRootPart
+        -- إنشاء قوة الرفع والدوران
+        bg = Instance.new("BodyGyro")
+        bg.P = 9e4
+        bg.MaxTorque = Vector3.new(9e9, 9e9, 9e9)
+        bg.CFrame = hrp.CFrame
+        bg.Parent = hrp
+        
+        bv = Instance.new("BodyVelocity")
+        bv.Velocity = Vector3.new(0, 0, 0)
+        bv.MaxForce = Vector3.new(9e9, 9e9, 9e9)
+        bv.Parent = hrp
+        
+        char.Humanoid.PlatformStand = true
+    else
+        if bg then bg:Destroy() bg = nil end
+        if bv then bv:Destroy() bv = nil end
+        char.Humanoid.PlatformStand = false
+    end
+end
+
+-- إعادة تفعيل الطيران تلقائياً إذا مات اللاعب وهو مفعل
+lp.CharacterAdded:Connect(function()
+    if isFlying then
+        task.wait(0.5)
+        toggleFly(true)
+    end
+end)
+
+PlayerTab:CreateSection("الطيران واختراق الجدران")
+
+PlayerTab:CreateToggle({ 
+    Name = "🕊️ طيران سلس (Fly)", 
+    CurrentValue = false, 
+    Flag = "FlyToggle", 
+    Callback = function(Value) toggleFly(Value) end 
+})
+
+PlayerTab:CreateSlider({ 
+    Name = "سرعة الطيران", 
+    Range = {10, 200}, 
+    Increment = 1, 
+    Suffix = "Speed", 
+    CurrentValue = 50, 
+    Flag = "FlySpeedSlider", 
+    Callback = function(Value) flySpeed = Value end 
+})
+
+PlayerTab:CreateToggle({ 
+    Name = "👻 اختراق الجدران (NoClip)", 
+    CurrentValue = false, 
+    Flag = "NoClipToggle", 
+    Callback = function(Value) isNoClip = Value end 
+})
+
 PlayerTab:CreateToggle({ Name = "إظهار زر التخفي العائم", CurrentValue = false, Flag = "InvisSystemToggle", Callback = function(Value) InvisGui.Enabled = Value; if not Value and IsInvisible then IsInvisible = false; FloatBtn.BackgroundColor3 = Color3.fromRGB(220, 60, 60); FloatBtn.Text = "تخفي: ❌"; for _, item in pairs(invisParts) do if item.obj and item.obj.Parent then item.obj.Transparency = item.origTrans end end end end })
 PlayerTab:CreateToggle({ Name = "تثبيت السرعة", CurrentValue = false, Flag = "SpeedToggle", Callback = function(Value) isSpeedEnabled = Value; if not Value and lp.Character then local hum = lp.Character:FindFirstChildOfClass("Humanoid") if hum then hum.WalkSpeed = 16 end end end })
 PlayerTab:CreateSlider({ Name = "قيمة السرعة", Range = {16, 150}, Increment = 1, Suffix = "WS", CurrentValue = 35, Flag = "SpeedSlider", Callback = function(Value) currentWalkSpeed = Value end })
