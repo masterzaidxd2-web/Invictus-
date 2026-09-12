@@ -895,30 +895,7 @@ RunService.Heartbeat:Connect(function(dt)
           end
       end
   end
-    if VoidTpGrabEnabled and shouldGrab and activeTargetHRP then
-        if not lp:GetAttribute("IsVoiding") then
-            lp:SetAttribute("IsVoiding", true)
-            task.spawn(function()
-                local hrp = lp.Character and lp.Character:FindFirstChild("HumanoidRootPart")
-                if hrp then
-                    local lastCFrame = hrp.CFrame
-                    workspace.FallenPartsDestroyHeight = -1000
-                    
-                    hrp.CFrame = CFrame.new(Vector3.new(0, -500, 0))
-                    task.wait(0.2)
-                    
-                    hrp.CFrame = lastCFrame
-                    workspace.FallenPartsDestroyHeight = -500
-                    
-                    hrp.AssemblyLinearVelocity = Vector3.zero
-                    hrp.AssemblyAngularVelocity = Vector3.zero
-                end
-                task.wait(1)
-                lp:SetAttribute("IsVoiding", nil)
-            end)
-        end
-    end
-
+  
   if SpecificTargetEnabled then
       local myChar = lp.Character
       if myChar and myChar:FindFirstChild("HumanoidRootPart") then
