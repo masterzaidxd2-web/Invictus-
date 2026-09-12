@@ -581,6 +581,16 @@ local AuraTargetDropdown = MainTab:CreateDropdown({ Name = "الهدف", Options
 MainTab:CreateButton({ Name = "تحديث الأهداف", Callback = function() AuraTargetDropdown:Refresh(getPlayerNames(true)) end })
 
 -- الإمساك
+local VoidTpGrabEnabled = false
+GrabTab:CreateToggle({
+    Name = "⚡ نقل الخصم للفويد عند الإمساك (Void TP)",
+    CurrentValue = false,
+    Flag = "VoidTpGrabToggle",
+    Callback = function(Value)
+        VoidTpGrabEnabled = Value
+    end
+})
+
 GrabTab:CreateSection("حماية الإمساك والانتقام (Anti-Grab & Revenge)")
 GrabTab:CreateToggle({ Name = "الهروب وتحديد المهاجم كهدف تلقائياً", CurrentValue = false, Flag = "AntiGrabToggle", Callback = function(Value) AntiGrabEnabled = Value end })
 
