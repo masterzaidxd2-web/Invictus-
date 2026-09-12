@@ -610,7 +610,7 @@ GrabTab:CreateButton({ Name = "تحديث قوائم اللاعبين", Callback
 
 -- Player
 -- ===============================================
--- نظام الطيران المخصص (Custom Fly)
+-- نظام الطيران المخصص (النسخة المطابقة لسكربتك)
 -- ===============================================
 local speaker = game:GetService("Players").LocalPlayer
 local hb = game:GetService("RunService").Heartbeat
@@ -618,20 +618,36 @@ local isFlying = false
 local tpwalking = false
 local flySpeed = 1
 
-local function toggleCustomFly(state)
+local function toggleFly(state)
     isFlying = state
     local chr = speaker.Character
     local hum = chr and chr:FindFirstChildWhichIsA("Humanoid")
     
     if isFlying then
+        tpwalking = false 
+        task.wait(0.1)
         tpwalking = true
+        
+        -- تطبيق حالات الـ Humanoid وإيقاف الأنيميشن كما في السكربت المرفق
         if hum then
-            hum:SetStateEnabled(Enum.HumanoidStateType.RunningNoPhysics, true)
-            hum:ChangeState(Enum.HumanoidStateType.RunningNoPhysics)
-            hum.PlatformStand = true
+            hum:SetStateEnabled(Enum.HumanoidStateType.Climbing, false)
+            hum:SetStateEnabled(Enum.HumanoidStateType.FallingDown, false)
+            hum:SetStateEnabled(Enum.HumanoidStateType.Flying, false)
+            hum:SetStateEnabled(Enum.HumanoidStateType.Freefall, false)
+            hum:SetStateEnabled(Enum.HumanoidStateType.GettingUp, false)
+            hum:SetStateEnabled(Enum.HumanoidStateType.Jumping, false)
+            hum:SetStateEnabled(Enum.HumanoidStateType.Landed, false)
+            hum:SetStateEnabled(Enum.HumanoidStateType.Physics, false)
+            hum:SetStateEnabled(Enum.HumanoidStateType.PlatformStanding, false)
+            hum:SetStateEnabled(Enum.HumanoidStateType.Ragdoll, false)
+            hum:SetStateEnabled(Enum.HumanoidStateType.Running, false)
+            hum:SetStateEnabled(Enum.HumanoidStateType.RunningNoPhysics, false)
+            hum:SetStateEnabled(Enum.HumanoidStateType.Seated, false)
+            hum:SetStateEnabled(Enum.HumanoidStateType.StrafingNoPhysics, false)
+            hum:SetStateEnabled(Enum.HumanoidStateType.Swimming, false)
+            hum:ChangeState(Enum.HumanoidStateType.Swimming)
         end
         
-        -- إيقاف الأنيميشن (كما في السكربت الأصلي)
         if chr and chr:FindFirstChild("Animate") then
             chr.Animate.Disabled = true
         end
@@ -641,20 +657,35 @@ local function toggleCustomFly(state)
             end
         end
         
-        -- حلقة الطيران
-        spawn(function()
-            while tpwalking and hb:Wait() and chr and hum and hum.Parent do
-                if hum.MoveDirection.Magnitude > 0 then
-                    chr:TranslateBy(hum.MoveDirection * flySpeed)
+        -- تكرار حلقة الطيران لزيادة السرعة بناءً على السكربت الأصلي
+        for i = 1, flySpeed do
+            spawn(function()
+                while tpwalking and hb:Wait() and chr and hum and hum.Parent do
+                    if hum.MoveDirection.Magnitude > 0 then
+                        chr:TranslateBy(hum.MoveDirection)
+                    end
                 end
-            end
-        end)
+            end)
+        end
     else
         tpwalking = false
         if hum then
-            hum:SetStateEnabled(Enum.HumanoidStateType.RunningNoPhysics, false)
-            hum:ChangeState(Enum.HumanoidStateType.Swimming)
-            hum.PlatformStand = false
+            hum:SetStateEnabled(Enum.HumanoidStateType.Climbing, true)
+            hum:SetStateEnabled(Enum.HumanoidStateType.FallingDown, true)
+            hum:SetStateEnabled(Enum.HumanoidStateType.Flying, true)
+            hum:SetStateEnabled(Enum.HumanoidStateType.Freefall, true)
+            hum:SetStateEnabled(Enum.HumanoidStateType.GettingUp, true)
+            hum:SetStateEnabled(Enum.HumanoidStateType.Jumping, true)
+            hum:SetStateEnabled(Enum.HumanoidStateType.Landed, true)
+            hum:SetStateEnabled(Enum.HumanoidStateType.Physics, true)
+            hum:SetStateEnabled(Enum.HumanoidStateType.PlatformStanding, true)
+            hum:SetStateEnabled(Enum.HumanoidStateType.Ragdoll, true)
+            hum:SetStateEnabled(Enum.HumanoidStateType.Running, true)
+            hum:SetStateEnabled(Enum.HumanoidStateType.RunningNoPhysics, true)
+            hum:SetStateEnabled(Enum.HumanoidStateType.Seated, true)
+            hum:SetStateEnabled(Enum.HumanoidStateType.StrafingNoPhysics, true)
+            hum:SetStateEnabled(Enum.HumanoidStateType.Swimming, true)
+            hum:ChangeState(Enum.HumanoidStateType.RunningNoPhysics)
         end
         if chr and chr:FindFirstChild("Animate") then
             chr.Animate.Disabled = false
@@ -662,73 +693,33 @@ local function toggleCustomFly(state)
     end
 end
 
--- إعادة تهيئة الطيران عند موت اللاعب أو إعادة الترسبن
-speaker.CharacterAdded:Connect(function(char)
-    task.wait(0.7)
-    local hum = char:WaitForChild("Humanoid")
-    hum.PlatformStand = false
-    if char:FindFirstChild("Animate") then
-        char.Animate.Disabled = false
-    end
-    if isFlying then
-        toggleCustomFly(true)
-    end
-end)
-
 -- ===============================================
--- واجهة أزرار الطيران المخصص في Rayfield
+-- واجهة Rayfield
 -- ===============================================
-
 PlayerTab:CreateSection("نظام الطيران")
 
 PlayerTab:CreateToggle({ 
-    Name = "🕊️ تفعيل الطيران (Fly)", 
+    Name = "🕊️ تفعيل الطيران", 
     CurrentValue = false, 
-    Flag = "CustomFlyToggle", 
-    Callback = function(Value) toggleCustomFly(Value) end 
+    Flag = "FlyToggle", 
+    Callback = function(Value) toggleFly(Value) end 
 })
 
 PlayerTab:CreateSlider({ 
     Name = "سرعة الطيران", 
-    Range = {1, 20}, 
+    Range = {1, 10}, 
     Increment = 1, 
     Suffix = "Speed", 
     CurrentValue = 1, 
-    Flag = "CustomFlySpeed", 
-    Callback = function(Value) flySpeed = Value end 
-})
-
-local upLoop = false
-PlayerTab:CreateToggle({ 
-    Name = "⬆️ صعود مستمر (Up)", 
-    CurrentValue = false, 
-    Flag = "FlyUpToggle", 
+    Flag = "FlySpeed", 
     Callback = function(Value) 
-        upLoop = Value
-        spawn(function()
-            while upLoop and task.wait() do
-                if speaker.Character and speaker.Character:FindFirstChild("HumanoidRootPart") then
-                    speaker.Character.HumanoidRootPart.CFrame = speaker.Character.HumanoidRootPart.CFrame * CFrame.new(0, flySpeed, 0)
-                end
-            end
-        end)
-    end 
-})
-
-local downLoop = false
-PlayerTab:CreateToggle({ 
-    Name = "⬇️ نزول مستمر (Down)", 
-    CurrentValue = false, 
-    Flag = "FlyDownToggle", 
-    Callback = function(Value) 
-        downLoop = Value
-        spawn(function()
-            while downLoop and task.wait() do
-                if speaker.Character and speaker.Character:FindFirstChild("HumanoidRootPart") then
-                    speaker.Character.HumanoidRootPart.CFrame = speaker.Character.HumanoidRootPart.CFrame * CFrame.new(0, -flySpeed, 0)
-                end
-            end
-        end)
+        flySpeed = Value
+        -- إعادة التشغيل تلقائياً لتطبيق السرعة الجديدة أثناء الطيران
+        if isFlying then
+            toggleFly(false)
+            task.wait(0.1)
+            toggleFly(true)
+        end
     end 
 })
 
