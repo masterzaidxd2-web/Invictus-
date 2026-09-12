@@ -609,9 +609,8 @@ GrabTab:CreateButton({ Name = "انتقال (Teleport)", Callback = function() i
 GrabTab:CreateButton({ Name = "تحديث قوائم اللاعبين", Callback = function() local n = getPlayerNamesForTargets() TargetDropdown1:Refresh(n); TargetDropdown2:Refresh(n); TargetDropdown3:Refresh(n); TpDropdown:Refresh(getPlayerNames(false)) end })
 
 -- Player
-
-        -- ===============================================
--- نظام الطيران المطور والنهائي (مصحح ومتوافق تماماً)
+-- ===============================================
+-- نظام الطيران المخصص (النسخة الثابتة والمستقرة)
 -- ===============================================
 local speaker = game:GetService("Players").LocalPlayer
 local hb = game:GetService("RunService").Heartbeat
@@ -675,51 +674,51 @@ local function toggleFly(Value)
             v:AdjustSpeed(0)
         end
         
-        -- تشغيل محرك الفيزياء الثابت
+        -- حلقة حركة واحدة وثابتة لا تتضاعف أبداً
         task.spawn(function()
-            local torso = (hum.RigType == Enum.HumanoidRigType.R6) and chr:FindFirstChild("Torso") or chr:FindFirstChild("UpperTorso")
-            if not torso then return end
-            
-            local bg = Instance.new("BodyGyro", torso)
-            bg.P = 9e4
-            bg.maxTorque = Vector3.new(9e9, 9e9, 9e9)
-            bg.cframe = torso.CFrame
-            
-            local bv = Instance.new("BodyVelocity", torso)
-            bv.maxForce = Vector3.new(9e9, 9e9, 9e9)
-            bv.velocity = Vector3.new(0, 0, 0)
-            
-            hum.PlatformStand = true
-            
-            while nowe and hum.Health > 0 do
+            while nowe do
                 hb:Wait()
                 local currentChr = speaker.Character
                 local currentHum = currentChr and currentChr:FindFirstChildWhichIsA("Humanoid")
-                
                 if currentChr and currentHum and currentHum.Parent then
-                    -- تم التصحيح هنا لتعمل بشكل متوافق تماماً مع التحديثات الحديثة
-                    bg.cframe = workspace.CurrentCamera.CFrame
-                    
-                    local cam = workspace.CurrentCamera
-                    local moveDir = currentHum.MoveDirection
-                    
-                    if moveDir.Magnitude > 0 then
-                        local moveVector = (cam.CFrame.RightVector * moveDir.X + cam.CFrame.LookVector * moveDir.Z)
-                        bv.velocity = moveVector * (speeds * 15)
-                    else
-                        bv.velocity = Vector3.new(0, 0, 0)
+                    if currentHum.MoveDirection.Magnitude > 0 then
+                        -- ضرب اتجاه الحركة بقيمة الـ Slider مباشرة بمعامل ثابت
+                        currentChr:TranslateBy(currentHum.MoveDirection * (speeds * 0.3))
                     end
                 else
                     break
                 end
             end
-            
-            bg:Destroy()
-            bv:Destroy()
-            hum.PlatformStand = false
-            
-            if chr:FindFirstChild("Animate") then
-                chr.Animate.Disabled = false
+        end)
+
+        -- نظام منع السقوط (BodyGyro & BodyVelocity)
+        task.spawn(function()
+            local torso = (hum.RigType == Enum.HumanoidRigType.R6) and chr:FindFirstChild("Torso") or chr:FindFirstChild("UpperTorso")
+            if torso then
+                local bg = Instance.new("BodyGyro", torso)
+                bg.P = 9e4
+                bg.maxTorque = Vector3.new(9e9, 9e9, 9e9)
+                bg.cframe = torso.CFrame
+                
+                local bv = Instance.new("BodyVelocity", torso)
+                bv.velocity = Vector3.new(0, 0.1, 0)
+                bv.maxForce = Vector3.new(9e9, 9e9, 9e9)
+                
+                hum.PlatformStand = true
+                
+                while nowe and hum.Health > 0 do
+                    hb:Wait()
+                    bg.cframe = workspace.CurrentCamera.CoordinateFrame
+                end
+                
+                bg:Destroy()
+                bv:Destroy()
+                hum.PlatformStand.PlatformStand = false
+                hum.PlatformStand = false
+                
+                if chr:FindFirstChild("Animate") then
+                    chr.Animate.Disabled = false
+                end
             end
         end)
     end
