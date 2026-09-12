@@ -610,72 +610,126 @@ GrabTab:CreateButton({ Name = "تحديث قوائم اللاعبين", Callback
 
 -- Player
 -- ===============================================
--- متغيرات الطيران واختراق الجدران
+-- نظام الطيران المخصص (Custom Fly)
 -- ===============================================
+local speaker = game:GetService("Players").LocalPlayer
+local hb = game:GetService("RunService").Heartbeat
 local isFlying = false
-local flySpeed = 50
-local isNoClip = false
-local bg, bv
+local tpwalking = false
+local flySpeed = 1
 
-local function toggleFly(state)
+local function toggleCustomFly(state)
     isFlying = state
-    local char = lp.Character
-    if not char or not char:FindFirstChild("HumanoidRootPart") or not char:FindFirstChild("Humanoid") then return end
+    local chr = speaker.Character
+    local hum = chr and chr:FindFirstChildWhichIsA("Humanoid")
     
     if isFlying then
-        local hrp = char.HumanoidRootPart
-        -- إنشاء قوة الرفع والدوران
-        bg = Instance.new("BodyGyro")
-        bg.P = 9e4
-        bg.MaxTorque = Vector3.new(9e9, 9e9, 9e9)
-        bg.CFrame = hrp.CFrame
-        bg.Parent = hrp
+        tpwalking = true
+        if hum then
+            hum:SetStateEnabled(Enum.HumanoidStateType.RunningNoPhysics, true)
+            hum:ChangeState(Enum.HumanoidStateType.RunningNoPhysics)
+            hum.PlatformStand = true
+        end
         
-        bv = Instance.new("BodyVelocity")
-        bv.Velocity = Vector3.new(0, 0, 0)
-        bv.MaxForce = Vector3.new(9e9, 9e9, 9e9)
-        bv.Parent = hrp
+        -- إيقاف الأنيميشن (كما في السكربت الأصلي)
+        if chr and chr:FindFirstChild("Animate") then
+            chr.Animate.Disabled = true
+        end
+        if hum then
+            for i,v in next, hum:GetPlayingAnimationTracks() do
+                v:AdjustSpeed(0)
+            end
+        end
         
-        char.Humanoid.PlatformStand = true
+        -- حلقة الطيران
+        spawn(function()
+            while tpwalking and hb:Wait() and chr and hum and hum.Parent do
+                if hum.MoveDirection.Magnitude > 0 then
+                    chr:TranslateBy(hum.MoveDirection * flySpeed)
+                end
+            end
+        end)
     else
-        if bg then bg:Destroy() bg = nil end
-        if bv then bv:Destroy() bv = nil end
-        char.Humanoid.PlatformStand = false
+        tpwalking = false
+        if hum then
+            hum:SetStateEnabled(Enum.HumanoidStateType.RunningNoPhysics, false)
+            hum:ChangeState(Enum.HumanoidStateType.Swimming)
+            hum.PlatformStand = false
+        end
+        if chr and chr:FindFirstChild("Animate") then
+            chr.Animate.Disabled = false
+        end
     end
 end
 
--- إعادة تفعيل الطيران تلقائياً إذا مات اللاعب وهو مفعل
-lp.CharacterAdded:Connect(function()
+-- إعادة تهيئة الطيران عند موت اللاعب أو إعادة الترسبن
+speaker.CharacterAdded:Connect(function(char)
+    task.wait(0.7)
+    local hum = char:WaitForChild("Humanoid")
+    hum.PlatformStand = false
+    if char:FindFirstChild("Animate") then
+        char.Animate.Disabled = false
+    end
     if isFlying then
-        task.wait(0.5)
-        toggleFly(true)
+        toggleCustomFly(true)
     end
 end)
 
-PlayerTab:CreateSection("الطيران واختراق الجدران")
+-- ===============================================
+-- واجهة أزرار الطيران المخصص في Rayfield
+-- ===============================================
+
+PlayerTab:CreateSection("نظام الطيران")
 
 PlayerTab:CreateToggle({ 
-    Name = "🕊️ طيران سلس (Fly)", 
+    Name = "🕊️ تفعيل الطيران (Fly)", 
     CurrentValue = false, 
-    Flag = "FlyToggle", 
-    Callback = function(Value) toggleFly(Value) end 
+    Flag = "CustomFlyToggle", 
+    Callback = function(Value) toggleCustomFly(Value) end 
 })
 
 PlayerTab:CreateSlider({ 
     Name = "سرعة الطيران", 
-    Range = {10, 200}, 
+    Range = {1, 20}, 
     Increment = 1, 
     Suffix = "Speed", 
-    CurrentValue = 50, 
-    Flag = "FlySpeedSlider", 
+    CurrentValue = 1, 
+    Flag = "CustomFlySpeed", 
     Callback = function(Value) flySpeed = Value end 
 })
 
+local upLoop = false
 PlayerTab:CreateToggle({ 
-    Name = "👻 اختراق الجدران (NoClip)", 
+    Name = "⬆️ صعود مستمر (Up)", 
     CurrentValue = false, 
-    Flag = "NoClipToggle", 
-    Callback = function(Value) isNoClip = Value end 
+    Flag = "FlyUpToggle", 
+    Callback = function(Value) 
+        upLoop = Value
+        spawn(function()
+            while upLoop and task.wait() do
+                if speaker.Character and speaker.Character:FindFirstChild("HumanoidRootPart") then
+                    speaker.Character.HumanoidRootPart.CFrame = speaker.Character.HumanoidRootPart.CFrame * CFrame.new(0, flySpeed, 0)
+                end
+            end
+        end)
+    end 
+})
+
+local downLoop = false
+PlayerTab:CreateToggle({ 
+    Name = "⬇️ نزول مستمر (Down)", 
+    CurrentValue = false, 
+    Flag = "FlyDownToggle", 
+    Callback = function(Value) 
+        downLoop = Value
+        spawn(function()
+            while downLoop and task.wait() do
+                if speaker.Character and speaker.Character:FindFirstChild("HumanoidRootPart") then
+                    speaker.Character.HumanoidRootPart.CFrame = speaker.Character.HumanoidRootPart.CFrame * CFrame.new(0, -flySpeed, 0)
+                end
+            end
+        end)
+    end 
 })
 
 PlayerTab:CreateToggle({ Name = "إظهار زر التخفي العائم", CurrentValue = false, Flag = "InvisSystemToggle", Callback = function(Value) InvisGui.Enabled = Value; if not Value and IsInvisible then IsInvisible = false; FloatBtn.BackgroundColor3 = Color3.fromRGB(220, 60, 60); FloatBtn.Text = "تخفي: ❌"; for _, item in pairs(invisParts) do if item.obj and item.obj.Parent then item.obj.Transparency = item.origTrans end end end end })
