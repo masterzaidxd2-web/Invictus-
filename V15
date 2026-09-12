@@ -610,115 +610,169 @@ GrabTab:CreateButton({ Name = "تحديث قوائم اللاعبين", Callback
 
 -- Player
 -- ===============================================
--- نظام الطيران المخصص (النسخة المطابقة لسكربتك)
+-- نظام الطيران المخصص (بدون واجهات خارجية)
 -- ===============================================
 local speaker = game:GetService("Players").LocalPlayer
 local hb = game:GetService("RunService").Heartbeat
-local isFlying = false
+local nowe = false
+local speeds = 1
 local tpwalking = false
-local flySpeed = 1
 
-local function toggleFly(state)
-    isFlying = state
+local function toggleFly(Value)
+    nowe = Value
     local chr = speaker.Character
     local hum = chr and chr:FindFirstChildWhichIsA("Humanoid")
     
-    if isFlying then
-        tpwalking = false 
-        task.wait(0.1)
-        tpwalking = true
+    if not chr or not hum then return end
+
+    if nowe == false then
+        -- إيقاف الطيران وإعادة ضبط الخصائص
+        tpwalking = false
+        hum:SetStateEnabled(Enum.HumanoidStateType.Climbing, true)
+        hum:SetStateEnabled(Enum.HumanoidStateType.FallingDown, true)
+        hum:SetStateEnabled(Enum.HumanoidStateType.Flying, true)
+        hum:SetStateEnabled(Enum.HumanoidStateType.Freefall, true)
+        hum:SetStateEnabled(Enum.HumanoidStateType.GettingUp, true)
+        hum:SetStateEnabled(Enum.HumanoidStateType.Jumping, true)
+        hum:SetStateEnabled(Enum.HumanoidStateType.Landed, true)
+        hum:SetStateEnabled(Enum.HumanoidStateType.Physics, true)
+        hum:SetStateEnabled(Enum.HumanoidStateType.PlatformStanding, true)
+        hum:SetStateEnabled(Enum.HumanoidStateType.Ragdoll, true)
+        hum:SetStateEnabled(Enum.HumanoidStateType.Running, true)
+        hum:SetStateEnabled(Enum.HumanoidStateType.RunningNoPhysics, true)
+        hum:SetStateEnabled(Enum.HumanoidStateType.Seated, true)
+        hum:SetStateEnabled(Enum.HumanoidStateType.StrafingNoPhysics, true)
+        hum:SetStateEnabled(Enum.HumanoidStateType.Swimming, true)
+        hum:ChangeState(Enum.HumanoidStateType.RunningNoPhysics)
         
-        -- تطبيق حالات الـ Humanoid وإيقاف الأنيميشن كما في السكربت المرفق
-        if hum then
-            hum:SetStateEnabled(Enum.HumanoidStateType.Climbing, false)
-            hum:SetStateEnabled(Enum.HumanoidStateType.FallingDown, false)
-            hum:SetStateEnabled(Enum.HumanoidStateType.Flying, false)
-            hum:SetStateEnabled(Enum.HumanoidStateType.Freefall, false)
-            hum:SetStateEnabled(Enum.HumanoidStateType.GettingUp, false)
-            hum:SetStateEnabled(Enum.HumanoidStateType.Jumping, false)
-            hum:SetStateEnabled(Enum.HumanoidStateType.Landed, false)
-            hum:SetStateEnabled(Enum.HumanoidStateType.Physics, false)
-            hum:SetStateEnabled(Enum.HumanoidStateType.PlatformStanding, false)
-            hum:SetStateEnabled(Enum.HumanoidStateType.Ragdoll, false)
-            hum:SetStateEnabled(Enum.HumanoidStateType.Running, false)
-            hum:SetStateEnabled(Enum.HumanoidStateType.RunningNoPhysics, false)
-            hum:SetStateEnabled(Enum.HumanoidStateType.Seated, false)
-            hum:SetStateEnabled(Enum.HumanoidStateType.StrafingNoPhysics, false)
-            hum:SetStateEnabled(Enum.HumanoidStateType.Swimming, false)
-            hum:ChangeState(Enum.HumanoidStateType.Swimming)
+        if chr:FindFirstChild("Animate") then
+            chr.Animate.Disabled = false
         end
+        hum.PlatformStand = false
+    else
+        -- تفعيل الطيران
+        hum:SetStateEnabled(Enum.HumanoidStateType.Climbing, false)
+        hum:SetStateEnabled(Enum.HumanoidStateType.FallingDown, false)
+        hum:SetStateEnabled(Enum.HumanoidStateType.Flying, false)
+        hum:SetStateEnabled(Enum.HumanoidStateType.Freefall, false)
+        hum:SetStateEnabled(Enum.HumanoidStateType.GettingUp, false)
+        hum:SetStateEnabled(Enum.HumanoidStateType.Jumping, false)
+        hum:SetStateEnabled(Enum.HumanoidStateType.Landed, false)
+        hum:SetStateEnabled(Enum.HumanoidStateType.Physics, false)
+        hum:SetStateEnabled(Enum.HumanoidStateType.PlatformStanding, false)
+        hum:SetStateEnabled(Enum.HumanoidStateType.Ragdoll, false)
+        hum:SetStateEnabled(Enum.HumanoidStateType.Running, false)
+        hum:SetStateEnabled(Enum.HumanoidStateType.RunningNoPhysics, false)
+        hum:SetStateEnabled(Enum.HumanoidStateType.Seated, false)
+        hum:SetStateEnabled(Enum.HumanoidStateType.StrafingNoPhysics, false)
+        hum:SetStateEnabled(Enum.HumanoidStateType.Swimming, false)
+        hum:ChangeState(Enum.HumanoidStateType.Swimming)
         
-        if chr and chr:FindFirstChild("Animate") then
+        if chr:FindFirstChild("Animate") then
             chr.Animate.Disabled = true
         end
-        if hum then
-            for i,v in next, hum:GetPlayingAnimationTracks() do
-                v:AdjustSpeed(0)
-            end
+        
+        for i, v in next, hum:GetPlayingAnimationTracks() do
+            v:AdjustSpeed(0)
         end
         
-        -- تكرار حلقة الطيران لزيادة السرعة بناءً على السكربت الأصلي
-        for i = 1, flySpeed do
-            spawn(function()
-                while tpwalking and hb:Wait() and chr and hum and hum.Parent do
-                    if hum.MoveDirection.Magnitude > 0 then
-                        chr:TranslateBy(hum.MoveDirection)
+        tpwalking = true
+        
+        -- نظام الحركة الخاص بك
+        for i = 1, speeds do
+            task.spawn(function()
+                local currentChr = speaker.Character
+                local currentHum = currentChr and currentChr:FindFirstChildWhichIsA("Humanoid")
+                while tpwalking and hb:Wait() and currentChr and currentHum and currentHum.Parent do
+                    if currentHum.MoveDirection.Magnitude > 0 then
+                        currentChr:TranslateBy(currentHum.MoveDirection)
                     end
                 end
             end)
         end
-    else
-        tpwalking = false
-        if hum then
-            hum:SetStateEnabled(Enum.HumanoidStateType.Climbing, true)
-            hum:SetStateEnabled(Enum.HumanoidStateType.FallingDown, true)
-            hum:SetStateEnabled(Enum.HumanoidStateType.Flying, true)
-            hum:SetStateEnabled(Enum.HumanoidStateType.Freefall, true)
-            hum:SetStateEnabled(Enum.HumanoidStateType.GettingUp, true)
-            hum:SetStateEnabled(Enum.HumanoidStateType.Jumping, true)
-            hum:SetStateEnabled(Enum.HumanoidStateType.Landed, true)
-            hum:SetStateEnabled(Enum.HumanoidStateType.Physics, true)
-            hum:SetStateEnabled(Enum.HumanoidStateType.PlatformStanding, true)
-            hum:SetStateEnabled(Enum.HumanoidStateType.Ragdoll, true)
-            hum:SetStateEnabled(Enum.HumanoidStateType.Running, true)
-            hum:SetStateEnabled(Enum.HumanoidStateType.RunningNoPhysics, true)
-            hum:SetStateEnabled(Enum.HumanoidStateType.Seated, true)
-            hum:SetStateEnabled(Enum.HumanoidStateType.StrafingNoPhysics, true)
-            hum:SetStateEnabled(Enum.HumanoidStateType.Swimming, true)
-            hum:ChangeState(Enum.HumanoidStateType.RunningNoPhysics)
-        end
-        if chr and chr:FindFirstChild("Animate") then
-            chr.Animate.Disabled = false
-        end
+
+        -- نظام منع السقوط (BodyGyro & BodyVelocity)
+        task.spawn(function()
+            local torso = (hum.RigType == Enum.HumanoidRigType.R6) and chr:FindFirstChild("Torso") or chr:FindFirstChild("UpperTorso")
+            if torso then
+                local bg = Instance.new("BodyGyro", torso)
+                bg.P = 9e4
+                bg.maxTorque = Vector3.new(9e9, 9e9, 9e9)
+                bg.cframe = torso.CFrame
+                
+                local bv = Instance.new("BodyVelocity", torso)
+                bv.velocity = Vector3.new(0, 0.1, 0)
+                bv.maxForce = Vector3.new(9e9, 9e9, 9e9)
+                
+                hum.PlatformStand = true
+                
+                while nowe and hum.Health > 0 do
+                    task.wait()
+                    bg.cframe = game.Workspace.CurrentCamera.CoordinateFrame
+                end
+                
+                bg:Destroy()
+                bv:Destroy()
+                hum.PlatformStand = false
+                
+                if chr:FindFirstChild("Animate") then
+                    chr.Animate.Disabled = false
+                end
+            end
+        end)
     end
 end
 
+-- إصلاح حالة اللاعب عند الموت أو إعادة التعيين
+speaker.CharacterAdded:Connect(function(char)
+    task.wait(0.7)
+    local hum = char:WaitForChild("Humanoid")
+    hum.PlatformStand = false
+    if char:FindFirstChild("Animate") then
+        char.Animate.Disabled = false
+    end
+end)
+
 -- ===============================================
--- واجهة Rayfield
+-- أزرار الطيران المدمجة مع واجهة Rayfield
 -- ===============================================
-PlayerTab:CreateSection("نظام الطيران")
+
+PlayerTab:CreateSection("نظام الطيران المخصص")
 
 PlayerTab:CreateToggle({ 
-    Name = "🕊️ تفعيل الطيران", 
+    Name = "🕊️ تفعيل الطيران (Fly)", 
     CurrentValue = false, 
     Flag = "FlyToggle", 
-    Callback = function(Value) toggleFly(Value) end 
+    Callback = function(Value) 
+        toggleFly(Value) 
+    end 
 })
 
 PlayerTab:CreateSlider({ 
     Name = "سرعة الطيران", 
-    Range = {1, 10}, 
+    Range = {1, 20}, 
     Increment = 1, 
     Suffix = "Speed", 
     CurrentValue = 1, 
-    Flag = "FlySpeed", 
+    Flag = "FlySpeedSlider", 
     Callback = function(Value) 
-        flySpeed = Value
-        -- إعادة التشغيل تلقائياً لتطبيق السرعة الجديدة أثناء الطيران
-        if isFlying then
-            toggleFly(false)
+        speeds = Value
+        -- تطبيق السرعة الجديدة فوراً إذا كان الطيران مفعلاً
+        if nowe then
+            tpwalking = false
             task.wait(0.1)
-            toggleFly(true)
+            tpwalking = true
+            for i = 1, speeds do
+                task.spawn(function()
+                    local chr = speaker.Character
+                    local hum = chr and chr:FindFirstChildWhichIsA("Humanoid")
+                    while tpwalking and hb:Wait() and chr and hum and hum.Parent do
+                        if hum.MoveDirection.Magnitude > 0 then
+                            chr:TranslateBy(hum.MoveDirection)
+                        end
+                    end
+                end)
+            end
         end
     end 
 })
