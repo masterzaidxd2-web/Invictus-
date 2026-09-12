@@ -610,7 +610,7 @@ GrabTab:CreateButton({ Name = "تحديث قوائم اللاعبين", Callback
 
 -- Player
 -- ===============================================
--- نظام الطيران المخصص (النسخة الثابتة والمستقرة)
+-- نظام الطيران المخصص (توقف فوري بدون انزلاق)
 -- ===============================================
 local speaker = game:GetService("Players").LocalPlayer
 local hb = game:GetService("RunService").Heartbeat
@@ -674,16 +674,20 @@ local function toggleFly(Value)
             v:AdjustSpeed(0)
         end
         
-        -- حلقة حركة واحدة وثابتة لا تتضاعف أبداً
+        -- حلقة التحكم بالحركة والتوقف الفوري
         task.spawn(function()
             while nowe do
                 hb:Wait()
                 local currentChr = speaker.Character
                 local currentHum = currentChr and currentChr:FindFirstChildWhichIsA("Humanoid")
-                if currentChr and currentHum and currentHum.Parent then
+                local root = currentChr and (currentChr:FindFirstChild("HumanoidRootPart") or currentChr:FindFirstChild("Torso"))
+                
+                if currentChr and currentHum and currentHum.Parent and root then
                     if currentHum.MoveDirection.Magnitude > 0 then
-                        -- ضرب اتجاه الحركة بقيمة الـ Slider مباشرة بمعامل ثابت
                         currentChr:TranslateBy(currentHum.MoveDirection * (speeds * 0.3))
+                    else
+                        -- تصفير السرعة الفيزيائية فوراً لمنع الانزلاق
+                        root.AssemblyLinearVelocity = Vector3.zero
                     end
                 else
                     break
@@ -691,7 +695,7 @@ local function toggleFly(Value)
             end
         end)
 
-        -- نظام منع السقوط (BodyGyro & BodyVelocity)
+        -- نظام التثبيت وتوجيه الكاميرا (BodyGyro & BodyVelocity)
         task.spawn(function()
             local torso = (hum.RigType == Enum.HumanoidRigType.R6) and chr:FindFirstChild("Torso") or chr:FindFirstChild("UpperTorso")
             if torso then
@@ -701,7 +705,7 @@ local function toggleFly(Value)
                 bg.cframe = torso.CFrame
                 
                 local bv = Instance.new("BodyVelocity", torso)
-                bv.velocity = Vector3.new(0, 0.1, 0)
+                bv.velocity = Vector3.zero
                 bv.maxForce = Vector3.new(9e9, 9e9, 9e9)
                 
                 hum.PlatformStand = true
@@ -713,7 +717,6 @@ local function toggleFly(Value)
                 
                 bg:Destroy()
                 bv:Destroy()
-                hum.PlatformStand.PlatformStand = false
                 hum.PlatformStand = false
                 
                 if chr:FindFirstChild("Animate") then
