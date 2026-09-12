@@ -609,8 +609,9 @@ GrabTab:CreateButton({ Name = "انتقال (Teleport)", Callback = function() i
 GrabTab:CreateButton({ Name = "تحديث قوائم اللاعبين", Callback = function() local n = getPlayerNamesForTargets() TargetDropdown1:Refresh(n); TargetDropdown2:Refresh(n); TargetDropdown3:Refresh(n); TpDropdown:Refresh(getPlayerNames(false)) end })
 
 -- Player
--- ===============================================
--- نظام الطيران المطور الثابت (بدون انزلاق في الحلبات)
+
+        -- ===============================================
+-- نظام الطيران المطور والنهائي (مصحح ومتوافق تماماً)
 -- ===============================================
 local speaker = game:GetService("Players").LocalPlayer
 local hb = game:GetService("RunService").Heartbeat
@@ -672,9 +673,9 @@ local function toggleFly(Value)
         
         for _, v in ipairs(hum:GetPlayingAnimationTracks()) do
             v:AdjustSpeed(0)
-        }
+        end
         
-        -- تشغيل محرك الفيزياء المانع للانزلاق
+        -- تشغيل محرك الفيزياء الثابت
         task.spawn(function()
             local torso = (hum.RigType == Enum.HumanoidRigType.R6) and chr:FindFirstChild("Torso") or chr:FindFirstChild("UpperTorso")
             if not torso then return end
@@ -696,17 +697,16 @@ local function toggleFly(Value)
                 local currentHum = currentChr and currentChr:FindFirstChildWhichIsA("Humanoid")
                 
                 if currentChr and currentHum and currentHum.Parent then
-                    bg.cframe = workspace.CurrentCamera.CoordinateFrame
+                    -- تم التصحيح هنا لتعمل بشكل متوافق تماماً مع التحديثات الحديثة
+                    bg.cframe = workspace.CurrentCamera.CFrame
                     
                     local cam = workspace.CurrentCamera
                     local moveDir = currentHum.MoveDirection
                     
                     if moveDir.Magnitude > 0 then
-                        -- حساب السرعة بناءً على اتجاه الكاميرا والحركة بدقة صارمة
                         local moveVector = (cam.CFrame.RightVector * moveDir.X + cam.CFrame.LookVector * moveDir.Z)
                         bv.velocity = moveVector * (speeds * 15)
                     else
-                        -- تثبيت تام وفوري للسرعة على الصفر عند التوقف لمنع أي زحف في الحلبة
                         bv.velocity = Vector3.new(0, 0, 0)
                     end
                 else
