@@ -533,7 +533,7 @@ HoldMagBtn.MouseLeave:Connect(function()
   HoldMagBtn.BackgroundColor3 = Color3.fromRGB(60, 100, 220)
 end)
 -- ===============================================
--- زر القذف/الإبعاد العائم (السقوط تحت الخريطة)
+-- زر القذف/الإبعاد العائم (ضغط مطول Hold)
 -- ===============================================
 local FlingGui = Instance.new("ScreenGui")
 FlingGui.Name = "FloatingFlingUI"
@@ -546,7 +546,6 @@ FlingGui.Enabled = false
 local FlingBtn = Instance.new("TextButton")
 FlingBtn.Size = UDim2.new(0, 120, 0, 45)
 FlingBtn.AnchorPoint = Vector2.new(1, 0)
--- الموقع محدد ليكون بجانب زر التخفي تماماً
 FlingBtn.Position = UDim2.new(1, -230, 0, 5)
 FlingBtn.BackgroundColor3 = Color3.fromRGB(150, 50, 255)
 FlingBtn.Text = "🚀 قذف الخصم"
@@ -561,30 +560,47 @@ local FlingUICorner = Instance.new("UICorner")
 FlingUICorner.CornerRadius = UDim.new(0, 8)
 FlingUICorner.Parent = FlingBtn
 
--- تشغيل سكربت القذف الخاص بك عند الضغط
-FlingBtn.MouseButton1Click:Connect(function()
+local isHoldingFling = false
+local savedLocation = nil
+
+local function startFlingHold()
+    if isHoldingFling then return end
     local char = lp.Character
     local hrp = char and char:FindFirstChild("HumanoidRootPart")
-    
-    if hrp then
-        workspace.FallenPartsDestroyHeight = -1000
-        local lastCFrame = hrp.CFrame
+    if not hrp then return end
 
-        -- النزول خاطفاً تحت الخريطة
-        hrp.CFrame = CFrame.new(Vector3.new(0, -500, 0))
+    isHoldingFling = true
+    FlingBtn.BackgroundColor3 = Color3.fromRGB(220, 50, 50)
+    workspace.FallenPartsDestroyHeight = -1000
+    savedLocation = hrp.CFrame
 
-        -- تقليل الوقت إلى جزء من الثانية (0.1) ليكون النقل لحظياً
-        task.wait(0.1)
+    task.spawn(function()
+        while isHoldingFling and hrp and hrp.Parent do
+            hrp.CFrame = CFrame.new(0, -500, 0)
+            hrp.AssemblyLinearVelocity = Vector3.zero
+            task.wait()
+        end
+    end)
+end
 
-        -- العودة للسطح فوراً وتصفير السرعة
-        hrp.CFrame = lastCFrame
+local function stopFlingHold()
+    if not isHoldingFling then return end
+    isHoldingFling = false
+    FlingBtn.BackgroundColor3 = Color3.fromRGB(150, 50, 255)
+
+    local char = lp.Character
+    local hrp = char and char:FindFirstChild("HumanoidRootPart")
+    if hrp and savedLocation then
+        hrp.CFrame = savedLocation
         workspace.FallenPartsDestroyHeight = -500
-        
         hrp.AssemblyLinearVelocity = Vector3.zero
         hrp.AssemblyAngularVelocity = Vector3.zero
     end
-end)
+end
 
+FlingBtn.MouseButton1Down:Connect(startFlingHold)
+FlingBtn.MouseButton1Up:Connect(stopFlingHold)
+FlingBtn.MouseLeave:Connect(stopFlingHold)
 
 lp.CharacterAdded:Connect(function()
   IsInvisible = false; FloatBtn.BackgroundColor3 = Color3.fromRGB(220, 60, 60); FloatBtn.Text = "تخفي: ❌"
