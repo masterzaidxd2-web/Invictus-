@@ -610,13 +610,12 @@ GrabTab:CreateButton({ Name = "تحديث قوائم اللاعبين", Callback
 
 -- Player
 -- ===============================================
--- نظام الطيران المخصص (بدون واجهات خارجية)
+-- نظام الطيران المخصص (النسخة الثابتة والمستقرة)
 -- ===============================================
 local speaker = game:GetService("Players").LocalPlayer
 local hb = game:GetService("RunService").Heartbeat
 local nowe = false
 local speeds = 1
-local tpwalking = false
 
 local function toggleFly(Value)
     nowe = Value
@@ -625,9 +624,8 @@ local function toggleFly(Value)
     
     if not chr or not hum then return end
 
-    if nowe == false then
+    if not nowe then
         -- إيقاف الطيران وإعادة ضبط الخصائص
-        tpwalking = false
         hum:SetStateEnabled(Enum.HumanoidStateType.Climbing, true)
         hum:SetStateEnabled(Enum.HumanoidStateType.FallingDown, true)
         hum:SetStateEnabled(Enum.HumanoidStateType.Flying, true)
@@ -672,26 +670,26 @@ local function toggleFly(Value)
             chr.Animate.Disabled = true
         end
         
-        for i, v in next, hum:GetPlayingAnimationTracks() do
+        for _, v in ipairs(hum:GetPlayingAnimationTracks()) do
             v:AdjustSpeed(0)
         end
         
-        tpwalking = true
-        
-        -- نظام الحركة الخاص بك      
-for i = 1, 1 do -- حلقة واحدة مستقرة وثابتة
-    task.spawn(function()
-        local currentChr = speaker.Character
-        local currentHum = currentChr and currentChr:FindFirstChildWhichIsA("Humanoid")
-        while tpwalking and hb:Wait() and currentChr and currentHum and currentHum.Parent do
-            if currentHum.MoveDirection.Magnitude > 0 then
-                -- تحكم بطيء وناعم يعتمد على قيمة الـ Slider كمعامل ضربي صغير
-                currentChr:TranslateBy(currentHum.MoveDirection * (speeds * 0.2))
+        -- حلقة حركة واحدة وثابتة لا تتضاعف أبداً
+        task.spawn(function()
+            while nowe do
+                hb:Wait()
+                local currentChr = speaker.Character
+                local currentHum = currentChr and currentChr:FindFirstChildWhichIsA("Humanoid")
+                if currentChr and currentHum and currentHum.Parent then
+                    if currentHum.MoveDirection.Magnitude > 0 then
+                        -- ضرب اتجاه الحركة بقيمة الـ Slider مباشرة بمعامل ثابت
+                        currentChr:TranslateBy(currentHum.MoveDirection * (speeds * 0.3))
+                    end
+                else
+                    break
+                end
             end
-        end
-    end)
-end
-
+        end)
 
         -- نظام منع السقوط (BodyGyro & BodyVelocity)
         task.spawn(function()
@@ -709,12 +707,13 @@ end
                 hum.PlatformStand = true
                 
                 while nowe and hum.Health > 0 do
-                    task.wait()
-                    bg.cframe = game.Workspace.CurrentCamera.CoordinateFrame
+                    hb:Wait()
+                    bg.cframe = workspace.CurrentCamera.CoordinateFrame
                 end
                 
                 bg:Destroy()
                 bv:Destroy()
+                hum.PlatformStand.PlatformStand = false
                 hum.PlatformStand = false
                 
                 if chr:FindFirstChild("Animate") then
@@ -725,7 +724,7 @@ end
     end
 end
 
--- إصلاح حالة اللاعب عند الموت أو إعادة التعيين
+-- إصلاح حالة اللاعب عند الموت
 speaker.CharacterAdded:Connect(function(char)
     task.wait(0.7)
     local hum = char:WaitForChild("Humanoid")
@@ -736,7 +735,7 @@ speaker.CharacterAdded:Connect(function(char)
 end)
 
 -- ===============================================
--- أزرار الطيران المدمجة مع واجهة Rayfield
+-- أزرار واجهة Rayfield
 -- ===============================================
 
 PlayerTab:CreateSection("نظام الطيران المخصص")
@@ -758,24 +757,7 @@ PlayerTab:CreateSlider({
     CurrentValue = 1, 
     Flag = "FlySpeedSlider", 
     Callback = function(Value) 
-        speeds = Value
-        -- تطبيق السرعة الجديدة فوراً إذا كان الطيران مفعلاً
-        if nowe then
-            tpwalking = false
-            task.wait(0.1)
-            tpwalking = true
-            for i = 1, speeds do
-                task.spawn(function()
-                    local chr = speaker.Character
-                    local hum = chr and chr:FindFirstChildWhichIsA("Humanoid")
-                    while tpwalking and hb:Wait() and chr and hum and hum.Parent do
-                        if hum.MoveDirection.Magnitude > 0 then
-                            chr:TranslateBy(hum.MoveDirection)
-                        end
-                    end
-                end)
-            end
-        end
+        speeds = Value -- تحديث القيمة فورا بدون إعادة تشغيل الحلقة أو تراكم المهام
     end 
 })
 
