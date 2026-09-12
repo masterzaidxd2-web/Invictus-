@@ -610,7 +610,7 @@ GrabTab:CreateButton({ Name = "تحديث قوائم اللاعبين", Callback
 
 -- Player
 -- ===============================================
--- نظام الطيران المخصص (النسخة الثابتة والمستقرة)
+-- نظام الطيران المطور الثابت (بدون انزلاق في الحلبات)
 -- ===============================================
 local speaker = game:GetService("Players").LocalPlayer
 local hb = game:GetService("RunService").Heartbeat
@@ -672,53 +672,54 @@ local function toggleFly(Value)
         
         for _, v in ipairs(hum:GetPlayingAnimationTracks()) do
             v:AdjustSpeed(0)
-        end
+        }
         
-        -- حلقة حركة واحدة وثابتة لا تتضاعف أبداً
+        -- تشغيل محرك الفيزياء المانع للانزلاق
         task.spawn(function()
-            while nowe do
+            local torso = (hum.RigType == Enum.HumanoidRigType.R6) and chr:FindFirstChild("Torso") or chr:FindFirstChild("UpperTorso")
+            if not torso then return end
+            
+            local bg = Instance.new("BodyGyro", torso)
+            bg.P = 9e4
+            bg.maxTorque = Vector3.new(9e9, 9e9, 9e9)
+            bg.cframe = torso.CFrame
+            
+            local bv = Instance.new("BodyVelocity", torso)
+            bv.maxForce = Vector3.new(9e9, 9e9, 9e9)
+            bv.velocity = Vector3.new(0, 0, 0)
+            
+            hum.PlatformStand = true
+            
+            while nowe and hum.Health > 0 do
                 hb:Wait()
                 local currentChr = speaker.Character
                 local currentHum = currentChr and currentChr:FindFirstChildWhichIsA("Humanoid")
+                
                 if currentChr and currentHum and currentHum.Parent then
-                    if currentHum.MoveDirection.Magnitude > 0 then
-                        -- ضرب اتجاه الحركة بقيمة الـ Slider مباشرة بمعامل ثابت
-                        currentChr:TranslateBy(currentHum.MoveDirection * (speeds * 0.3))
+                    bg.cframe = workspace.CurrentCamera.CoordinateFrame
+                    
+                    local cam = workspace.CurrentCamera
+                    local moveDir = currentHum.MoveDirection
+                    
+                    if moveDir.Magnitude > 0 then
+                        -- حساب السرعة بناءً على اتجاه الكاميرا والحركة بدقة صارمة
+                        local moveVector = (cam.CFrame.RightVector * moveDir.X + cam.CFrame.LookVector * moveDir.Z)
+                        bv.velocity = moveVector * (speeds * 15)
+                    else
+                        -- تثبيت تام وفوري للسرعة على الصفر عند التوقف لمنع أي زحف في الحلبة
+                        bv.velocity = Vector3.new(0, 0, 0)
                     end
                 else
                     break
                 end
             end
-        end)
-
-        -- نظام منع السقوط (BodyGyro & BodyVelocity)
-        task.spawn(function()
-            local torso = (hum.RigType == Enum.HumanoidRigType.R6) and chr:FindFirstChild("Torso") or chr:FindFirstChild("UpperTorso")
-            if torso then
-                local bg = Instance.new("BodyGyro", torso)
-                bg.P = 9e4
-                bg.maxTorque = Vector3.new(9e9, 9e9, 9e9)
-                bg.cframe = torso.CFrame
-                
-                local bv = Instance.new("BodyVelocity", torso)
-                bv.velocity = Vector3.new(0, 0.1, 0)
-                bv.maxForce = Vector3.new(9e9, 9e9, 9e9)
-                
-                hum.PlatformStand = true
-                
-                while nowe and hum.Health > 0 do
-                    hb:Wait()
-                    bg.cframe = workspace.CurrentCamera.CoordinateFrame
-                end
-                
-                bg:Destroy()
-                bv:Destroy()
-                hum.PlatformStand.PlatformStand = false
-                hum.PlatformStand = false
-                
-                if chr:FindFirstChild("Animate") then
-                    chr.Animate.Disabled = false
-                end
+            
+            bg:Destroy()
+            bv:Destroy()
+            hum.PlatformStand = false
+            
+            if chr:FindFirstChild("Animate") then
+                chr.Animate.Disabled = false
             end
         end)
     end
