@@ -567,22 +567,24 @@ FlingBtn.MouseButton1Click:Connect(function()
     local hrp = char and char:FindFirstChild("HumanoidRootPart")
     
     if hrp then
-        -- السكربت الخاص بك
         workspace.FallenPartsDestroyHeight = -1000
         local lastCFrame = hrp.CFrame
 
+        -- النزول خاطفاً تحت الخريطة
         hrp.CFrame = CFrame.new(Vector3.new(0, -500, 0))
 
-        task.wait(0.7) -- استخدمنا task.wait لأنها أكثر استقراراً في دلتا وأسرع استجابة
+        -- تقليل الوقت إلى جزء من الثانية (0.1) ليكون النقل لحظياً
+        task.wait(0.1)
 
+        -- العودة للسطح فوراً وتصفير السرعة
         hrp.CFrame = lastCFrame
         workspace.FallenPartsDestroyHeight = -500
         
-        -- إضافة صغيرة: تصفير السرعة لمنع الانزلاق بعد العودة للأعلى
         hrp.AssemblyLinearVelocity = Vector3.zero
         hrp.AssemblyAngularVelocity = Vector3.zero
     end
 end)
+
 
 lp.CharacterAdded:Connect(function()
   IsInvisible = false; FloatBtn.BackgroundColor3 = Color3.fromRGB(220, 60, 60); FloatBtn.Text = "تخفي: ❌"
