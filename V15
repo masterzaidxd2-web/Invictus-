@@ -843,9 +843,22 @@ local function noclip()
 end
 
 local function clip()
-    if NoclipConnection then NoclipConnection:Disconnect() end
     ClipState = true
+    if NoclipConnection then 
+        NoclipConnection:Disconnect() 
+        NoclipConnection = nil
+    end
+    
+    -- إعادة التصادم لجميع أجزاء الشخصية فوراً
+    if lp.Character then
+        for _, v in pairs(lp.Character:GetDescendants()) do
+            if v:IsA('BasePart') and v.Name ~= "HumanoidRootPart" then
+                v.CanCollide = true
+            end
+        end
+    end
 end
+
 
 -- ===============================================
 -- أزرار واجهة Rayfield
