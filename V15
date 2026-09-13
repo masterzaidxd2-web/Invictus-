@@ -825,6 +825,28 @@ speaker.CharacterAdded:Connect(function(char)
     end
 end)
 
+local NoclipConnection = nil
+local ClipState = true
+
+local function noclip()
+    ClipState = false
+    if NoclipConnection then NoclipConnection:Disconnect() end
+    NoclipConnection = RunService.Stepped:Connect(function()
+        if ClipState == false and lp.Character ~= nil then
+            for _, v in pairs(lp.Character:GetDescendants()) do
+                if v:IsA('BasePart') and v.CanCollide then
+                    v.CanCollide = false
+                end
+            end
+        end
+    end)
+end
+
+local function clip()
+    if NoclipConnection then NoclipConnection:Disconnect() end
+    ClipState = true
+end
+
 -- ===============================================
 -- أزرار واجهة Rayfield
 -- ===============================================
@@ -865,32 +887,15 @@ PlayerTab:CreateToggle({
     end 
 })
 
-local NoclipConnection = nil
-local ClipState = true
-
 PlayerTab:CreateToggle({ 
     Name = "🧱 اختراق الجدران (Noclip)", 
     CurrentValue = false, 
     Flag = "NoclipToggle", 
     Callback = function(Value) 
-        ClipState = not Value
-        
         if Value then
-            if NoclipConnection then NoclipConnection:Disconnect() end
-            NoclipConnection = RunService.Stepped:Connect(function()
-                if not ClipState and lp.Character then
-                    for _, v in pairs(lp.Character:GetDescendants()) do
-                        if v:IsA("BasePart") and v.CanCollide then
-                            v.CanCollide = false
-                        end
-                    end
-                end
-            end)
+            noclip()
         else
-            if NoclipConnection then 
-                NoclipConnection:Disconnect() 
-                NoclipConnection = nil
-            end
+            clip()
         end
     end 
 })
