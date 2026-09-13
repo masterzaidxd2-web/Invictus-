@@ -824,17 +824,15 @@ speaker.CharacterAdded:Connect(function(char)
         char.Animate.Disabled = false
     end
 end)
-
 local NoclipConnection = nil
-local ClipState = true
 
 local function noclip()
-    ClipState = false
     if NoclipConnection then NoclipConnection:Disconnect() end
+    
     NoclipConnection = RunService.Stepped:Connect(function()
-        if ClipState == false and lp.Character ~= nil then
-            for _, v in pairs(lp.Character:GetDescendants()) do
-                if v:IsA('BasePart') and v.CanCollide then
+        if lp.Character then
+            for _, v in ipairs(lp.Character:GetDescendants()) do
+                if v:IsA("BasePart") then
                     v.CanCollide = false
                 end
             end
@@ -843,22 +841,25 @@ local function noclip()
 end
 
 local function clip()
-    ClipState = true
-    if NoclipConnection then 
-        NoclipConnection:Disconnect() 
+    -- إلغاء حلقة التكرار أولاً
+    if NoclipConnection then
+        NoclipConnection:Disconnect()
         NoclipConnection = nil
     end
     
-    -- إعادة التصادم لجميع أجزاء الشخصية فوراً
+    -- إرجاع التصادم للجذع والرأس فقط (الأجزاء الأساسية للتصادم)
     if lp.Character then
-        for _, v in pairs(lp.Character:GetDescendants()) do
-            if v:IsA('BasePart') and v.Name ~= "HumanoidRootPart" then
-                v.CanCollide = true
+        for _, v in ipairs(lp.Character:GetDescendants()) do
+            if v:IsA("BasePart") then
+                if v.Name == "Head" or v.Name == "Torso" or v.Name == "UpperTorso" or v.Name == "LowerTorso" then
+                    v.CanCollide = true
+                else
+                    v.CanCollide = false
+                end
             end
         end
     end
 end
-
 
 -- ===============================================
 -- أزرار واجهة Rayfield
