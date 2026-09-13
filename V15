@@ -865,6 +865,35 @@ PlayerTab:CreateToggle({
     end 
 })
 
+local NoclipConnection = nil
+local ClipState = true
+
+PlayerTab:CreateToggle({ 
+    Name = "🧱 اختراق الجدران (Noclip)", 
+    CurrentValue = false, 
+    Flag = "NoclipToggle", 
+    Callback = function(Value) 
+        ClipState = not Value
+        
+        if Value then
+            if NoclipConnection then NoclipConnection:Disconnect() end
+            NoclipConnection = RunService.Stepped:Connect(function()
+                if not ClipState and lp.Character then
+                    for _, v in pairs(lp.Character:GetDescendants()) do
+                        if v:IsA("BasePart") and v.CanCollide then
+                            v.CanCollide = false
+                        end
+                    end
+                end
+            end)
+        else
+            if NoclipConnection then 
+                NoclipConnection:Disconnect() 
+                NoclipConnection = nil
+            end
+        end
+    end 
+})
 
 -- Waypoints
 WaypointsTab:CreateSection("إدارة الأماكن المحفوظة")
