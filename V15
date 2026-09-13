@@ -861,6 +861,33 @@ local function clip()
     end
 end
 
+local PlayerCollisionEnabled = false
+local PlayerCollisionConn = nil
+
+local function enablePlayerCollisions()
+    if PlayerCollisionConn then PlayerCollisionConn:Disconnect() end
+    PlayerCollisionConn = RunService.Stepped:Connect(function()
+        if PlayerCollisionEnabled then
+            for _, player in ipairs(Players:GetPlayers()) do
+                if player ~= lp and player.Character then
+                    for _, part in ipairs(player.Character:GetDescendants()) do
+                        if part:IsA("BasePart") then
+                            part.CanCollide = true
+                        end
+                    end
+                end
+            end
+        end
+    end)
+end
+
+local function disablePlayerCollisions()
+    if PlayerCollisionConn then
+        PlayerCollisionConn:Disconnect()
+        PlayerCollisionConn = nil
+    end
+end
+
 -- ===============================================
 -- أزرار واجهة Rayfield
 -- ===============================================
@@ -910,6 +937,20 @@ PlayerTab:CreateToggle({
             noclip()
         else
             clip()
+        end
+    end 
+})
+
+PlayerTab:CreateToggle({ 
+    Name = "👥 تفعيل التلامس مع اللاعبين (الوقوف عليهم)", 
+    CurrentValue = false, 
+    Flag = "PlayerCollisionToggle", 
+    Callback = function(Value) 
+        PlayerCollisionEnabled = Value
+        if Value then
+            enablePlayerCollisions()
+        else
+            disablePlayerCollisions()
         end
     end 
 })
