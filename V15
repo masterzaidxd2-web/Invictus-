@@ -798,11 +798,28 @@ local function toggleFly(Value)
     end
 end
 
--- إصلاح حالة اللاعب عند الموت
+-- إصلاح حالة اللاعب عند الموت ومنع التعثر والسقوط على الوجه
 speaker.CharacterAdded:Connect(function(char)
-    task.wait(0.7)
-    local hum = char:WaitForChild("Humanoid")
-    hum.PlatformStand = false
+    task.wait(1) -- تأخير لمدة ثانية للتأكد من تحميل اللعبة للشخصية بالكامل وتخطي سكربتات التعثر
+    
+    local hum = char:WaitForChild("Humanoid", 3)
+    if hum then
+        hum.PlatformStand = false
+        
+        -- الإغلاق الإجباري لحالات التعثر والسقوط بعد الرسباون
+        pcall(function()
+            hum:SetStateEnabled(Enum.HumanoidStateType.FallingDown, false)
+            hum:SetStateEnabled(Enum.HumanoidStateType.Ragdoll, false)
+        end)
+    end
+    
+    -- تصفير أي قوة فيزيائية وهمية تسحبك للأرض عند الركض فوراً
+    local root = char:WaitForChild("HumanoidRootPart", 3)
+    if root then
+        root.AssemblyLinearVelocity = Vector3.zero
+        root.AssemblyAngularVelocity = Vector3.zero
+    end
+
     if char:FindFirstChild("Animate") then
         char.Animate.Disabled = false
     end
