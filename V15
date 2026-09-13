@@ -860,20 +860,48 @@ local function clip()
         end
     end
 end
-
 local PlayerCollisionEnabled = false
 local PlayerCollisionConn = nil
+local LocalStands = {}
+
+local function cleanupStands()
+    for _, stand in pairs(LocalStands) do
+        if stand and stand.Parent then
+            stand:Destroy()
+        end
+    end
+    LocalStands = {}
+end
 
 local function enablePlayerCollisions()
     if PlayerCollisionConn then PlayerCollisionConn:Disconnect() end
+    
     PlayerCollisionConn = RunService.Stepped:Connect(function()
-        if PlayerCollisionEnabled then
-            for _, player in ipairs(Players:GetPlayers()) do
-                if player ~= lp and player.Character then
-                    for _, part in ipairs(player.Character:GetDescendants()) do
-                        if part:IsA("BasePart") then
-                            part.CanCollide = true
-                        end
+        if not PlayerCollisionEnabled then return end
+        
+        for _, player in ipairs(Players:GetPlayers()) do
+            if player ~= lp and player.Character then
+                local head = player.Character:FindFirstChild("Head")
+                local hum = player.Character:FindFirstChildOfClass("Humanoid")
+                
+                if head and hum and hum.Health > 0 then
+                    local stand = LocalStands[player.Name]
+                    if not stand or not stand.Parent then
+                        stand = Instance.new("Part")
+                        stand.Name = "LocalHeadStand"
+                        stand.Size = Vector3.new(2.5, 0.4, 2.5)
+                        stand.Transparency = 1 -- خفي تماماً
+                        stand.Anchored = true
+                        stand.CanCollide = true
+                        stand.Parent = workspace
+                        LocalStands[player.Name] = stand
+                    end
+                    -- تثبيت المنصة الخفية فوق رأس اللاعب مباشرة
+                    stand.CFrame = head.CFrame * CFrame.new(0, 0.7, 0)
+                else
+                    if LocalStands[player.Name] then
+                        LocalStands[player.Name]:Destroy()
+                        LocalStands[player.Name] = nil
                     end
                 end
             end
@@ -886,6 +914,7 @@ local function disablePlayerCollisions()
         PlayerCollisionConn:Disconnect()
         PlayerCollisionConn = nil
     end
+    cleanupStands()
 end
 
 -- ===============================================
@@ -942,7 +971,7 @@ PlayerTab:CreateToggle({
 })
 
 PlayerTab:CreateToggle({ 
-    Name = "👥 تفعيل التلامس مع اللاعبين (الوقوف عليهم)", 
+    Name = "👥 تفعيل الوقوف على رأس اللاعبين", 
     CurrentValue = false, 
     Flag = "PlayerCollisionToggle", 
     Callback = function(Value) 
