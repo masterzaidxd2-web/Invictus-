@@ -653,22 +653,27 @@ end)
 -- ===============================================
 -- [ 4 ] بناء واجهة Rayfield
 -- ===============================================
--- حذف ملف الرمز القديم تلقائياً وبكافة المسارات لضمان عدم استرجاعه
+
+-- 1. تصفير ذاكرة المشغل (RAM) لمنع تخطي الرمز عند إعادة التشغيل
+if getgenv then
+    getgenv().RayfieldKey = nil
+    getgenv().RayfieldKeyValidated = nil
+    getgenv().KeyValidated = nil
+end
+
+-- 2. حذف ملفات ومجلدات الحفظ بجميع امتداداتها
 pcall(function()
     if isfile and delfile then
-        local filesToDelete = {
-            "InvictusKeySave",
-            "InvictusKeySave.txt",
-            "InvictusKeySave.json",
-            "Rayfield/InvictusKeySave",
-            "Rayfield/InvictusKeySave.txt",
-            "KHURAFI_Data/InvictusKeySave"
+        local files = {
+            "InvictusKeySave", "InvictusKeySave.txt", "InvictusKeySave.key",
+            "Key.key", "Rayfield/InvictusKeySave.key", "Rayfield/Key.key"
         }
-        for _, path in ipairs(filesToDelete) do
-            if isfile(path) then
-                delfile(path)
-            end
+        for _, f in ipairs(files) do
+            if isfile(f) then delfile(f) end
         end
+    end
+    if isfolder and delfolder and isfolder("Rayfield") then
+        pcall(function() delfolder("Rayfield") end)
     end
 end)
 
@@ -689,7 +694,7 @@ local Window = Rayfield:CreateWindow({
     Title = "Key System",
     Subtitle = "أدخل المفتاح لتشغيل السكربت",
     Note = "احصل على المفتاح من الرابط المخصص",
-    SaveKey = false, -- إيقاف الحفظ
+    SaveKey = false,
     GrabKeyFromSite = true,
     Key = {"https://pastebin.com/raw/vg4FhhRh"}
  }
