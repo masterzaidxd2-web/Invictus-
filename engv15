@@ -650,6 +650,9 @@ UserInputService.JumpRequest:Connect(function()
   end
 end)
 
+-- ===============================================
+-- [ 4 ] بناء واجهة Rayfield
+-- ===============================================
 -- حذف ملف الرمز القديم تلقائياً لإجبار السكربت على طلب الرمز دائماً
 pcall(function()
     if isfile then
@@ -657,10 +660,6 @@ pcall(function()
         if isfile("InvictusKeySave") then delfile("InvictusKeySave") end
     end
 end)
-
--- ===============================================
--- [ 4 ] بناء واجهة Rayfield
--- ===============================================
 local Window = Rayfield:CreateWindow({
  Name = "Invictus",
  LoadingTitle = "Aura, Grab, ESP & More",
