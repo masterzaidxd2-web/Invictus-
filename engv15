@@ -653,13 +653,25 @@ end)
 -- ===============================================
 -- [ 4 ] بناء واجهة Rayfield
 -- ===============================================
--- حذف ملف الرمز القديم تلقائياً لإجبار السكربت على طلب الرمز دائماً
+-- حذف ملف الرمز القديم تلقائياً وبكافة المسارات لضمان عدم استرجاعه
 pcall(function()
-    if isfile then
-        if isfile("InvictusKeySave.txt") then delfile("InvictusKeySave.txt") end
-        if isfile("InvictusKeySave") then delfile("InvictusKeySave") end
+    if isfile and delfile then
+        local filesToDelete = {
+            "InvictusKeySave",
+            "InvictusKeySave.txt",
+            "InvictusKeySave.json",
+            "Rayfield/InvictusKeySave",
+            "Rayfield/InvictusKeySave.txt",
+            "KHURAFI_Data/InvictusKeySave"
+        }
+        for _, path in ipairs(filesToDelete) do
+            if isfile(path) then
+                delfile(path)
+            end
+        end
     end
 end)
+
 local Window = Rayfield:CreateWindow({
  Name = "Invictus",
  LoadingTitle = "Aura, Grab, ESP & More",
@@ -677,12 +689,12 @@ local Window = Rayfield:CreateWindow({
     Title = "Key System",
     Subtitle = "أدخل المفتاح لتشغيل السكربت",
     Note = "احصل على المفتاح من الرابط المخصص",
-    FileName = "InvictusKeySave",
-    SaveKey = false,
+    SaveKey = false, -- إيقاف الحفظ
     GrabKeyFromSite = true,
     Key = {"https://pastebin.com/raw/vg4FhhRh"}
  }
 })
+
 
 local MainTab = Window:CreateTab("Aura", 4483345998)
 local GrabTab = Window:CreateTab("Grab", 4483345998)
