@@ -665,17 +665,16 @@ local Window = Rayfield:CreateWindow({
     FolderName = "KHURAFI_Data",
     FileName = "AuraDeltaSettings"
  },
- KeySystem = true,
+
+  KeySystem = true,
  KeySettings = {
     Title = "Key System",
     Subtitle = "أدخل المفتاح لتشغيل السكربت",
     Note = "احصل على المفتاح من الرابط المخصص",
-    FileName = "InvictusKeySave",
-    SaveKey = true,
+    SaveKey = false, -- تم إيقاف الحفظ ليتم طلب الرمز دائماً
     GrabKeyFromSite = true,
     Key = {"https://pastebin.com/raw/vg4FhhRh"}
  }
-})
 
 
 local MainTab = Window:CreateTab("Aura", 4483345998)
