@@ -650,6 +650,14 @@ UserInputService.JumpRequest:Connect(function()
   end
 end)
 
+-- حذف ملف الرمز القديم تلقائياً لإجبار السكربت على طلب الرمز دائماً
+pcall(function()
+    if isfile then
+        if isfile("InvictusKeySave.txt") then delfile("InvictusKeySave.txt") end
+        if isfile("InvictusKeySave") then delfile("InvictusKeySave") end
+    end
+end)
+
 -- ===============================================
 -- [ 4 ] بناء واجهة Rayfield
 -- ===============================================
