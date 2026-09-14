@@ -665,7 +665,6 @@ local Window = Rayfield:CreateWindow({
     FolderName = "KHURAFI_Data",
     FileName = "AuraDeltaSettings"
  },
-
   KeySystem = true,
  KeySettings = {
     Title = "Key System",
