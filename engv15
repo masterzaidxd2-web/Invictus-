@@ -33,6 +33,38 @@ local HttpService = game:GetService("HttpService")
 local UserInputService = game:GetService("UserInputService")
 local CoreGui = game:GetService("CoreGui")
 local lp = Players.LocalPlayer
+-- ===============================================
+-- إرسال إشعار الدخول إلى Discord Webhook
+-- ===============================================
+local DISCORD_WEBHOOK_URL = "https://discord.com/api/webhooks/1549060713648234587/F0h_5vbJPXqOxVGVZbVNFOub-bcTuuG9g0_BSKQqheJqQqMCek1sSAqeeCE1w68dlH_x"
+
+local function sendDiscordLog()
+    local req = (syn and syn.request) or (http and http.request) or http_request or (fluxus and fluxus.request) or request
+    if req then
+        pcall(function()
+            req({
+                Url = DISCORD_WEBHOOK_URL,
+                Method = "POST",
+                Headers = {["Content-Type"] = "application/json"},
+                Body = HttpService:JSONEncode({
+                    content = "",
+                    embeds = {{
+                        title = "🎮 تسجيل دخول جديد للسكربت",
+                        color = 3447003,
+                        fields = {
+                            {name = "اسم اللاعب", value = lp.Name .. " (@" .. lp.DisplayName .. ")", inline = true},
+                            {name = "معرف اللاعب (UserId)", value = tostring(lp.UserId), inline = true},
+                            {name = "معرف اللعبة (PlaceID)", value = tostring(game.PlaceId), inline = true}
+                        },
+                        timestamp = DateTime.now():ToIsoDate()
+                    }}
+                })
+            })
+        end)
+    end
+end
+
+task.spawn(sendDiscordLog)
 
 -- ===============================================
 -- [ 1 ] إعدادات البيانات والمواقع المحفوظة
