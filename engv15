@@ -671,7 +671,7 @@ local Window = Rayfield:CreateWindow({
     Subtitle = "أدخل المفتاح لتشغيل السكربت",
     Note = "احصل على المفتاح من الرابط المخصص",
     FileName = "InvictusKeySave",
-    SaveKey = true,
+    SaveKey = false,
     GrabKeyFromSite = true,
     Key = {"https://pastebin.com/raw/vg4FhhRh"}
  }
