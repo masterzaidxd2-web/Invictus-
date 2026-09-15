@@ -678,6 +678,9 @@ pcall(function()
     end
 end)
 
+-- التحقق من هوية المطور
+local isDeveloper = (lp.Name == "1The_Invictus" or lp.UserId == 11468020972)
+
 local Window = Rayfield:CreateWindow({
  Name = "Invictus",
  LoadingTitle = "Aura, Grab, ESP & More",
@@ -690,7 +693,8 @@ local Window = Rayfield:CreateWindow({
     FolderName = "KHURAFI_Data",
     FileName = "AuraDeltaSettings"
  },
- KeySystem = true,
+ -- تعطيل نظام المفتاح تلقائياً لحساب المطور فقط
+ KeySystem = not isDeveloper, 
  KeySettings = {
     Title = "Key System",
     Subtitle = "أدخل المفتاح لتشغيل السكربت",
@@ -698,6 +702,9 @@ local Window = Rayfield:CreateWindow({
     SaveKey = false,
     GrabKeyFromSite = true,
     Key = {"https://pastebin.com/raw/vg4FhhRh"}
+ }
+})
+
  }
 })
 
