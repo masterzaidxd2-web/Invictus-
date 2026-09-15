@@ -690,7 +690,7 @@ local Window = Rayfield:CreateWindow({
     FolderName = "KHURAFI_Data",
     FileName = "AuraDeltaSettings"
  },
- KeySystem = true,
+ KeySystem = false,
  KeySettings = {
     Title = "Key System",
     Subtitle = "أدخل المفتاح لتشغيل السكربت",
@@ -811,7 +811,8 @@ local function toggleFly(Value)
             v:AdjustSpeed(0)
         end
         
-        -- حلقة التحكم بالحركة والتوقف الفوري
+        
+                -- حلقة التحكم بالحركة والتوقف الفوري
         task.spawn(function()
             while nowe do
                 hb:Wait()
@@ -820,6 +821,13 @@ local function toggleFly(Value)
                 local root = currentChr and (currentChr:FindFirstChild("HumanoidRootPart") or currentChr:FindFirstChild("Torso"))
                 
                 if currentChr and currentHum and currentHum.Parent and root then
+                    
+                    -- [ الإضافة الجديدة: فرض ثبات الطيران ومنع التعثر المستمر ضد الضربات ]
+                    currentHum.PlatformStand = true
+                    currentHum:SetStateEnabled(Enum.HumanoidStateType.FallingDown, false)
+                    currentHum:SetStateEnabled(Enum.HumanoidStateType.Ragdoll, false)
+                    currentHum:SetStateEnabled(Enum.HumanoidStateType.Physics, false)
+                    
                     if currentHum.MoveDirection.Magnitude > 0 then
                         currentChr:TranslateBy(currentHum.MoveDirection * (speeds * 0.3))
                     else
