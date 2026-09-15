@@ -1051,9 +1051,9 @@ PlayerTab:CreateToggle({
 })
 
 PlayerTab:CreateToggle({ 
-    Name = "🚫 Anti-Fall & Anti-Trip", 
+    Name = "🚫 Anti-Ragdoll & Anti-Fall", 
     CurrentValue = false, 
-    Flag = "AntiFallToggle", 
+    Flag = "AntiRagdollToggle", 
     Callback = function(Value) 
         AntiFallEnabled = Value
         if lp.Character then
