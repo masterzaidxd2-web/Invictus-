@@ -341,6 +341,12 @@ rainbowNameRemote = rainbowNameRemote and rainbowNameRemote:FindFirstChild("SetR
 
 local EspEnabled = false; local EspBoxes = true; local EspNames = true
 
+-- إنشاء مجلد آمن للـ ESP حتى لا تحذفه اللعبة
+local EspFolder = Instance.new("Folder")
+EspFolder.Name = "InvictusESP_Folder"
+local successEspFolder = pcall(function() EspFolder.Parent = CoreGui end)
+if not successEspFolder then EspFolder.Parent = lp:WaitForChild("PlayerGui") end
+
 local function getEspColor(playerName)
   if isSafe(playerName) then return Color3.fromRGB(0, 255, 100) end
   local isAuraTarget = (AuraTargetSelected ~= "All" and AuraTargetSelected ~= "" and playerName == AuraTargetSelected)
@@ -349,91 +355,90 @@ local function getEspColor(playerName)
   return Color3.fromRGB(255, 255, 255)
 end
 
-local function removeEsp(char)
-  if not char then return end
-  if char:FindFirstChild("ESP_Highlight") then char.ESP_Highlight:Destroy() end
-  if char:FindFirstChild("ESP_Billboard") then char.ESP_Billboard:Destroy() end
+local function removeEsp(player)
+    if not player then return end
+    local hl = EspFolder:FindFirstChild(player.Name .. "_HL")
+    local bb = EspFolder:FindFirstChild(player.Name .. "_BB")
+    if hl then hl:Destroy() end
+    if bb then bb:Destroy() end
 end
 
 local function applyEsp(player)
-   if player == lp or not player.Character then return end
-   local char = player.Character
-   removeEsp(char)
-   if not EspEnabled then return end
+   if player == lp then return end
+   
+   local hl = EspFolder:FindFirstChild(player.Name .. "_HL")
+   local bb = EspFolder:FindFirstChild(player.Name .. "_BB")
 
-   local targetColor = getEspColor(player.Name)
-
-   if EspBoxes and not char:FindFirstChild("ESP_Highlight") then
-       local highlight = Instance.new("Highlight")
-       highlight.Name = "ESP_Highlight"
-       highlight.Adornee = char
-       highlight.FillColor = targetColor
-       highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
-       highlight.FillTransparency = 0.5
-       highlight.OutlineTransparency = 0
-       highlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
-       highlight.Parent = char
+   if not EspEnabled or not player.Character then
+       if hl then hl.Enabled = false end
+       if bb then bb.Enabled = false end
+       return
    end
 
-   local head = char:FindFirstChild("Head") or char:WaitForChild("Head", 3)
-   if head and EspNames and not char:FindFirstChild("ESP_Billboard") then
-       local billboard = Instance.new("BillboardGui")
-       billboard.Name = "ESP_Billboard"
-       billboard.Adornee = head
-       billboard.Size = UDim2.new(0, 150, 0, 45)
-       billboard.StudsOffset = Vector3.new(0, 2.8, 0)
-       billboard.AlwaysOnTop = true
+   local char = player.Character
+   local root = char:FindFirstChild("HumanoidRootPart")
+   local head = char:FindFirstChild("Head") or root
+   local targetColor = getEspColor(player.Name)
+
+   -- إعداد الصندوق (Highlight)
+   if EspBoxes and char then
+       if not hl then
+           hl = Instance.new("Highlight")
+           hl.Name = player.Name .. "_HL"
+           hl.Parent = EspFolder
+       end
+       hl.Adornee = char
+       hl.FillColor = targetColor
+       hl.OutlineColor = Color3.fromRGB(255, 255, 255)
+       hl.FillTransparency = 0.5
+       hl.OutlineTransparency = 0
+       hl.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+       hl.Enabled = true
+   elseif hl then
+       hl.Enabled = false
+   end
+
+   -- إعداد الاسم (BillboardGui)
+   if EspNames and head then
+       if not bb then
+           bb = Instance.new("BillboardGui")
+           bb.Name = player.Name .. "_BB"
+           bb.Size = UDim2.new(0, 200, 0, 45)
+           bb.StudsOffset = Vector3.new(0, 3, 0)
+           bb.AlwaysOnTop = true
+           
+           local textLabel = Instance.new("TextLabel")
+           textLabel.Name = "Text"
+           textLabel.Size = UDim2.new(1, 0, 1, 0)
+           textLabel.BackgroundTransparency = 1
+           textLabel.TextStrokeTransparency = 0.4
+           textLabel.Font = Enum.Font.SourceSansBold
+           textLabel.TextSize = 13
+           textLabel.Parent = bb
+           bb.Parent = EspFolder
+       end
        
-       local textLabel = Instance.new("TextLabel")
-       textLabel.Size = UDim2.new(1, 0, 1, 0)
-       textLabel.BackgroundTransparency = 1
-       textLabel.TextColor3 = targetColor
-       textLabel.TextStrokeTransparency = 0.4
-       textLabel.Font = Enum.Font.SourceSansBold
-       textLabel.TextSize = 12
-       textLabel.Parent = billboard
-       billboard.Parent = char
-
-       task.spawn(function()
-           while EspEnabled and player and player.Parent and char and char.Parent and head and head.Parent do
-               if not char:FindFirstChild("ESP_Billboard") or (EspBoxes and not char:FindFirstChild("ESP_Highlight")) then
-                   applyEsp(player)
-                   break
-               end
-
-               local myChar = lp.Character
-               if myChar and myChar:FindFirstChild("HumanoidRootPart") and char:FindFirstChild("HumanoidRootPart") then
-                   local dist = math.floor((myChar.HumanoidRootPart.Position - char.HumanoidRootPart.Position).Magnitude)
-                   textLabel.Text = "@" .. player.Name .. "\n[" .. tostring(dist) .. " Studs]"
-               end
-               task.wait(0.4)
-           end
-       end)
+       bb.Adornee = head
+       bb.Enabled = true
+       
+       local myChar = lp.Character
+       local dist = 0
+       if myChar and myChar:FindFirstChild("HumanoidRootPart") and root then
+           dist = math.floor((myChar.HumanoidRootPart.Position - root.Position).Magnitude)
+       end
+       
+       -- عرض الاسم الأصلي فقط بناءً على طلبك
+       bb.Text.TextColor3 = targetColor
+       bb.Text.Text = "@" .. player.Name .. "\n[" .. tostring(dist) .. " Studs]"
+   elseif bb then
+       bb.Enabled = false
    end
 end
 
 local function refreshAllEsp()
   for _, p in ipairs(Players:GetPlayers()) do
-      if p ~= lp and p.Character then
-          if EspEnabled then applyEsp(p) else removeEsp(p.Character) end
-      end
+      if p ~= lp then applyEsp(p) end
   end
-end
-
-local function trackPlayerEsp(plr)
-  if plr == lp then return end
-
-  if plr.Character then
-      task.spawn(function()
-          task.wait(0.5)
-          if EspEnabled then applyEsp(plr) end
-      end)
-  end
-
-  plr.CharacterAdded:Connect(function()
-      task.wait(0.5)
-      if EspEnabled then applyEsp(plr) end
-  end)
 end
 
 local function checkPlayerNotification(plr, eventType)
@@ -457,34 +462,26 @@ local function checkPlayerNotification(plr, eventType)
   end
 end
 
-for _, p in ipairs(Players:GetPlayers()) do
-  trackPlayerEsp(p)
-end
-
 Players.PlayerAdded:Connect(function(plr)
-  trackPlayerEsp(plr)
   checkPlayerNotification(plr, "join")
 end)
 
 Players.PlayerRemoving:Connect(function(plr)
   checkPlayerNotification(plr, "leave")
+  removeEsp(plr)
 end)
 
-task.spawn(function()
-  while task.wait(2) do
-      if EspEnabled then
-          for _, p in ipairs(Players:GetPlayers()) do
-              if p ~= lp and p.Character then
-                  local hasHighlight = p.Character:FindFirstChild("ESP_Highlight")
-                  local hasBillboard = p.Character:FindFirstChild("ESP_Billboard")
-                  
-                  if (EspBoxes and not hasHighlight) or (EspNames and not hasBillboard) then
-                      applyEsp(p)
-                  end
-              end
-          end
-      end
-  end
+-- حلقة تكرار سريعة وثابتة لتحديث الـ ESP بدون مشاكل
+RunService.RenderStepped:Connect(function()
+    if EspEnabled then
+        for _, p in ipairs(Players:GetPlayers()) do
+            applyEsp(p)
+        end
+    else
+        for _, p in ipairs(Players:GetPlayers()) do
+            removeEsp(p)
+        end
+    end
 end)
 
 -- Floating UI
