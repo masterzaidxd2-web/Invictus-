@@ -810,24 +810,27 @@ GrabTab:CreateButton({ Name = "Refresh Player Lists", Callback = function() loca
 
 -- Player
 -- ===============================================
--- نظام الطيران والمحيط الحر 360 (حل مشكلة القفل 2D)
+-- نظام الطيران المخصص للهاتف (النسخة المدمجة والمحسنة 3D)
 -- ===============================================
-local speaker = game:GetService("Players").LocalPlayer
-local hb = game:GetService("RunService").Heartbeat
-local nowe = false
-local speeds = 1
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
 
--- دالة تنظيف وإلغاء قيود الإمساك الخارجية فوراً
+local speaker = Players.LocalPlayer
+local camera = workspace.CurrentCamera
+local nowe = false
+local flySpeed = 60
+local flyConnection = nil -- للتحكم في حلقة الطيران وإيقافها بنظافة
+
+-- دالة التنظيف لفك القيود وحل مشكلة العلوق في محور 2D عند الإمساك
 local function forceUnbindAndReset(chr)
     if not chr then return end
     local hum = chr:FindFirstChildWhichIsA("Humanoid")
     local root = chr:FindFirstChild("HumanoidRootPart") or chr:FindFirstChild("Torso")
 
     if root then
-        -- 1. حظر وإزالة أي قيود ربط أُنشئت من قبل سكربت الإمساك (Welds / Joints / BodyMovers)
+        -- إزالة أي قيود ربط أو أجهزة طيران متبقية
         for _, obj in ipairs(chr:GetDescendants()) do
             if obj:IsA("Weld") or obj:IsA("WeldConstraint") or obj:IsA("ManualWeld") or obj:IsA("AlignPosition") or obj:IsA("AlignOrientation") then
-                -- التأكد أن القيد ليس من الأجزاء الأساسية للشخصية
                 if not (obj.Name == "Neck" or obj.Name:find("Joint") or obj.Name:find("Motor")) then
                     obj:Destroy()
                 end
@@ -835,24 +838,19 @@ local function forceUnbindAndReset(chr)
                 obj:Destroy()
             end
         end
-
-        -- 2. إعادة ضبط درجات الحرية للتدوير (تصفير السرعات الفيزياء وإعادة إطلاق التحديث)
         root.AssemblyLinearVelocity = Vector3.zero
         root.AssemblyAngularVelocity = Vector3.zero
     end
 
     if hum then
-        -- 3. إرغام السيرفر على إعادة حساب الفيزياء للشخصية عبر ChangeState
         hum.PlatformStand = false
-        hum.AutoRotate = true -- إرجاع الدوران 360 مع الحركة والكاميرا
+        hum.AutoRotate = true
         
         for _, state in ipairs(Enum.HumanoidStateType:GetEnumItems()) do
-            pcall(function()
-                hum:SetStateEnabled(state, true)
-            end)
+            pcall(function() hum:SetStateEnabled(state, true) end)
         end
         
-        -- التبديل بين الحالات لكسر وضع الـ 2D/Physics Locked
+        -- التبديل بين الحالات لكسر القفل الفيزيائي
         hum:ChangeState(Enum.HumanoidStateType.Physics)
         task.wait()
         hum:ChangeState(Enum.HumanoidStateType.GettingUp)
@@ -865,96 +863,91 @@ local function forceUnbindAndReset(chr)
     end
 end
 
+-- دالة التشغيل التي سيتم ربطها بزر واجهتك الرئيسية
 local function toggleFly(Value)
     nowe = Value
     local chr = speaker.Character
     local hum = chr and chr:FindFirstChildWhichIsA("Humanoid")
+    local root = chr and (chr:FindFirstChild("HumanoidRootPart") or chr:FindFirstChild("Torso"))
     
-    if not chr or not hum then return end
+    if not chr or not hum or not root then return end
 
     if not nowe then
-        -- إلغاء الطيران وتنظيف أي قيود إمساك
+        -- إيقاف الطيران
+        if flyConnection then
+            flyConnection:Disconnect()
+            flyConnection = nil
+        end
         forceUnbindAndReset(chr)
     else
         -- تفعيل الطيران
-        for _, state in ipairs(Enum.HumanoidStateType:GetEnumItems()) do
-            pcall(function()
-                hum:SetStateEnabled(state, false)
-            end)
-        end
+        forceUnbindAndReset(chr) -- تنظيف مسبق لمنع تداخل أجهزة سابقة
         
-        hum:SetStateEnabled(Enum.HumanoidStateType.Swimming, true)
-        hum:ChangeState(Enum.HumanoidStateType.Swimming)
-        
+        hum.AutoRotate = false
         if chr:FindFirstChild("Animate") then
             chr.Animate.Disabled = true
         end
-        
         for _, v in ipairs(hum:GetPlayingAnimationTracks()) do
             v:AdjustSpeed(0)
         end
 
-        -- متابعة حالة الإمساك أثناء الطيران لإلغائه إن حدث
-        task.spawn(function()
-            while nowe do
-                hb:Wait()
-                local currentChr = speaker.Character
-                local currentHum = currentChr and currentChr:FindFirstChildWhichIsA("Humanoid")
-                local root = currentChr and (currentChr:FindFirstChild("HumanoidRootPart") or currentChr:FindFirstChild("Torso"))
-                
-                if currentChr and currentHum and root then
-                    -- إذا تم إمساكك وتغيرت الحالة من السيرفر
-                    if currentHum.PlatformStand and not nowe then
-                        forceUnbindAndReset(currentChr)
-                        break
-                    end
+        -- إنشاء أجهزة الفيزياء (من السكربت الجديد)
+        local bv = Instance.new("BodyVelocity")
+        bv.Name = "MobileFlyVelocity"
+        bv.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
+        bv.Velocity = Vector3.zero
+        bv.Parent = root
+        
+        local bg = Instance.new("BodyGyro")
+        bg.Name = "MobileFlyGyro"
+        bg.MaxTorque = Vector3.new(math.huge, math.huge, math.huge)
+        bg.P = 9000
+        bg.Parent = root
 
-                    currentHum.PlatformStand = true
-                    
-                    if currentHum.MoveDirection.Magnitude > 0 then
-                        currentChr:TranslateBy(currentHum.MoveDirection * (speeds * 0.3))
-                    else
-                        root.AssemblyLinearVelocity = Vector3.zero
-                    end
+        -- حلقة التحديث المستمرة لزوايا الكاميرا وتوجيه الهاتف
+        if flyConnection then flyConnection:Disconnect() end
+        
+        flyConnection = RunService.RenderStepped:Connect(function()
+            local currentChr = speaker.Character
+            local currentHum = currentChr and currentChr:FindFirstChildWhichIsA("Humanoid")
+            local currentRoot = currentChr and (currentChr:FindFirstChild("HumanoidRootPart") or currentChr:FindFirstChild("Torso"))
+            
+            if currentChr and currentHum and currentRoot and nowe then
+                -- إجبار حالة السباحة لكسر ميكانيكية الإمساك وتفعيل الـ Y-axis للعصا
+                currentHum:ChangeState(Enum.HumanoidStateType.Swimming)
+                
+                local camCF = camera.CFrame
+                bg.CFrame = camCF
+                
+                -- تحويل اتجاه عصا تحكم الهاتف إلى اتجاه الكاميرا الـ 3D
+                local moveDir = currentHum.MoveDirection
+                if moveDir.Magnitude > 0 then
+                    local localMove = camCF:VectorToObjectSpace(moveDir)
+                    local flightDir = camCF:VectorToWorldSpace(localMove)
+                    bv.Velocity = flightDir * flySpeed
                 else
-                    break
+                    bv.Velocity = Vector3.zero
                 end
-            end
-        end)
-
-        -- توجيه الكاميرا للطيران (360 درجة)
-        task.spawn(function()
-            local torso = (hum.RigType == Enum.HumanoidRigType.R6) and chr:FindFirstChild("Torso") or chr:FindFirstChild("UpperTorso")
-            if torso then
-                local bg = Instance.new("BodyGyro", torso)
-                bg.P = 9e4
-                bg.maxTorque = Vector3.new(9e9, 9e9, 9e9)
-                bg.cframe = torso.CFrame
-                
-                local bv = Instance.new("BodyVelocity", torso)
-                bv.velocity = Vector3.zero
-                bv.maxForce = Vector3.new(9e9, 9e9, 9e9)
-                
-                while nowe and hum.Health > 0 do
-                    hb:Wait()
-                    bg.cframe = workspace.CurrentCamera.CoordinateFrame
+            else
+                if flyConnection then
+                    flyConnection:Disconnect()
+                    flyConnection = nil
                 end
-                
-                bg:Destroy()
-                bv:Destroy()
-                forceUnbindAndReset(chr)
             end
         end)
     end
 end
 
--- تفعيل تنظيف دائم عند تحرر الشخصية أو رسوبنها
+-- تصفير النظام تلقائياً عند الموت أو عمل ريسباون
 speaker.CharacterAdded:Connect(function(char)
     task.wait(0.5)
     nowe = false
+    if flyConnection then
+        flyConnection:Disconnect()
+        flyConnection = nil
+    end
     forceUnbindAndReset(char)
 end)
-
 
 -- إصلاح حالة اللاعب عند الموت ومنع التعثر والسقوط على الوجه
 speaker.CharacterAdded:Connect(function(char)
