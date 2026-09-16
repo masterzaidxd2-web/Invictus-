@@ -806,6 +806,15 @@ GrabTab:CreateToggle({ Name = "Show Floating Magnet Button (For Combat)", Curren
 GrabTab:CreateSection("Fast Teleport to Player")
 local TpDropdown = GrabTab:CreateDropdown({ Name = "Teleport to Player", Options = getPlayerNames(false), CurrentOption = {""}, MultipleOptions = false, Flag = "TpDropdown", Callback = function(Options) TpSelectedPlayer = Options[1] end })
 GrabTab:CreateButton({ Name = "Teleport", Callback = function() if TpSelectedPlayer ~= "" then local targetPlr = Players:FindFirstChild(TpSelectedPlayer) local myChar = lp.Character if targetPlr and targetPlr.Character and targetPlr.Character:FindFirstChild("HumanoidRootPart") and myChar and myChar:FindFirstChild("HumanoidRootPart") then myChar.HumanoidRootPart.CFrame = targetPlr.Character.HumanoidRootPart.CFrame * CFrame.new(0, 0, 0.8) end end end })
+GrabTab:CreateButton({ 
+    Name = "Teleport to GYM", 
+    Callback = function() 
+        if lp.Character and lp.Character:FindFirstChild("HumanoidRootPart") then
+            lp.Character.HumanoidRootPart.CFrame = CFrame.new(-121, 6, 528)
+        end
+    end 
+})
+
 GrabTab:CreateButton({ Name = "Refresh Player Lists", Callback = function() local n = getPlayerNamesForTargets() TargetDropdown1:Refresh(n); TargetDropdown2:Refresh(n); TargetDropdown3:Refresh(n); TpDropdown:Refresh(getPlayerNames(false)) end })
 
 -- Player
