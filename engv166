@@ -810,41 +810,54 @@ GrabTab:CreateButton({ Name = "Refresh Player Lists", Callback = function() loca
 
 -- Player
 -- ===============================================
--- نظام الطيران المخصص (معدل لمنع مشكلة التحرك 2D بعد الإمساك)
+-- نظام الطيران والمحيط الحر 360 (حل مشكلة القفل 2D)
 -- ===============================================
 local speaker = game:GetService("Players").LocalPlayer
 local hb = game:GetService("RunService").Heartbeat
 local nowe = false
 local speeds = 1
 
--- دالة استعادة التحكم الكامل والتوجيه 360
-local function resetCharacterMovementState(chr)
+-- دالة تنظيف وإلغاء قيود الإمساك الخارجية فوراً
+local function forceUnbindAndReset(chr)
     if not chr then return end
     local hum = chr:FindFirstChildWhichIsA("Humanoid")
     local root = chr:FindFirstChild("HumanoidRootPart") or chr:FindFirstChild("Torso")
-    
+
+    if root then
+        -- 1. حظر وإزالة أي قيود ربط أُنشئت من قبل سكربت الإمساك (Welds / Joints / BodyMovers)
+        for _, obj in ipairs(chr:GetDescendants()) do
+            if obj:IsA("Weld") or obj:IsA("WeldConstraint") or obj:IsA("ManualWeld") or obj:IsA("AlignPosition") or obj:IsA("AlignOrientation") then
+                -- التأكد أن القيد ليس من الأجزاء الأساسية للشخصية
+                if not (obj.Name == "Neck" or obj.Name:find("Joint") or obj.Name:find("Motor")) then
+                    obj:Destroy()
+                end
+            elseif obj:IsA("BodyGyro") or obj:IsA("BodyVelocity") or obj:IsA("BodyPosition") or obj:IsA("LinearVelocity") or obj:IsA("AngularVelocity") then
+                obj:Destroy()
+            end
+        end
+
+        -- 2. إعادة ضبط درجات الحرية للتدوير (تصفير السرعات الفيزياء وإعادة إطلاق التحديث)
+        root.AssemblyLinearVelocity = Vector3.zero
+        root.AssemblyAngularVelocity = Vector3.zero
+    end
+
     if hum then
-        -- 1. إعادة تفعيل جميع حالات الحركة الأساسية للـ Humanoid
+        -- 3. إرغام السيرفر على إعادة حساب الفيزياء للشخصية عبر ChangeState
+        hum.PlatformStand = false
+        hum.AutoRotate = true -- إرجاع الدوران 360 مع الحركة والكاميرا
+        
         for _, state in ipairs(Enum.HumanoidStateType:GetEnumItems()) do
             pcall(function()
                 hum:SetStateEnabled(state, true)
             end)
         end
         
-        -- 2. إرجاع حالة الشخصية إلى المشي الطبيعي (Freefall / Running) بدلاً من الاستمرار في Swimming
-        hum.PlatformStand = false
+        -- التبديل بين الحالات لكسر وضع الـ 2D/Physics Locked
+        hum:ChangeState(Enum.HumanoidStateType.Physics)
+        task.wait()
+        hum:ChangeState(Enum.HumanoidStateType.GettingUp)
+        task.wait()
         hum:ChangeState(Enum.HumanoidStateType.Running)
-        
-        -- 3. تصفير وإزالة أجهزة التوجيه الفيزيائي لتفادي قفل الزوايا 360
-        if root then
-            for _, child in ipairs(root:GetChildren()) do
-                if child:IsA("BodyGyro") or child:IsA("BodyVelocity") then
-                    child:Destroy()
-                end
-            end
-            root.AssemblyLinearVelocity = Vector3.zero
-            root.AssemblyAngularVelocity = Vector3.zero
-        end
 
         if chr:FindFirstChild("Animate") then
             chr.Animate.Disabled = false
@@ -860,25 +873,17 @@ local function toggleFly(Value)
     if not chr or not hum then return end
 
     if not nowe then
-        -- إيقاف الطيران واستعادة حركة 360 التلقائية
-        resetCharacterMovementState(chr)
+        -- إلغاء الطيران وتنظيف أي قيود إمساك
+        forceUnbindAndReset(chr)
     else
         -- تفعيل الطيران
-        hum:SetStateEnabled(Enum.HumanoidStateType.Climbing, false)
-        hum:SetStateEnabled(Enum.HumanoidStateType.FallingDown, false)
-        hum:SetStateEnabled(Enum.HumanoidStateType.Flying, false)
-        hum:SetStateEnabled(Enum.HumanoidStateType.Freefall, false)
-        hum:SetStateEnabled(Enum.HumanoidStateType.GettingUp, false)
-        hum:SetStateEnabled(Enum.HumanoidStateType.Jumping, false)
-        hum:SetStateEnabled(Enum.HumanoidStateType.Landed, false)
-        hum:SetStateEnabled(Enum.HumanoidStateType.Physics, false)
-        hum:SetStateEnabled(Enum.HumanoidStateType.PlatformStanding, false)
-        hum:SetStateEnabled(Enum.HumanoidStateType.Ragdoll, false)
-        hum:SetStateEnabled(Enum.HumanoidStateType.Running, false)
-        hum:SetStateEnabled(Enum.HumanoidStateType.RunningNoPhysics, false)
-        hum:SetStateEnabled(Enum.HumanoidStateType.Seated, false)
-        hum:SetStateEnabled(Enum.HumanoidStateType.StrafingNoPhysics, false)
-        hum:SetStateEnabled(Enum.HumanoidStateType.Swimming, false)
+        for _, state in ipairs(Enum.HumanoidStateType:GetEnumItems()) do
+            pcall(function()
+                hum:SetStateEnabled(state, false)
+            end)
+        end
+        
+        hum:SetStateEnabled(Enum.HumanoidStateType.Swimming, true)
         hum:ChangeState(Enum.HumanoidStateType.Swimming)
         
         if chr:FindFirstChild("Animate") then
@@ -888,8 +893,8 @@ local function toggleFly(Value)
         for _, v in ipairs(hum:GetPlayingAnimationTracks()) do
             v:AdjustSpeed(0)
         end
-        
-        -- حلقة التحكم بالحركة والتوقف الفوري
+
+        -- متابعة حالة الإمساك أثناء الطيران لإلغائه إن حدث
         task.spawn(function()
             while nowe do
                 hb:Wait()
@@ -897,16 +902,14 @@ local function toggleFly(Value)
                 local currentHum = currentChr and currentChr:FindFirstChildWhichIsA("Humanoid")
                 local root = currentChr and (currentChr:FindFirstChild("HumanoidRootPart") or currentChr:FindFirstChild("Torso"))
                 
-                if currentChr and currentHum and currentHum.Parent and root then
-                    -- التحقق من حالة الإمساك وإلغاء وضع الطيران تلقائياً إذا تم إمساكك
-                    if currentHum:GetState() == Enum.HumanoidStateType.PlatformStanding and not nowe then
+                if currentChr and currentHum and root then
+                    -- إذا تم إمساكك وتغيرت الحالة من السيرفر
+                    if currentHum.PlatformStand and not nowe then
+                        forceUnbindAndReset(currentChr)
                         break
                     end
 
                     currentHum.PlatformStand = true
-                    currentHum:SetStateEnabled(Enum.HumanoidStateType.FallingDown, false)
-                    currentHum:SetStateEnabled(Enum.HumanoidStateType.Ragdoll, false)
-                    currentHum:SetStateEnabled(Enum.HumanoidStateType.Physics, false)
                     
                     if currentHum.MoveDirection.Magnitude > 0 then
                         currentChr:TranslateBy(currentHum.MoveDirection * (speeds * 0.3))
@@ -919,7 +922,7 @@ local function toggleFly(Value)
             end
         end)
 
-        -- نظام التثبيت وتوجيه الكاميرا
+        -- توجيه الكاميرا للطيران (360 درجة)
         task.spawn(function()
             local torso = (hum.RigType == Enum.HumanoidRigType.R6) and chr:FindFirstChild("Torso") or chr:FindFirstChild("UpperTorso")
             if torso then
@@ -932,8 +935,6 @@ local function toggleFly(Value)
                 bv.velocity = Vector3.zero
                 bv.maxForce = Vector3.new(9e9, 9e9, 9e9)
                 
-                hum.PlatformStand = true
-                
                 while nowe and hum.Health > 0 do
                     hb:Wait()
                     bg.cframe = workspace.CurrentCamera.CoordinateFrame
@@ -941,18 +942,19 @@ local function toggleFly(Value)
                 
                 bg:Destroy()
                 bv:Destroy()
-                resetCharacterMovementState(chr)
+                forceUnbindAndReset(chr)
             end
         end)
     end
 end
 
--- إصلاح وتصفير حالة الحركة فور إرسال أو رسباون الشخصية
+-- تفعيل تنظيف دائم عند تحرر الشخصية أو رسوبنها
 speaker.CharacterAdded:Connect(function(char)
     task.wait(0.5)
     nowe = false
-    resetCharacterMovementState(char)
+    forceUnbindAndReset(char)
 end)
+
 
 -- إصلاح حالة اللاعب عند الموت ومنع التعثر والسقوط على الوجه
 speaker.CharacterAdded:Connect(function(char)
