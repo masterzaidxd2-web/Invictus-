@@ -1175,6 +1175,46 @@ PlayerTab:CreateToggle({
     end 
 })
 
+local VoidAntiFallConn = nil
+local lastSafeCFrame = CFrame.new(0, 10, 0)
+
+PlayerTab:CreateToggle({ 
+    Name = "🕳️ Void Anti-Fall (Save from Void)", 
+    CurrentValue = false, 
+    Flag = "VoidAntiFallToggle", 
+    Callback = function(Value) 
+        if Value then
+            if VoidAntiFallConn then VoidAntiFallConn:Disconnect() end
+            
+            VoidAntiFallConn = RunService.Heartbeat:Connect(function()
+                local char = lp.Character
+                local root = char and char:FindFirstChild("HumanoidRootPart")
+                local hum = char and char:FindFirstChild("Humanoid")
+                
+                if root and hum and hum.Health > 0 then
+                    -- إذا كان اللاعب فوق مستوى السقوط في الفراغ
+                    if root.Position.Y > -50 then
+                        -- حفظ آخر مكان آمن كان يقف عليه
+                        if hum.FloorMaterial ~= Enum.Material.Air then 
+                            lastSafeCFrame = root.CFrame 
+                        end
+                    else
+                        -- إذا سقط في الفراغ، يتم تصفير سرعة السقوط وإعادته لآخر مكان آمن
+                        root.AssemblyLinearVelocity = Vector3.zero
+                        root.CFrame = lastSafeCFrame + Vector3.new(0, 3, 0)
+                    end
+                end
+            end)
+        else
+            -- إيقاف الحماية عند إطفاء الزر
+            if VoidAntiFallConn then
+                VoidAntiFallConn:Disconnect()
+                VoidAntiFallConn = nil
+            end
+        end
+    end 
+})
+
 -- Waypoints
 WaypointsTab:CreateSection("Saved Waypoints Management")
 local NewWaypointName = ""
