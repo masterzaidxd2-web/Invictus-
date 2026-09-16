@@ -810,12 +810,47 @@ GrabTab:CreateButton({ Name = "Refresh Player Lists", Callback = function() loca
 
 -- Player
 -- ===============================================
--- نظام الطيران المخصص (توقف فوري بدون انزلاق)
+-- نظام الطيران المخصص (معدل لمنع مشكلة التحرك 2D بعد الإمساك)
 -- ===============================================
 local speaker = game:GetService("Players").LocalPlayer
 local hb = game:GetService("RunService").Heartbeat
 local nowe = false
 local speeds = 1
+
+-- دالة استعادة التحكم الكامل والتوجيه 360
+local function resetCharacterMovementState(chr)
+    if not chr then return end
+    local hum = chr:FindFirstChildWhichIsA("Humanoid")
+    local root = chr:FindFirstChild("HumanoidRootPart") or chr:FindFirstChild("Torso")
+    
+    if hum then
+        -- 1. إعادة تفعيل جميع حالات الحركة الأساسية للـ Humanoid
+        for _, state in ipairs(Enum.HumanoidStateType:GetEnumItems()) do
+            pcall(function()
+                hum:SetStateEnabled(state, true)
+            end)
+        end
+        
+        -- 2. إرجاع حالة الشخصية إلى المشي الطبيعي (Freefall / Running) بدلاً من الاستمرار في Swimming
+        hum.PlatformStand = false
+        hum:ChangeState(Enum.HumanoidStateType.Running)
+        
+        -- 3. تصفير وإزالة أجهزة التوجيه الفيزيائي لتفادي قفل الزوايا 360
+        if root then
+            for _, child in ipairs(root:GetChildren()) do
+                if child:IsA("BodyGyro") or child:IsA("BodyVelocity") then
+                    child:Destroy()
+                end
+            end
+            root.AssemblyLinearVelocity = Vector3.zero
+            root.AssemblyAngularVelocity = Vector3.zero
+        end
+
+        if chr:FindFirstChild("Animate") then
+            chr.Animate.Disabled = false
+        end
+    end
+end
 
 local function toggleFly(Value)
     nowe = Value
@@ -825,28 +860,8 @@ local function toggleFly(Value)
     if not chr or not hum then return end
 
     if not nowe then
-        -- إيقاف الطيران وإعادة ضبط الخصائص
-        hum:SetStateEnabled(Enum.HumanoidStateType.Climbing, true)
-        hum:SetStateEnabled(Enum.HumanoidStateType.FallingDown, not AntiFallEnabled)
-        hum:SetStateEnabled(Enum.HumanoidStateType.Flying, true)
-        hum:SetStateEnabled(Enum.HumanoidStateType.Freefall, true)
-        hum:SetStateEnabled(Enum.HumanoidStateType.GettingUp, true)
-        hum:SetStateEnabled(Enum.HumanoidStateType.Jumping, true)
-        hum:SetStateEnabled(Enum.HumanoidStateType.Landed, true)
-        hum:SetStateEnabled(Enum.HumanoidStateType.Physics, true)
-        hum:SetStateEnabled(Enum.HumanoidStateType.PlatformStanding, true)
-        hum:SetStateEnabled(Enum.HumanoidStateType.Ragdoll, not AntiFallEnabled)
-        hum:SetStateEnabled(Enum.HumanoidStateType.Running, true)
-        hum:SetStateEnabled(Enum.HumanoidStateType.RunningNoPhysics, true)
-        hum:SetStateEnabled(Enum.HumanoidStateType.Seated, true)
-        hum:SetStateEnabled(Enum.HumanoidStateType.StrafingNoPhysics, true)
-        hum:SetStateEnabled(Enum.HumanoidStateType.Swimming, true)
-        hum:ChangeState(Enum.HumanoidStateType.RunningNoPhysics)
-        
-        if chr:FindFirstChild("Animate") then
-            chr.Animate.Disabled = false
-        end
-        hum.PlatformStand = false
+        -- إيقاف الطيران واستعادة حركة 360 التلقائية
+        resetCharacterMovementState(chr)
     else
         -- تفعيل الطيران
         hum:SetStateEnabled(Enum.HumanoidStateType.Climbing, false)
@@ -874,8 +889,7 @@ local function toggleFly(Value)
             v:AdjustSpeed(0)
         end
         
-        
-                -- حلقة التحكم بالحركة والتوقف الفوري
+        -- حلقة التحكم بالحركة والتوقف الفوري
         task.spawn(function()
             while nowe do
                 hb:Wait()
@@ -884,8 +898,11 @@ local function toggleFly(Value)
                 local root = currentChr and (currentChr:FindFirstChild("HumanoidRootPart") or currentChr:FindFirstChild("Torso"))
                 
                 if currentChr and currentHum and currentHum.Parent and root then
-                    
-                    -- [ الإضافة الجديدة: فرض ثبات الطيران ومنع التعثر المستمر ضد الضربات ]
+                    -- التحقق من حالة الإمساك وإلغاء وضع الطيران تلقائياً إذا تم إمساكك
+                    if currentHum:GetState() == Enum.HumanoidStateType.PlatformStanding and not nowe then
+                        break
+                    end
+
                     currentHum.PlatformStand = true
                     currentHum:SetStateEnabled(Enum.HumanoidStateType.FallingDown, false)
                     currentHum:SetStateEnabled(Enum.HumanoidStateType.Ragdoll, false)
@@ -894,7 +911,6 @@ local function toggleFly(Value)
                     if currentHum.MoveDirection.Magnitude > 0 then
                         currentChr:TranslateBy(currentHum.MoveDirection * (speeds * 0.3))
                     else
-                        -- تصفير السرعة الفيزيائية فوراً لمنع الانزلاق
                         root.AssemblyLinearVelocity = Vector3.zero
                     end
                 else
@@ -903,7 +919,7 @@ local function toggleFly(Value)
             end
         end)
 
-        -- نظام التثبيت وتوجيه الكاميرا (BodyGyro & BodyVelocity)
+        -- نظام التثبيت وتوجيه الكاميرا
         task.spawn(function()
             local torso = (hum.RigType == Enum.HumanoidRigType.R6) and chr:FindFirstChild("Torso") or chr:FindFirstChild("UpperTorso")
             if torso then
@@ -925,15 +941,18 @@ local function toggleFly(Value)
                 
                 bg:Destroy()
                 bv:Destroy()
-                hum.PlatformStand = false
-                
-                if chr:FindFirstChild("Animate") then
-                    chr.Animate.Disabled = false
-                end
+                resetCharacterMovementState(chr)
             end
         end)
     end
 end
+
+-- إصلاح وتصفير حالة الحركة فور إرسال أو رسباون الشخصية
+speaker.CharacterAdded:Connect(function(char)
+    task.wait(0.5)
+    nowe = false
+    resetCharacterMovementState(char)
+end)
 
 -- إصلاح حالة اللاعب عند الموت ومنع التعثر والسقوط على الوجه
 speaker.CharacterAdded:Connect(function(char)
