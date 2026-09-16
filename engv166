@@ -810,7 +810,7 @@ GrabTab:CreateButton({ Name = "Refresh Player Lists", Callback = function() loca
 
 -- Player
 -- ===============================================
--- نظام الطيران المخصص للهاتف (النسخة المدمجة والمحسنة 3D)
+-- نظام الطيران المخصص للهاتف (حل مشكلة الملابس + الرسباون التلقائي)
 -- ===============================================
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
@@ -819,25 +819,41 @@ local speaker = Players.LocalPlayer
 local camera = workspace.CurrentCamera
 local nowe = false
 local flySpeed = 60
-local flyConnection = nil -- للتحكم في حلقة الطيران وإيقافها بنظافة
+local flyConnection = nil
 
--- دالة التنظيف لفك القيود وحل مشكلة العلوق في محور 2D عند الإمساك
+-- دالة التنظيف (معدلة للحفاظ على الملابس وفك لحام الإمساك فقط)
 local function forceUnbindAndReset(chr)
     if not chr then return end
     local hum = chr:FindFirstChildWhichIsA("Humanoid")
     local root = chr:FindFirstChild("HumanoidRootPart") or chr:FindFirstChild("Torso")
 
-    if root then
-        -- إزالة أي قيود ربط أو أجهزة طيران متبقية
-        for _, obj in ipairs(chr:GetDescendants()) do
-            if obj:IsA("Weld") or obj:IsA("WeldConstraint") or obj:IsA("ManualWeld") or obj:IsA("AlignPosition") or obj:IsA("AlignOrientation") then
-                if not (obj.Name == "Neck" or obj.Name:find("Joint") or obj.Name:find("Motor")) then
+    -- 1. إزالة اللحام الخارجي فقط (سكربتات الإمساك) دون المساس بالملابس
+    for _, obj in ipairs(chr:GetDescendants()) do
+        if obj:IsA("Weld") or obj:IsA("WeldConstraint") or obj:IsA("ManualWeld") or obj:IsA("AlignPosition") or obj:IsA("AlignOrientation") then
+            local p0, p1 = nil, nil
+            
+            -- تحديد الأجزاء المربوطة بشكل آمن
+            if obj:IsA("AlignPosition") or obj:IsA("AlignOrientation") then
+                p0 = obj.Attachment0 and obj.Attachment0.Parent
+                p1 = obj.Attachment1 and obj.Attachment1.Parent
+            else
+                p0 = obj.Part0
+                p1 = obj.Part1
+            end
+            
+            -- إذا كان القيد يربط مجسمك بشيء خارجي (لاعب آخر)، قم بتدميره!
+            if p0 and p1 then
+                if not p0:IsDescendantOf(chr) or not p1:IsDescendantOf(chr) then
                     obj:Destroy()
                 end
-            elseif obj:IsA("BodyGyro") or obj:IsA("BodyVelocity") or obj:IsA("BodyPosition") or obj:IsA("LinearVelocity") or obj:IsA("AngularVelocity") then
-                obj:Destroy()
             end
+        elseif obj.Name == "MobileFlyGyro" or obj.Name == "MobileFlyVelocity" then
+            -- تدمير أجهزة الطيران الخاصة بنا فقط لتنظيف الشخصية
+            obj:Destroy()
         end
+    end
+
+    if root then
         root.AssemblyLinearVelocity = Vector3.zero
         root.AssemblyAngularVelocity = Vector3.zero
     end
@@ -850,7 +866,6 @@ local function forceUnbindAndReset(chr)
             pcall(function() hum:SetStateEnabled(state, true) end)
         end
         
-        -- التبديل بين الحالات لكسر القفل الفيزيائي
         hum:ChangeState(Enum.HumanoidStateType.Physics)
         task.wait()
         hum:ChangeState(Enum.HumanoidStateType.GettingUp)
@@ -863,7 +878,7 @@ local function forceUnbindAndReset(chr)
     end
 end
 
--- دالة التشغيل التي سيتم ربطها بزر واجهتك الرئيسية
+-- الدالة الرئيسية
 local function toggleFly(Value)
     nowe = Value
     local chr = speaker.Character
@@ -881,7 +896,7 @@ local function toggleFly(Value)
         forceUnbindAndReset(chr)
     else
         -- تفعيل الطيران
-        forceUnbindAndReset(chr) -- تنظيف مسبق لمنع تداخل أجهزة سابقة
+        forceUnbindAndReset(chr) 
         
         hum.AutoRotate = false
         if chr:FindFirstChild("Animate") then
@@ -891,7 +906,6 @@ local function toggleFly(Value)
             v:AdjustSpeed(0)
         end
 
-        -- إنشاء أجهزة الفيزياء (من السكربت الجديد)
         local bv = Instance.new("BodyVelocity")
         bv.Name = "MobileFlyVelocity"
         bv.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
@@ -904,7 +918,6 @@ local function toggleFly(Value)
         bg.P = 9000
         bg.Parent = root
 
-        -- حلقة التحديث المستمرة لزوايا الكاميرا وتوجيه الهاتف
         if flyConnection then flyConnection:Disconnect() end
         
         flyConnection = RunService.RenderStepped:Connect(function()
@@ -913,13 +926,11 @@ local function toggleFly(Value)
             local currentRoot = currentChr and (currentChr:FindFirstChild("HumanoidRootPart") or currentChr:FindFirstChild("Torso"))
             
             if currentChr and currentHum and currentRoot and nowe then
-                -- إجبار حالة السباحة لكسر ميكانيكية الإمساك وتفعيل الـ Y-axis للعصا
                 currentHum:ChangeState(Enum.HumanoidStateType.Swimming)
                 
                 local camCF = camera.CFrame
                 bg.CFrame = camCF
                 
-                -- تحويل اتجاه عصا تحكم الهاتف إلى اتجاه الكاميرا الـ 3D
                 local moveDir = currentHum.MoveDirection
                 if moveDir.Magnitude > 0 then
                     local localMove = camCF:VectorToObjectSpace(moveDir)
@@ -938,15 +949,20 @@ local function toggleFly(Value)
     end
 end
 
--- تصفير النظام تلقائياً عند الموت أو عمل ريسباون
+-- 2. حل مشكلة الرسباون (إعادة تفعيل الطيران تلقائياً إذا كان الزر مفعلاً)
 speaker.CharacterAdded:Connect(function(char)
     task.wait(0.5)
-    nowe = false
     if flyConnection then
         flyConnection:Disconnect()
         flyConnection = nil
     end
     forceUnbindAndReset(char)
+    
+    -- التحقق مما إذا كان الزر لا يزال مشغلاً لتطبيق الطيران على الشخصية الجديدة فوراً
+    if nowe then
+        task.wait(0.1)
+        toggleFly(true)
+    end
 end)
 
 -- إصلاح حالة اللاعب عند الموت ومنع التعثر والسقوط على الوجه
