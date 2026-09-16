@@ -1275,22 +1275,28 @@ RunService.Heartbeat:Connect(function(dt)
       end
   end
 
-  if isSpeedEnabled and lp.Character then
-    local hum = lp.Character:FindFirstChildOfClass("Humanoid")
-    local root = lp.Character:FindFirstChild("HumanoidRootPart")
-    if hum and root then
-        hum.WalkSpeed = currentWalkSpeed
-        -- إلغاء القصور الذاتي والتوجيه الفوري للسرعة عند الالتفاف
-        if hum.MoveDirection.Magnitude > 0 then
-            root.AssemblyLinearVelocity = Vector3.new(
-                hum.MoveDirection.X * currentWalkSpeed,
-                root.AssemblyLinearVelocity.Y, -- الحفاظ على سرعة القفز والسقوط
-                hum.MoveDirection.Z * currentWalkSpeed
-            )
-        end
-    end
-end
-
+    if isSpeedEnabled and lp.Character then
+      local hum = lp.Character:FindFirstChildOfClass("Humanoid")
+      local root = lp.Character:FindFirstChild("HumanoidRootPart")
+      if hum and root then
+          hum.WalkSpeed = currentWalkSpeed
+          if hum.MoveDirection.Magnitude > 0 then
+              -- توجيه السرعة فوراً أثناء الركض والالتفاف بدون تباطؤ
+              root.AssemblyLinearVelocity = Vector3.new(
+                  hum.MoveDirection.X * currentWalkSpeed,
+                  root.AssemblyLinearVelocity.Y,
+                  hum.MoveDirection.Z * currentWalkSpeed
+              )
+          else
+              -- توقف فوري وتصفير الانزلاق عند رفع اليد عن زر الحركة
+              root.AssemblyLinearVelocity = Vector3.new(
+                  0,
+                  root.AssemblyLinearVelocity.Y,
+                  0
+              )
+          end
+      end
+  end
 
   if AuraEnabled then
       local currentTick = tick()
