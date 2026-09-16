@@ -566,8 +566,13 @@ HoldMagBtn.MouseLeave:Connect(function()
   HoldMagBtn.BackgroundColor3 = Color3.fromRGB(60, 100, 220)
 end)
 -- ===============================================
--- زر القذف/الإبعاد العائم (Floating Fling UI)
 -- ===============================================
+-- زر القذف/الإبعاد العائم (Floating Fling UI) - نظام ON/OFF
+-- ===============================================
+local TweenService = game:GetService("TweenService")
+local TeleportTime = 0.1
+local targetPos = Vector3.new(905, -500, 0)
+
 local FlingGui = Instance.new("ScreenGui")
 FlingGui.Name = "FloatingFlingUI"
 FlingGui.ResetOnSpawn = false
@@ -581,61 +586,119 @@ FlingBtn.Size = UDim2.new(0, 120, 0, 45)
 FlingBtn.AnchorPoint = Vector2.new(1, 0)
 FlingBtn.Position = UDim2.new(1, -230, 0, 5)
 FlingBtn.BackgroundColor3 = Color3.fromRGB(150, 50, 255)
-FlingBtn.Text = "🚀 Fling Opponent"
+FlingBtn.Text = "🚀 Fling: OFF"
 FlingBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 FlingBtn.Font = Enum.Font.SourceSansBold
 FlingBtn.TextSize = 18
 FlingBtn.Active = true
-FlingBtn.Draggable = false
+FlingBtn.Draggable = true
 FlingBtn.Parent = FlingGui
 
 local FlingUICorner = Instance.new("UICorner")
 FlingUICorner.CornerRadius = UDim.new(0, 8)
 FlingUICorner.Parent = FlingBtn
 
-local isHoldingFling = false
-local savedLocation = nil
+local flingToggle = false
+local lastPos = nil
+local velConn = nil
 
-local function startFlingHold()
-    if isHoldingFling then return end
-    local char = lp.Character
-    local hrp = char and char:FindFirstChild("HumanoidRootPart")
-    if not hrp then return end
+local function resetCameraSubject()
+    if workspace.CurrentCamera and lp.Character then
+        local humanoid = lp.Character:FindFirstChildWhichIsA("Humanoid")
+        if humanoid then
+            workspace.CurrentCamera.CameraSubject = humanoid
+        end
+    end
+end
 
-    isHoldingFling = true
-    FlingBtn.BackgroundColor3 = Color3.fromRGB(220, 50, 50) -- يتغير اللون للأحمر عند الضغط
-    workspace.FallenPartsDestroyHeight = -1000
-    savedLocation = hrp.CFrame
+local function createTween(hrp, targetCFrame)
+    local tweenInfo = TweenInfo.new(TeleportTime, Enum.EasingStyle.Linear, Enum.EasingDirection.Out)
+    return TweenService:Create(hrp, tweenInfo, {CFrame = targetCFrame})
+end
 
-    -- التواجد تحت الخريطة طالما إصبعك على الزر
-    task.spawn(function()
-        while isHoldingFling and hrp and hrp.Parent do
-            hrp.CFrame = CFrame.new(0, -500, 0)
+local function startVelLoop(hrp)
+    if velConn then velConn:Disconnect() end
+    velConn = RunService.Heartbeat:Connect(function()
+        if flingToggle and hrp and hrp.Parent then
             hrp.AssemblyLinearVelocity = Vector3.zero
-            task.wait()
+            hrp.AssemblyAngularVelocity = Vector3.zero
         end
     end)
 end
 
-local function stopFlingHold()
-    if not isHoldingFling then return end
-    isHoldingFling = false
-    FlingBtn.BackgroundColor3 = Color3.fromRGB(150, 50, 255) -- العودة للون البنفسجي الأصلي
-
-    local char = lp.Character
-    local hrp = char and char:FindFirstChild("HumanoidRootPart")
-    if hrp and savedLocation then
-        hrp.CFrame = savedLocation
-        workspace.FallenPartsDestroyHeight = -500
-        hrp.AssemblyLinearVelocity = Vector3.zero
-        hrp.AssemblyAngularVelocity = Vector3.zero
+local function stopVelLoop()
+    if velConn then
+        velConn:Disconnect()
+        velConn = nil
     end
 end
 
--- ربط أحداث الضغط المطول والرفع
-FlingBtn.MouseButton1Down:Connect(startFlingHold)
-FlingBtn.MouseButton1Up:Connect(stopFlingHold)
-FlingBtn.MouseLeave:Connect(stopFlingHold)
+local function toggleFling()
+    local char = lp.Character
+    local hrp = char and char:FindFirstChild("HumanoidRootPart")
+    if not hrp then return end
+
+    if flingToggle then
+        flingToggle = false
+        FlingBtn.Text = "🚀 Fling: OFF"
+        FlingBtn.BackgroundColor3 = Color3.fromRGB(150, 50, 255)
+        stopVelLoop()
+        
+        if lastPos then
+            local tweenBack = createTween(hrp, CFrame.new(lastPos))
+            tweenBack:Play()
+            tweenBack.Completed:Wait()
+        end
+        
+        workspace.FallenPartsDestroyHeight = -500
+        resetCameraSubject()
+        if workspace:FindFirstChild("Gaze") then
+            workspace.Gaze:Destroy()
+        end
+    else
+        lastPos = hrp.Position
+        local part = Instance.new("Part")
+        part.Size = Vector3.new(4, 1, 4)
+        part.Position = lastPos
+        part.Anchored = true
+        part.CanCollide = false
+        part.Transparency = 0.5
+        part.Name = "Gaze"
+        part.Parent = workspace
+        
+        if workspace.CurrentCamera then
+            workspace.CurrentCamera.CameraSubject = part
+        end
+        
+        flingToggle = true
+        FlingBtn.Text = "🚀 Fling: ON"
+        FlingBtn.BackgroundColor3 = Color3.fromRGB(60, 220, 60)
+        
+        task.wait()
+        workspace.FallenPartsDestroyHeight = -1000
+        local tweenToTarget = createTween(hrp, CFrame.new(targetPos))
+        tweenToTarget:Play()
+        tweenToTarget.Completed:Wait()
+        startVelLoop(hrp)
+    end
+end
+
+FlingBtn.MouseButton1Click:Connect(toggleFling)
+
+-- إعادة تعيين الحالة تلقائياً عند الموت أو إعادة التلفيل
+lp.CharacterAdded:Connect(function()
+    if flingToggle then
+        flingToggle = false
+        FlingBtn.Text = "🚀 Fling: OFF"
+        FlingBtn.BackgroundColor3 = Color3.fromRGB(150, 50, 255)
+        stopVelLoop()
+        workspace.FallenPartsDestroyHeight = -500
+        resetCameraSubject()
+        if workspace:FindFirstChild("Gaze") then
+            workspace.Gaze:Destroy()
+        end
+    end
+end)
 
 lp.CharacterAdded:Connect(function()
   IsInvisible = false; FloatBtn.BackgroundColor3 = Color3.fromRGB(220, 60, 60); FloatBtn.Text = "Invis: ❌"
