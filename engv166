@@ -1107,15 +1107,16 @@ PlayerTab:CreateToggle({
 
 PlayerTab:CreateSlider({ 
     Name = "Fly Speed", 
-    Range = {1, 20}, 
+    Range = {10, 150}, 
     Increment = 1, 
     Suffix = "Speed", 
-    CurrentValue = 1, 
+    CurrentValue = 60, 
     Flag = "FlySpeedSlider", 
     Callback = function(Value) 
-        speeds = Value -- تحديث القيمة فورا بدون إعادة تشغيل الحلقة أو تراكم المهام
+        flySpeed = Value -- تم التصحيح ليرتبط بمتغير نظام الطيران الفعلي
     end 
 })
+
 
 PlayerTab:CreateToggle({ Name = "Show Floating Invis Button", CurrentValue = false, Flag = "InvisSystemToggle", Callback = function(Value) InvisGui.Enabled = Value; if not Value and IsInvisible then IsInvisible = false; FloatBtn.BackgroundColor3 = Color3.fromRGB(220, 60, 60); FloatBtn.Text = "Invis: ❌"; for _, item in pairs(invisParts) do if item.obj and item.obj.Parent then item.obj.Transparency = item.origTrans end end end end })
 PlayerTab:CreateToggle({ Name = "Lock WalkSpeed", CurrentValue = false, Flag = "SpeedToggle", Callback = function(Value) isSpeedEnabled = Value; if not Value and lp.Character then local hum = lp.Character:FindFirstChildOfClass("Humanoid") if hum then hum.WalkSpeed = 16 end end end })
