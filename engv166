@@ -1411,6 +1411,43 @@ SettingsTab:CreateButton({
 -- ===============================================
 local OthersTab = Window:CreateTab("Others", 4483345998)
 
+OthersTab:CreateSection("🎭 Emotes & Animations")
+
+OthersTab:CreateToggle({
+    Name = "Emote Script",
+    CurrentValue = false,
+    Flag = "EmoteToggle",
+    Callback = function(Value)
+        if Value then
+            -- عند التفعيل: يتم تشغيل سكربت الرقصات
+            pcall(function()
+                loadstring(game:HttpGet("https://raw.githubusercontent.com/masterzaidxd2-web/Invictus-/refs/heads/main/emte"))()
+            end)
+        else
+            -- عند الإيقاف: يتم إغلاق واجهة الرقصات فقط ليبقى السكربت الرئيسي يعمل
+            pcall(function()
+                local coreGui = game:GetService("CoreGui")
+                local playerGui = game:GetService("Players").LocalPlayer:FindFirstChild("PlayerGui")
+                
+                -- وظيفة للبحث عن واجهة الرقصات وحذفها بأمان
+                local function cleanGui(parent)
+                    if not parent then return end
+                    for _, gui in pairs(parent:GetChildren()) do
+                        local name = gui.Name:lower()
+                        -- استهداف الواجهات التي تحمل اسم Emote وتخطي واجهة Rayfield الرئيسية
+                        if (name:find("emote") or name:find("emte")) and not name:find("rayfield") then
+                            gui:Destroy()
+                        end
+                    end
+                end
+
+                cleanGui(coreGui)
+                cleanGui(playerGui)
+            end)
+        end
+    end
+})
+
 
 -- 2. قسم السيرفر والانتقال المتقدم (Server & Teleport)
 OthersTab:CreateSection("🌍 Server & Teleport Utility")
