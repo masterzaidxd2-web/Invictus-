@@ -1168,18 +1168,58 @@ PlayerTab:CreateToggle({
     end 
 })
 
+local AdvancedAntiRagdollConn = nil
+
 PlayerTab:CreateToggle({ 
-    Name = "🚫 Anti-Ragdoll & Anti-Fall", 
+    Name = "🚫 Advanced Anti-Ragdoll & Anti-Fall", 
     CurrentValue = false, 
     Flag = "AntiRagdollToggle", 
     Callback = function(Value) 
-        AntiFallEnabled = Value
-        if lp.Character then
-            local hum = lp.Character:FindFirstChildOfClass("Humanoid")
+        AntiFallEnabled = Value -- إبقاء المتغير متصلاً بنظام الـ Anti-Grab الخاص بك
+        
+        if Value then
+            -- تفعيل الحماية المستمرة (تمنع الخصم من تطبيق الـ Ragdoll عليك بشكل متكرر)
+            if AdvancedAntiRagdollConn then AdvancedAntiRagdollConn:Disconnect() end
+            
+            AdvancedAntiRagdollConn = RunService.Stepped:Connect(function()
+                local char = lp.Character
+                local hum = char and char:FindFirstChildOfClass("Humanoid")
+                
+                if char and hum and hum.Health > 0 then
+                    -- 1. منع حالة السقوط والتعثر
+                    pcall(function()
+                        hum:SetStateEnabled(Enum.HumanoidStateType.FallingDown, false)
+                        hum:SetStateEnabled(Enum.HumanoidStateType.Ragdoll, false)
+                        if hum:GetState() == Enum.HumanoidStateType.Ragdoll or hum:GetState() == Enum.HumanoidStateType.FallingDown then
+                            hum:ChangeState(Enum.HumanoidStateType.GettingUp)
+                        end
+                        hum.PlatformStand = false 
+                    end)
+                    
+                    -- 2. إرجاع المفاصل الأصلية وتدمير قيود السقوط التي يضيفها الخصم/السيرفر
+                    for _, obj in ipairs(char:GetDescendants()) do
+                        if obj:IsA("Motor6D") then
+                            if not obj.Enabled then obj.Enabled = true end
+                        elseif obj:IsA("BallSocketConstraint") or obj:IsA("HingeConstraint") then
+                            obj:Destroy() -- تدمير القيود الفيزيائية الوهمية
+                        end
+                    end
+                end
+            end)
+        else
+            -- إيقاف الحماية المستمرة
+            if AdvancedAntiRagdollConn then
+                AdvancedAntiRagdollConn:Disconnect()
+                AdvancedAntiRagdollConn = nil
+            end
+            
+            -- إرجاع الحالات لطبيعتها عند الإطفاء
+            local char = lp.Character
+            local hum = char and char:FindFirstChildOfClass("Humanoid")
             if hum then
                 pcall(function()
-                    hum:SetStateEnabled(Enum.HumanoidStateType.FallingDown, not Value)
-                    hum:SetStateEnabled(Enum.HumanoidStateType.Ragdoll, not Value)
+                    hum:SetStateEnabled(Enum.HumanoidStateType.FallingDown, true)
+                    hum:SetStateEnabled(Enum.HumanoidStateType.Ragdoll, true)
                 end)
             end
         end
