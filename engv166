@@ -1411,6 +1411,8 @@ SettingsTab:CreateButton({
 -- ===============================================
 local OthersTab = Window:CreateTab("Others", 4483345998)
 
+local EmoteLoaded = false -- متغير لتتبع ما إذا تم تشغيل السكربت لأول مرة
+
 OthersTab:CreateSection("🎭 Emotes & Animations")
 
 OthersTab:CreateToggle({
@@ -1418,32 +1420,45 @@ OthersTab:CreateToggle({
     CurrentValue = false,
     Flag = "EmoteToggle",
     Callback = function(Value)
-        if Value then
-            -- عند التفعيل: يتم تشغيل سكربت الرقصات
-            pcall(function()
-                loadstring(game:HttpGet("https://raw.githubusercontent.com/masterzaidxd2-web/Invictus-/refs/heads/main/emte"))()
-            end)
-        else
-            -- عند الإيقاف: يتم إغلاق واجهة الرقصات فقط ليبقى السكربت الرئيسي يعمل
-            pcall(function()
-                local coreGui = game:GetService("CoreGui")
-                local playerGui = game:GetService("Players").LocalPlayer:FindFirstChild("PlayerGui")
-                
-                -- وظيفة للبحث عن واجهة الرقصات وحذفها بأمان
-                local function cleanGui(parent)
-                    if not parent then return end
-                    for _, gui in pairs(parent:GetChildren()) do
-                        local name = gui.Name:lower()
-                        -- استهداف الواجهات التي تحمل اسم Emote وتخطي واجهة Rayfield الرئيسية
-                        if (name:find("emote") or name:find("emte")) and not name:find("rayfield") then
-                            gui:Destroy()
+        
+        -- دالة للبحث عن واجهة الرقصات والتحكم في إظهارها أو إخفائها
+        local function toggleGuiVisibility(state)
+            local coreGui = game:GetService("CoreGui")
+            local playerGui = game:GetService("Players").LocalPlayer:FindFirstChild("PlayerGui")
+            
+            local function searchAndToggle(parent)
+                if not parent then return end
+                for _, gui in pairs(parent:GetChildren()) do
+                    local name = gui.Name:lower()
+                    -- استهداف واجهة الرقصات وتجاهل قائمة الهاك الرئيسية (Rayfield)
+                    if (name:find("emote") or name:find("emte")) and not name:find("rayfield") then
+                        if gui:IsA("ScreenGui") then
+                            gui.Enabled = state -- تفعيل أو تعطيل الرؤية
                         end
                     end
                 end
+            end
+            
+            searchAndToggle(coreGui)
+            searchAndToggle(playerGui)
+        end
 
-                cleanGui(coreGui)
-                cleanGui(playerGui)
-            end)
+        if Value then
+            -- عند تشغيل الزر (On)
+            if not EmoteLoaded then
+                -- إذا كانت هذه هي المرة الأولى، نقوم بتشغيل الرابط
+                pcall(function()
+                    loadstring(game:HttpGet("https://raw.githubusercontent.com/masterzaidxd2-web/Invictus-/refs/heads/main/emte"))()
+                end)
+                EmoteLoaded = true -- نغير المتغير حتى لا يعمل الرابط مرة أخرى
+            else
+                -- إذا تم تشغيله مسبقاً، نقوم بإظهار الواجهة المخفية فقط
+                pcall(function() toggleGuiVisibility(true) end)
+            end
+        else
+            -- عند إطفاء الزر (Off)
+            -- نقوم بإخفاء الواجهة فقط ولا نحذفها لتجنب عطل إعادة التشغيل
+            pcall(function() toggleGuiVisibility(false) end)
         end
     end
 })
