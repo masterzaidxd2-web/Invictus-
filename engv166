@@ -563,12 +563,14 @@ HoldMagBtn.MouseLeave:Connect(function()
   HoldMagBtn.BackgroundColor3 = Color3.fromRGB(60, 100, 220)
 end)
 -- ===============================================
--- ===============================================
 -- زر القذف/الإبعاد العائم (Floating Fling UI) - نظام ON/OFF
 -- ===============================================
 local TweenService = game:GetService("TweenService")
 local TeleportTime = 0.1
 local targetPos = Vector3.new(905, -500, 0)
+
+-- تعريف المتغير كقيمة احتياطية في البداية
+if getgenv().IsFlinging == nil then getgenv().IsFlinging = false end
 
 local FlingGui = Instance.new("ScreenGui")
 FlingGui.Name = "FloatingFlingUI"
@@ -636,7 +638,10 @@ local function toggleFling()
     if not hrp then return end
 
     if flingToggle then
+        -- 🔴 إيقاف الفلينق وإعادة تشغيل الحماية من السقوط
         flingToggle = false
+        getgenv().IsFlinging = false 
+        
         FlingBtn.Text = "🚀 Fling: OFF"
         FlingBtn.BackgroundColor3 = Color3.fromRGB(150, 50, 255)
         stopVelLoop()
@@ -653,6 +658,10 @@ local function toggleFling()
             workspace.Gaze:Destroy()
         end
     else
+        -- 🟢 تشغيل الفلينق وإيقاف الحماية من السقوط مؤقتاً
+        flingToggle = true
+        getgenv().IsFlinging = true 
+        
         lastPos = hrp.Position
         local part = Instance.new("Part")
         part.Size = Vector3.new(4, 1, 4)
@@ -667,7 +676,6 @@ local function toggleFling()
             workspace.CurrentCamera.CameraSubject = part
         end
         
-        flingToggle = true
         FlingBtn.Text = "🚀 Fling: ON"
         FlingBtn.BackgroundColor3 = Color3.fromRGB(60, 220, 60)
         
@@ -686,6 +694,7 @@ FlingBtn.MouseButton1Click:Connect(toggleFling)
 lp.CharacterAdded:Connect(function()
     if flingToggle then
         flingToggle = false
+        getgenv().IsFlinging = false -- التأكد من إعادة تفعيل الحماية عند الموت
         FlingBtn.Text = "🚀 Fling: OFF"
         FlingBtn.BackgroundColor3 = Color3.fromRGB(150, 50, 255)
         stopVelLoop()
@@ -697,7 +706,8 @@ lp.CharacterAdded:Connect(function()
     end
 end)
 
-lp.CharacterAdded:Connect(function()
+
+   lp.CharacterAdded:Connect(function()
   IsInvisible = false; FloatBtn.BackgroundColor3 = Color3.fromRGB(220, 60, 60); FloatBtn.Text = "Invis: ❌"
   IsHoldingMagnet = false; HoldMagBtn.BackgroundColor3 = Color3.fromRGB(60, 100, 220)
   removeLookGyro()
