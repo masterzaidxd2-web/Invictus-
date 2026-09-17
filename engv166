@@ -1179,6 +1179,9 @@ PlayerTab:CreateToggle({
 local VoidAntiFallConn = nil
 local lastSafeCFrame = CFrame.new(0, 10, 0)
 
+-- تعريف المتغير العام كإجراء احتياطي
+if getgenv().IsFlinging == nil then getgenv().IsFlinging = false end
+
 PlayerTab:CreateToggle({ 
     Name = "🕳️ Void Anti-Fall (Save from Void)", 
     CurrentValue = false, 
@@ -1193,21 +1196,20 @@ PlayerTab:CreateToggle({
                 local hum = char and char:FindFirstChild("Humanoid")
                 
                 if root and hum and hum.Health > 0 then
-                    -- إذا كان اللاعب فوق مستوى السقوط في الفراغ
+                    -- 🛑 السطر السحري: إذا كان الفلينق شغالاً، تجاهل الحماية مؤقتاً
+                    if getgenv().IsFlinging then return end 
+
                     if root.Position.Y > -50 then
-                        -- حفظ آخر مكان آمن كان يقف عليه
                         if hum.FloorMaterial ~= Enum.Material.Air then 
                             lastSafeCFrame = root.CFrame 
                         end
                     else
-                        -- إذا سقط في الفراغ، يتم تصفير سرعة السقوط وإعادته لآخر مكان آمن
                         root.AssemblyLinearVelocity = Vector3.zero
                         root.CFrame = lastSafeCFrame + Vector3.new(0, 3, 0)
                     end
                 end
             end)
         else
-            -- إيقاف الحماية عند إطفاء الزر
             if VoidAntiFallConn then
                 VoidAntiFallConn:Disconnect()
                 VoidAntiFallConn = nil
