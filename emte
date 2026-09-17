@@ -959,7 +959,7 @@ ToggleBtn.Name = "ToggleSettings"
 ToggleBtn.Parent = ToggleContainer
 ToggleBtn.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
 ToggleBtn.BackgroundTransparency = 0.4
-ToggleBtn.Position = UDim2.new(0, 10, 1, -52)
+ToggleBtn.Position = UDim2.new(0, 10, 0.4, 0)
 ToggleBtn.Size = UDim2.fromOffset(42, 42)
 ToggleBtn.Image = "rbxassetid://79568054778195"
 
