@@ -1407,6 +1407,142 @@ SettingsTab:CreateButton({
 })
 
 -- ===============================================
+-- [ الخانة الجديدة ] Others - أدوات إضافية (موقعها الأخير)
+-- ===============================================
+local OthersTab = Window:CreateTab("Others", 4483345998)
+
+-- 1. قسم تشغيل الحركات (Animations)
+OthersTab:CreateSection("🎭 Animations")
+
+local AnimInput = ""
+local currentAnimTrack = nil
+
+OthersTab:CreateInput({
+    Name = "Animation ID",
+    PlaceholderText = "Enter Animation ID here...",
+    RemoveTextAfterFocusLost = false,
+    Callback = function(Text)
+        AnimInput = Text
+    end
+})
+
+OthersTab:CreateButton({
+    Name = "▶️ Play Animation",
+    Callback = function()
+        local numId = string.match(AnimInput, "%d+")
+        if numId then
+            local char = lp.Character
+            if char then
+                local humanoid = char:FindFirstChild("Humanoid")
+                if humanoid then
+                    local animator = humanoid:FindFirstChildOfClass("Animator") or Instance.new("Animator", humanoid)
+                    if currentAnimTrack then currentAnimTrack:Stop() end
+                    local animation = Instance.new("Animation")
+                    animation.AnimationId = "rbxassetid://" .. numId
+                    currentAnimTrack = animator:LoadAnimation(animation)
+                    currentAnimTrack:Play()
+                    Rayfield:Notify({Title = "Animation", Content = "Playing animation...", Duration = 2})
+                end
+            end
+        else
+            Rayfield:Notify({Title = "Error", Content = "❌ Invalid Animation ID!", Duration = 2})
+        end
+    end
+})
+
+OthersTab:CreateButton({
+    Name = "⏹️ Stop Animation",
+    Callback = function()
+        if currentAnimTrack then
+            currentAnimTrack:Stop()
+            currentAnimTrack = nil
+            Rayfield:Notify({Title = "Animation", Content = "Animation stopped.", Duration = 2})
+        end
+    end
+})
+
+-- 2. قسم السيرفر والانتقال المتقدم (Server & Teleport)
+OthersTab:CreateSection("🌍 Server & Teleport Utility")
+
+OthersTab:CreateButton({
+    Name = "🔄 Rejoin Current Server",
+    Callback = function()
+        local TeleportService = game:GetService("TeleportService")
+        Rayfield:Notify({Title = "Server", Content = "Rejoining server...", Duration = 3})
+        if #Players:GetPlayers() <= 1 then
+            lp:Kick("\nRejoining...")
+            task.wait()
+            TeleportService:Teleport(game.PlaceId, lp)
+        else
+            TeleportService:TeleportToPlaceInstance(game.PlaceId, game.JobId, lp)
+        end
+    end
+})
+
+OthersTab:CreateButton({
+    Name = "🪄 Give Teleport Tool",
+    Callback = function()
+        local mouse = lp:GetMouse()
+        local tpTool = Instance.new("Tool")
+        tpTool.Name = "Teleport Tool"
+        tpTool.RequiresHandle = false
+        tpTool.Parent = lp.Backpack
+        
+        tpTool.Activated:Connect(function()
+            local char = lp.Character
+            local root = char and char:FindFirstChild("HumanoidRootPart")
+            if root and mouse.Hit then
+                root.CFrame = CFrame.new(mouse.Hit.Position + Vector3.new(0, 3, 0))
+            end
+        end)
+        Rayfield:Notify({Title = "Inventory", Content = "✅ Teleport Tool added to your backpack!", Duration = 3})
+    end
+})
+
+-- 3. قسم المنطقة الآمنة السماوية (Sky Safezone)
+OthersTab:CreateSection("🛡️ Sky Safezone")
+
+local savedCFrame = nil
+local safezonePart = nil
+
+OthersTab:CreateButton({
+    Name = "☁️ Teleport to Sky Safezone",
+    Callback = function()
+        local char = lp.Character
+        local root = char and char:FindFirstChild("HumanoidRootPart")
+        if root then
+            savedCFrame = root.CFrame 
+            if not safezonePart then
+                safezonePart = Instance.new("Part")
+                safezonePart.Name = "InvictusSafezone"
+                safezonePart.Size = Vector3.new(50, 5, 50)
+                safezonePart.Position = Vector3.new(0, 50000, 0)
+                safezonePart.Anchored = true
+                safezonePart.Material = Enum.Material.SmoothPlastic
+                safezonePart.Color = Color3.fromRGB(20, 20, 20)
+                safezonePart.Parent = workspace
+            end
+            root.CFrame = safezonePart.CFrame + Vector3.new(0, 5, 0)
+            Rayfield:Notify({Title = "Safezone", Content = "🛡️ Teleported to Sky Safezone. Location saved!", Duration = 3})
+        end
+    end
+})
+
+OthersTab:CreateButton({
+    Name = "🔙 Return From Safezone",
+    Callback = function()
+        local char = lp.Character
+        local root = char and char:FindFirstChild("HumanoidRootPart")
+        if root and savedCFrame then
+            root.CFrame = savedCFrame
+            Rayfield:Notify({Title = "Safezone", Content = "🔙 Returned to your previous location.", Duration = 3})
+        else
+            Rayfield:Notify({Title = "Safezone", Content = "❌ No saved location to return to!", Duration = 3})
+        end
+    end
+})
+
+-- ===============================================
 -- [ 5 ] المحرك الأساسي (يعمل لكل شيء)
 -- ===============================================
 RunService.Heartbeat:Connect(function(dt)
