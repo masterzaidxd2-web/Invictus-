@@ -334,12 +334,27 @@ end
 -- ===============================================
 -- [ 3 ] إعدادات التأثيرات والـ ESP المطور والإشعارات
 -- ===============================================
-local BWNameActive = false; local currentNameMode = "NONE"; local rnHue = 0; local bwLastUpdate = 0
-local rnSpeed = 0.7; local rnUpdateRate = 0.02; local policeToggle = false  
-local rainbowNameRemote = ReplicatedStorage:WaitForChild("Remotes", 10)
-rainbowNameRemote = rainbowNameRemote and rainbowNameRemote:FindFirstChild("SetRPNameColor")
+local NameEffectActive = false; local NameEffectMode = "Rainbow"; local NameSpeed = 0.7; local NameHue = 0; local lastUpdateName = 0; local policeToggleName = false
+local BioEffectActive = false;  local BioEffectMode = "Rainbow";  local BioSpeed = 0.7;  local BioHue = 0;  local lastUpdateBio = 0;  local policeToggleBio = false
+local RoleEffectActive = false; local RoleEffectMode = "Rainbow"; local RoleSpeed = 0.7; local RoleHue = 0;  local lastUpdateRole = 0; local policeToggleRole = false
+local updateRate = 0.02
 
-local EspEnabled = false; local EspBoxes = true; local EspNames = true
+local BioColorRemote = nil
+local RoleColorRemote = nil
+local NameColorRemote = nil
+
+-- البحث عن المسارات داخل اللعبة
+for _, child in pairs(ReplicatedStorage:GetDescendants()) do
+    if child:IsA("RemoteEvent") or child:IsA("RemoteFunction") then
+        if child.Name == "UpdateBioColor" or child.Name == "SetBioColor" then 
+            BioColorRemote = child
+        elseif child.Name == "UpdateRPColor" or child.Name == "SetRoleColor" then 
+            RoleColorRemote = child
+        elseif child.Name == "SetNameColor" or child.Name == "SetRPNameColor" then 
+            NameColorRemote = child
+        end
+    end
+end
 
 -- إنشاء مجلد آمن للـ ESP حتى لا تحذفه اللعبة
 local EspFolder = Instance.new("Folder")
@@ -1300,9 +1315,20 @@ EspTab:CreateToggle({ Name = "Highlight (Boxes)", CurrentValue = true, Flag = "E
 EspTab:CreateToggle({ Name = "Names & Distance", CurrentValue = true, Flag = "EspNamesToggle", Callback = function(Value) EspNames = Value; refreshAllEsp() end })
 
 -- Names
-NameTab:CreateToggle({ Name = "Enable Effects", CurrentValue = false, Flag = "NameEffectToggle", Callback = function(Value) BWNameActive = Value end })
-NameTab:CreateDropdown({ Name = "Type", Options = {"BW", "Rainbow", "Pulse", "Strobe", "Police"}, CurrentOption = {"Rainbow"}, MultipleOptions = false, Flag = "NameEffectModeDropdown", Callback = function(Options) currentNameMode = Options[1] end })
-NameTab:CreateSlider({ Name = "Speed", Range = {0.1, 3.0}, Increment = 0.1, Suffix = "x", CurrentValue = 0.7, Flag = "NameSpeedSlider", Callback = function(Value) rnSpeed = Value end })
+NameTab:CreateSection("تخصيص لون الاسم (Name)")
+NameTab:CreateToggle({ Name = "تفعيل تأثير الاسم", CurrentValue = false, Flag = "NameToggle", Callback = function(Value) NameEffectActive = Value end })
+NameTab:CreateDropdown({ Name = "النوع", Options = {"BW", "Rainbow", "Pulse", "Strobe", "Police"}, CurrentOption = {"Rainbow"}, MultipleOptions = false, Flag = "NameMode", Callback = function(Options) NameEffectMode = Options[1] end })
+NameTab:CreateSlider({ Name = "السرعة", Range = {0.1, 3.0}, Increment = 0.1, Suffix = "x", CurrentValue = 0.7, Flag = "NameSpeed", Callback = function(Value) NameSpeed = Value end })
+
+NameTab:CreateSection("تخصيص لون البايو (Bio)")
+NameTab:CreateToggle({ Name = "تفعيل تأثير البايو", CurrentValue = false, Flag = "BioToggle", Callback = function(Value) BioEffectActive = Value end })
+NameTab:CreateDropdown({ Name = "النوع", Options = {"BW", "Rainbow", "Pulse", "Strobe", "Police"}, CurrentOption = {"Rainbow"}, MultipleOptions = false, Flag = "BioMode", Callback = function(Options) BioEffectMode = Options[1] end })
+NameTab:CreateSlider({ Name = "السرعة", Range = {0.1, 3.0}, Increment = 0.1, Suffix = "x", CurrentValue = 0.7, Flag = "BioSpeed", Callback = function(Value) BioSpeed = Value end })
+
+NameTab:CreateSection("تخصيص لون الرتبة (Role)")
+NameTab:CreateToggle({ Name = "تفعيل تأثير الرتبة", CurrentValue = false, Flag = "RoleToggle", Callback = function(Value) RoleEffectActive = Value end })
+NameTab:CreateDropdown({ Name = "النوع", Options = {"BW", "Rainbow", "Pulse", "Strobe", "Police"}, CurrentOption = {"Rainbow"}, MultipleOptions = false, Flag = "RoleMode", Callback = function(Options) RoleEffectMode = Options[1] end })
+NameTab:CreateSlider({ Name = "السرعة", Range = {0.1, 3.0}, Increment = 0.1, Suffix = "x", CurrentValue = 0.7, Flag = "RoleSpeed", Callback = function(Value) RoleSpeed = Value end })
 
 -- ===============================================
 -- إضافة أدوات ناسخ السكنات داخل خانة الاسم (NameTab)
@@ -1780,21 +1806,46 @@ RunService.Heartbeat:Connect(function(dt)
       end
   end
 
-  if rainbowNameRemote and BWNameActive then
-      local now = os.clock()
-      rnHue = (rnHue + (dt * rnSpeed)) % 1
-      if now - bwLastUpdate >= (currentNameMode == "Police" and 0.12 or rnUpdateRate) then
-          local targetColor
-          if currentNameMode == "BW" then local intensity = (math.sin(rnHue * math.pi * 2) + 1) / 2; targetColor = Color3.new(intensity, intensity, intensity)
-          elseif currentNameMode == "Rainbow" then targetColor = Color3.fromHSV(rnHue, 1, 1)
-          elseif currentNameMode == "Pulse" then targetColor = Color3.fromHSV(rnHue, 0.8, 1)
-          elseif currentNameMode == "Strobe" then targetColor = Color3.fromRGB(math.random(50,255), math.random(50,255), math.random(50,255))
-          elseif currentNameMode == "Police" then policeToggle = not policeToggle; targetColor = policeToggle and Color3.fromRGB(0, 100, 255) or Color3.fromRGB(255, 0, 0) end
-          if targetColor then pcall(function() rainbowNameRemote:FireServer(targetColor) end) end
-          bwLastUpdate = now
+    -- دالة مساعدة لتطبيق الألوان على أي مسار
+  local function applyColorEffect(dt, remote, effectActive, mode, speed, hueVar, lastUpdateVar, policeToggleVar)
+      if remote and effectActive then
+          local now = os.clock()
+          hueVar = (hueVar + (dt * speed)) % 1
+          if now - lastUpdateVar >= (mode == "Police" and 0.12 or updateRate) then
+              local targetColor
+              if mode == "BW" then 
+                  local intensity = (math.sin(hueVar * math.pi * 2) + 1) / 2
+                  targetColor = Color3.new(intensity, intensity, intensity)
+              elseif mode == "Rainbow" then 
+                  targetColor = Color3.fromHSV(hueVar, 1, 1)
+              elseif mode == "Pulse" then 
+                  targetColor = Color3.fromHSV(hueVar, 0.8, 1)
+              elseif mode == "Strobe" then 
+                  targetColor = Color3.fromRGB(math.random(50,255), math.random(50,255), math.random(50,255))
+              elseif mode == "Police" then 
+                  policeToggleVar = not policeToggleVar
+                  targetColor = policeToggleVar and Color3.fromRGB(0, 100, 255) or Color3.fromRGB(255, 0, 0) 
+              end
+              
+              if targetColor then 
+                  pcall(function() 
+                      if remote:IsA("RemoteEvent") then
+                          remote:FireServer(targetColor)
+                      elseif remote:IsA("RemoteFunction") then
+                          remote:InvokeServer(targetColor)
+                      end
+                  end) 
+              end
+              return hueVar, now, policeToggleVar
+          end
       end
+      return hueVar, lastUpdateVar, policeToggleVar
   end
-end)
+
+  -- تطبيق التأثيرات على الخانات الثلاث بشكل منفصل
+  NameHue, lastUpdateName, policeToggleName = applyColorEffect(dt, NameColorRemote, NameEffectActive, NameEffectMode, NameSpeed, NameHue, lastUpdateName, policeToggleName)
+  BioHue, lastUpdateBio, policeToggleBio = applyColorEffect(dt, BioColorRemote, BioEffectActive, BioEffectMode, BioSpeed, BioHue, lastUpdateBio, policeToggleBio)
+  RoleHue, lastUpdateRole, policeToggleRole = applyColorEffect(dt, RoleColorRemote, RoleEffectActive, RoleEffectMode, RoleSpeed, RoleHue, lastUpdateRole, policeToggleRole)
 
 pcall(function()
   Rayfield:LoadConfiguration()
