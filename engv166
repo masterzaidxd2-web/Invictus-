@@ -334,11 +334,6 @@ end
 -- ===============================================
 -- [ 3 ] إعدادات التأثيرات والـ ESP المطور والإشعارات
 -- ===============================================
-local BWNameActive = false; local currentNameMode = "NONE"; local rnHue = 0; local bwLastUpdate = 0
-local rnSpeed = 0.7; local rnUpdateRate = 0.02; local policeToggle = false  
-local rainbowNameRemote = ReplicatedStorage:WaitForChild("Remotes", 10)
-rainbowNameRemote = rainbowNameRemote and rainbowNameRemote:FindFirstChild("SetRPNameColor")
-
 local EspEnabled = false; local EspBoxes = true; local EspNames = true
 
 -- إنشاء مجلد آمن للـ ESP حتى لا تحذفه اللعبة
@@ -1290,9 +1285,215 @@ EspTab:CreateToggle({ Name = "Highlight (Boxes)", CurrentValue = true, Flag = "E
 EspTab:CreateToggle({ Name = "Names & Distance", CurrentValue = true, Flag = "EspNamesToggle", Callback = function(Value) EspNames = Value; refreshAllEsp() end })
 
 -- Names
-NameTab:CreateToggle({ Name = "Enable Effects", CurrentValue = false, Flag = "NameEffectToggle", Callback = function(Value) BWNameActive = Value end })
-NameTab:CreateDropdown({ Name = "Type", Options = {"BW", "Rainbow", "Pulse", "Strobe", "Police"}, CurrentOption = {"Rainbow"}, MultipleOptions = false, Flag = "NameEffectModeDropdown", Callback = function(Options) currentNameMode = Options[1] end })
-NameTab:CreateSlider({ Name = "Speed", Range = {0.1, 3.0}, Increment = 0.1, Suffix = "x", CurrentValue = 0.7, Flag = "NameSpeedSlider", Callback = function(Value) rnSpeed = Value end })
+-- ==========================================
+-- تعريف المتغيرات والريموتات الأساسية
+-- ==========================================
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local player = Players.LocalPlayer
+
+local bioRemote, colorRemote, bioColorRemote, nameRemote
+
+-- البحث عن الروموتات الخاصة باللعبة
+for _, child in pairs(ReplicatedStorage:GetDescendants()) do
+    if child:IsA("RemoteEvent") or child:IsA("RemoteFunction") then
+        local name = child.Name
+        if name == "UpdateBio" or name == "SetBio" then bioRemote = child
+        elseif name == "UpdateBioColor" or name == "SetBioColor" then bioColorRemote = child
+        elseif name == "UpdateRPColor" or name == "SetNameColor" then colorRemote = child
+        elseif name == "UpdateRPName" or name == "SetName" then nameRemote = child
+        end
+    end
+end
+
+-- وظائف إرسال البيانات للسيرفر
+local function applyColor(color)
+    if colorRemote then pcall(function() colorRemote:FireServer(color) end) end
+    if bioColorRemote then pcall(function() bioColorRemote:FireServer(color) end) end
+end
+
+local function applyBio(text)
+    if bioRemote then pcall(function() bioRemote:FireServer(text) end) end
+end
+
+local function applyName(text)
+    if nameRemote then pcall(function() nameRemote:FireServer(text) end) end
+end
+
+-- ألوان الرينبو الأساسية
+local colors = {
+    Color3.fromRGB(255, 0, 0),
+    Color3.fromRGB(255, 127, 0),
+    Color3.fromRGB(255, 255, 0),
+    Color3.fromRGB(0, 255, 0),
+    Color3.fromRGB(0, 0, 255),
+    Color3.fromRGB(75, 0, 130),
+    Color3.fromRGB(148, 0, 211)
+}
+
+-- إعدادات الواجهة لتخزين القيم
+local NameSettings = {
+    RoleEnabled = false, RoleSpeed = 0.5, CustomRole = "Your Custom Role",
+    BioEnabled = false, BioSpeed = 15, BioText = "HELLO,WORLD,ROBLOX SCRIPT",
+    RainbowEnabled = false, ColorSpeed = 0.05
+}
+
+-- ==========================================
+-- واجهة المستخدم (Rayfield - Name Tab)
+-- ==========================================
+local NameTab = Window:CreateTab("Name", 4483362458) -- يمكنك تغيير أيقونة التاب
+
+-- 1. قسم الـ Role / الاسم
+local RoleSection = NameTab:CreateSection("إعدادات الـ Role / الاسم")
+
+NameTab:CreateToggle({
+    Name = "تفعيل حركة الاسم (Role Typewriter)",
+    CurrentValue = false,
+    Flag = "ToggleRole",
+    Callback = function(Value)
+        NameSettings.RoleEnabled = Value
+    end,
+})
+
+NameTab:CreateInput({
+    Name = "الاسم / الـ Role المخصص",
+    PlaceholderText = "اكتب الاسم هنا...",
+    RemoveTextAfterFocusLost = false,
+    Callback = function(Text)
+        NameSettings.CustomRole = Text
+    end,
+})
+
+NameTab:CreateSlider({
+    Name = "سرعة كتابة الاسم",
+    Range = {1, 10},
+    Increment = 1,
+    Suffix = "Speed",
+    CurrentValue = 2,
+    Flag = "SliderRoleSpeed",
+    Callback = function(Value)
+        NameSettings.RoleSpeed = 1 / Value -- تحويل القيمة لتناسب سرعة الانتظار (كلما زاد الرقم زادت السرعة)
+    end,
+})
+
+-- 2. قسم الـ Bio / السيرة
+local BioSection = NameTab:CreateSection("إعدادات الـ Bio (السيرة)")
+
+NameTab:CreateToggle({
+    Name = "تفعيل حركة الـ Bio (Typewriter)",
+    CurrentValue = false,
+    Flag = "ToggleBio",
+    Callback = function(Value)
+        NameSettings.BioEnabled = Value
+    end,
+})
+
+NameTab:CreateInput({
+    Name = "جمل الـ Bio (افصل بينها بفاصلة ,)",
+    PlaceholderText = "HELLO,WORLD...",
+    RemoveTextAfterFocusLost = false,
+    Callback = function(Text)
+        NameSettings.BioText = Text
+    end,
+})
+
+NameTab:CreateSlider({
+    Name = "سرعة كتابة الـ Bio",
+    Range = {1, 50},
+    Increment = 1,
+    Suffix = "Speed",
+    CurrentValue = 15,
+    Flag = "SliderBioSpeed",
+    Callback = function(Value)
+        NameSettings.BioSpeed = Value
+    end,
+})
+
+-- 3. قسم الألوان (Rainbow)
+local ColorSection = NameTab:CreateSection("إعدادات ألوان الرينبو")
+
+NameTab:CreateToggle({
+    Name = "تفعيل ألوان الرينبو للاسم والبايو",
+    CurrentValue = false,
+    Flag = "ToggleRainbow",
+    Callback = function(Value)
+        NameSettings.RainbowEnabled = Value
+    end,
+})
+
+NameTab:CreateSlider({
+    Name = "سرعة تغيير الألوان",
+    Range = {1, 100},
+    Increment = 1,
+    Suffix = "Speed",
+    CurrentValue = 20,
+    Flag = "SliderColorSpeed",
+    Callback = function(Value)
+        NameSettings.ColorSpeed = 1 / Value -- تحويل القيمة لتكون أسرع كلما زاد الرقم
+    end,
+})
+
+-- ==========================================
+-- الحلقات التكرارية لتشغيل الميزات (Loops)
+-- ==========================================
+
+-- حلقة الألوان
+task.spawn(function()
+    local index = 1
+    while task.wait(NameSettings.ColorSpeed) do
+        if NameSettings.RainbowEnabled then
+            index = index % #colors + 1
+            applyColor(colors[index])
+        end
+    end
+end)
+
+-- حلقة حركة الـ Role / الاسم
+task.spawn(function()
+    while task.wait() do
+        if NameSettings.RoleEnabled then
+            local targetName = (NameSettings.CustomRole ~= "") and NameSettings.CustomRole or (player.DisplayName or player.Name)
+            for i = 1, #targetName do
+                if not NameSettings.RoleEnabled then break end -- التوقف الفوري عند الإغلاق
+                applyName(targetName:sub(1, i))
+                task.wait(NameSettings.RoleSpeed)
+            end
+            if NameSettings.RoleEnabled then
+                applyName(targetName)
+                task.wait(2) -- الانتظار قبل إعادة كتابة الاسم
+            end
+        end
+    end
+end)
+
+-- حلقة حركة الـ Bio
+task.spawn(function()
+    while task.wait() do
+        if NameSettings.BioEnabled then
+            -- فصل الجمل باستخدام الفاصلة
+            local phrases = string.split(NameSettings.BioText, ",")
+            
+            for _, phrase in ipairs(phrases) do
+                if not NameSettings.BioEnabled then break end -- التوقف الفوري عند الإغلاق
+                
+                -- تنظيف الفراغات من بداية ونهاية الجملة
+                phrase = phrase:match("^%s*(.-)%s*$")
+                
+                for i = 1, #phrase do
+                    if not NameSettings.BioEnabled then break end
+                    applyBio(phrase:sub(1, i))
+                    task.wait(1 / NameSettings.BioSpeed)
+                end
+                
+                if NameSettings.BioEnabled then
+                    applyBio(phrase)
+                    task.wait(1.5) -- الانتظار قبل الانتقال للكلمة التالية
+                end
+            end
+        end
+    end
+end)
+
 
 -- ===============================================
 -- إضافة أدوات ناسخ السكنات داخل خانة الاسم (NameTab)
@@ -1769,22 +1970,6 @@ RunService.Heartbeat:Connect(function(dt)
           end) 
       end
   end
-
-  if rainbowNameRemote and BWNameActive then
-      local now = os.clock()
-      rnHue = (rnHue + (dt * rnSpeed)) % 1
-      if now - bwLastUpdate >= (currentNameMode == "Police" and 0.12 or rnUpdateRate) then
-          local targetColor
-          if currentNameMode == "BW" then local intensity = (math.sin(rnHue * math.pi * 2) + 1) / 2; targetColor = Color3.new(intensity, intensity, intensity)
-          elseif currentNameMode == "Rainbow" then targetColor = Color3.fromHSV(rnHue, 1, 1)
-          elseif currentNameMode == "Pulse" then targetColor = Color3.fromHSV(rnHue, 0.8, 1)
-          elseif currentNameMode == "Strobe" then targetColor = Color3.fromRGB(math.random(50,255), math.random(50,255), math.random(50,255))
-          elseif currentNameMode == "Police" then policeToggle = not policeToggle; targetColor = policeToggle and Color3.fromRGB(0, 100, 255) or Color3.fromRGB(255, 0, 0) end
-          if targetColor then pcall(function() rainbowNameRemote:FireServer(targetColor) end) end
-          bwLastUpdate = now
-      end
-  end
-end)
 
 pcall(function()
   Rayfield:LoadConfiguration()
