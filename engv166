@@ -1435,6 +1435,104 @@ RunService.Heartbeat:Connect(function(dt)
     end
 end)
 
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
+
+-- ===============================================
+-- 1. المتغيرات وإعدادات الاتصال بالسيرفر
+-- ===============================================
+local BioEffectActive = false
+local currentBioMode = "NONE"
+local bioHue = 0
+local bioLastUpdate = 0
+local bioSpeed = 0.7
+local bioUpdateRate = 0.02
+local bioPoliceToggle = false  
+
+-- البحث عن ريموت لون البايو (بناءً على أسماء الريموتات الخاصة بلعبتك)
+local remotes = ReplicatedStorage:WaitForChild("Remotes", 10)
+local bioColorRemote = nil
+if remotes then
+    bioColorRemote = remotes:FindFirstChild("SetBioColor") or remotes:FindFirstChild("UpdateBioColor")
+end
+
+-- ===============================================
+-- 2. أزرار الواجهة (باستخدام مكتبة Rayfield)
+-- يجب أن يكون المتغير Window معرفاً مسبقاً في سكربتك
+-- ===============================================
+local BioTab = Window:CreateTab("Bio", 4483345998)
+
+BioTab:CreateToggle({ 
+    Name = "Enable Bio Effects", 
+    CurrentValue = false, 
+    Flag = "BioEffectToggle", 
+    Callback = function(Value) 
+        BioEffectActive = Value 
+    end 
+})
+
+BioTab:CreateDropdown({ 
+    Name = "Bio Effect Type", 
+    Options = {"BW", "Rainbow", "Pulse", "Strobe", "Police"}, 
+    CurrentOption = {"Rainbow"}, 
+    MultipleOptions = false, 
+    Flag = "BioEffectModeDropdown", 
+    Callback = function(Options) 
+        currentBioMode = Options[1] 
+    end 
+})
+
+BioTab:CreateSlider({ 
+    Name = "Bio Speed", 
+    Range = {0.1, 3.0}, 
+    Increment = 0.1, 
+    Suffix = "x", 
+    CurrentValue = 0.7, 
+    Flag = "BioSpeedSlider", 
+    Callback = function(Value) 
+        bioSpeed = Value 
+    end 
+})
+
+-- ===============================================
+-- 3. المحرك الأساسي لتغيير الألوان (يعمل في الخلفية)
+-- ===============================================
+RunService.Heartbeat:Connect(function(dt)
+    if bioColorRemote and BioEffectActive then
+        local now = os.clock()
+        -- حساب تدرج اللون بناءً على السرعة المحددة
+        bioHue = (bioHue + (dt * bioSpeed)) % 1
+        
+        -- تحديث اللون بناءً على معدل التحديث أو النمط
+        if now - bioLastUpdate >= (currentBioMode == "Police" and 0.12 or bioUpdateRate) then
+            local targetColor
+            
+            if currentBioMode == "BW" then 
+                local intensity = (math.sin(bioHue * math.pi * 2) + 1) / 2
+                targetColor = Color3.new(intensity, intensity, intensity)
+            elseif currentBioMode == "Rainbow" then 
+                targetColor = Color3.fromHSV(bioHue, 1, 1)
+            elseif currentBioMode == "Pulse" then 
+                targetColor = Color3.fromHSV(bioHue, 0.8, 1)
+            elseif currentBioMode == "Strobe" then 
+                targetColor = Color3.fromRGB(math.random(50,255), math.random(50,255), math.random(50,255))
+            elseif currentBioMode == "Police" then 
+                bioPoliceToggle = not bioPoliceToggle
+                targetColor = bioPoliceToggle and Color3.fromRGB(0, 100, 255) or Color3.fromRGB(255, 0, 0) 
+            end
+            
+            -- إرسال اللون الجديد للسيرفر
+            if targetColor then 
+                pcall(function() 
+                    bioColorRemote:FireServer(targetColor) 
+                end) 
+            end
+            
+            bioLastUpdate = now
+        end
+    end
+end)
+
 -- ===============================================
 -- إضافة أدوات ناسخ السكنات داخل خانة الاسم (NameTab)
 -- ===============================================
