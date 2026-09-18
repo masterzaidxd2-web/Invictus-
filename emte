@@ -27,7 +27,6 @@ local State = {
     emotesWalkEnabled = false,
     favoriteEnabled = false,
     hudEditorActive = false,
-    speedEmoteEnabled = false,
     isLoading = false,
     favoriteSetVersion = 0,
     favoriteSetBuiltVersion = -1,
