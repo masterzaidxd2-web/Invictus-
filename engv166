@@ -1435,11 +1435,12 @@ RunService.Heartbeat:Connect(function(dt)
     end
 end)
 
+ ===============================================
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
 -- ===============================================
--- 1. المتغيرات وإعدادات الاتصال بالسيرفر
+-- 1. المتغيرات وإعدادات الاتصال بالسيرفر للبايو
 -- ===============================================
 local BioEffectActive = false
 local currentBioMode = "NONE"
@@ -1449,7 +1450,7 @@ local bioSpeed = 0.7
 local bioUpdateRate = 0.02
 local bioPoliceToggle = false  
 
--- البحث عن ريموت لون البايو (بناءً على أسماء الريموتات الخاصة بلعبتك)
+-- البحث عن ريموت لون البايو تلقائياً
 local remotes = ReplicatedStorage:WaitForChild("Remotes", 10)
 local bioColorRemote = nil
 if remotes then
@@ -1457,13 +1458,13 @@ if remotes then
 end
 
 -- ===============================================
--- 2. أزرار الواجهة (باستخدام مكتبة Rayfield)
--- يجب أن يكون المتغير Window معرفاً مسبقاً في سكربتك
+-- 2. قسم ألوان البايو داخل خانة Name الحالية
+-- (يتم افتراض أن NameTab و Window معرفان مسبقاً)
 -- ===============================================
+local BioColorSection = NameTab:CreateSection("إعدادات ألوان البايو (Bio Color)")
 
-
-BioTab:CreateToggle({ 
-    Name = "Enable Bio Effects", 
+NameTab:CreateToggle({ 
+    Name = "تفعيل ألوان البايو", 
     CurrentValue = false, 
     Flag = "BioEffectToggle", 
     Callback = function(Value) 
@@ -1471,8 +1472,8 @@ BioTab:CreateToggle({
     end 
 })
 
-BioTab:CreateDropdown({ 
-    Name = "Bio Effect Type", 
+NameTab:CreateDropdown({ 
+    Name = "نمط ألوان البايو", 
     Options = {"BW", "Rainbow", "Pulse", "Strobe", "Police"}, 
     CurrentOption = {"Rainbow"}, 
     MultipleOptions = false, 
@@ -1482,8 +1483,8 @@ BioTab:CreateDropdown({
     end 
 })
 
-BioTab:CreateSlider({ 
-    Name = "Bio Speed", 
+NameTab:CreateSlider({ 
+    Name = "سرعة ألوان البايو", 
     Range = {0.1, 3.0}, 
     Increment = 0.1, 
     Suffix = "x", 
@@ -1495,7 +1496,7 @@ BioTab:CreateSlider({
 })
 
 -- ===============================================
--- 3. المحرك الأساسي لتغيير الألوان (يعمل في الخلفية)
+-- 3. المحرك الأساسي لتغيير ألوان البايو في الخلفية
 -- ===============================================
 RunService.Heartbeat:Connect(function(dt)
     if bioColorRemote and BioEffectActive then
@@ -1521,7 +1522,7 @@ RunService.Heartbeat:Connect(function(dt)
                 targetColor = bioPoliceToggle and Color3.fromRGB(0, 100, 255) or Color3.fromRGB(255, 0, 0) 
             end
             
-            -- إرسال اللون الجديد للسيرفر
+            -- إرسال اللون الجديد للسيرفر عبر ريموت البايو
             if targetColor then 
                 pcall(function() 
                     bioColorRemote:FireServer(targetColor) 
