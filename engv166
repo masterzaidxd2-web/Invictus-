@@ -1460,7 +1460,7 @@ end
 -- 2. أزرار الواجهة (باستخدام مكتبة Rayfield)
 -- يجب أن يكون المتغير Window معرفاً مسبقاً في سكربتك
 -- ===============================================
-local BioTab = Window:CreateTab("Bio", 4483345998)
+
 
 BioTab:CreateToggle({ 
     Name = "Enable Bio Effects", 
