@@ -68,7 +68,6 @@ local State = {
     scannedEmotes = {},
     favoriteEmotes = {},
     favoriteFileName = "FavoriteEmotes.json",
-    speedEmoteConfigFile = "SpeedEmoteConfig.json",
     favoriteEmoteSet = {},
     favoriteAnimationSet = {},
     emotePageCache = { version = nil, normal = {}, favorites = {} },
@@ -107,7 +106,6 @@ Config = {
     FavVisible = true,
     ModeVisible = true,
     FreezeVisible = true,
-    SpeedVisible = false,
     NavVisible = true,
     EmoteSpeed = 1,
     EmoteSpeedEnabled = false,
@@ -148,8 +146,6 @@ HUD = {
         ["Top.Search"] = "Search",
         ["EmoteWalkButton"] = "Freeze",
         ["Favorite"] = "Favorite",
-        ["SpeedEmote"] = "SpeedEmote",
-        ["SpeedBox"] = "SpeedBox",
         ["Changepage"] = "ChangePage",
         ["Reload"] = "AutoReload",
         ["Top"] = "Top",
@@ -279,9 +275,7 @@ local UI = {
     Top = nil, 
     EmoteWalkButton = nil,
     Search = nil, 
-    Favorite = nil, 
-    SpeedEmote = nil, 
-    SpeedBox = nil, 
+    Favorite = nil,  
     Changepage = nil,
     Reload = nil,
     Background = nil
@@ -312,8 +306,6 @@ local HUD = {
         Under = UDim2.new(0.129999995, 0, 1, 0),
         EmoteWalkButton = UDim2.new(0.889999986, 0, -0.107500002, 0),
         Favorite = UDim2.new(0.0189999994, 0, -0.108000003, 0),
-        SpeedEmote = UDim2.new(0.888999999, 0, 0, 0),
-        SpeedBox = UDim2.new(0.0189999398, 0, -0.000499992399, 0),
         Changepage = UDim2.new(0.019, 0, 1.021, 0),
         Reload = UDim2.new(0.888999999, 0, 1.02100003, 0),
         ["Left Arrow"] = UDim2.new(0, 0, 0.028, 0),
@@ -328,8 +320,6 @@ local HUD = {
         Under = UDim2.new(0.737500012, 0, 0.132499993, 0),
         EmoteWalkButton = UDim2.new(0.0874999985, 0, 0.0874999985, 0),
         Favorite = UDim2.new(0.0874999985, 0, 0.0874999985, 0),
-        SpeedEmote = UDim2.new(0.0874999985, 0, 0.0874999985, 0),
-        SpeedBox = UDim2.new(0.0874999985, 0, 0.0874999985, 0),
         Changepage = UDim2.new(0.087, 0, 0.087, 0),
         Reload = UDim2.new(0.0869999975, 0, 0.0869999975, 0),
         ["Left Arrow"] = UDim2.new(0.169491529, 0, 0.94339627, 0),
@@ -359,8 +349,6 @@ function getAllHUDObjects()
     if UI.Under then elems["Under"] = UI.Under end
     if UI.EmoteWalkButton then elems["EmoteWalkButton"] = UI.EmoteWalkButton end
     if UI.Favorite then elems["Favorite"] = UI.Favorite end
-    if UI.SpeedEmote then elems["SpeedEmote"] = UI.SpeedEmote end
-    if UI.SpeedBox then elems["SpeedBox"] = UI.SpeedBox end
     if UI.Changepage then elems["Changepage"] = UI.Changepage end
     if UI.Reload then elems["Reload"] = UI.Reload end
     if UI.CustomFrames then
@@ -904,8 +892,6 @@ function ApplyUIVisibility()
         if UI.Favorite then UI.Favorite.Visible = Config.FavVisible end
         if UI.Changepage then UI.Changepage.Visible = Config.ModeVisible end
         if UI.EmoteWalkButton then UI.EmoteWalkButton.Visible = Config.FreezeVisible end
-        if UI.SpeedEmote then UI.SpeedEmote.Visible = Config.SpeedVisible end
-        updateSpeedBoxVisibility()
         if UI.Under then UI.Under.Visible = Config.NavVisible end
         if UI.Reload then 
             if State.hudEditorActive then
@@ -1478,19 +1464,9 @@ function updateGUIColors()
         end
     end
 
-    if UI.SpeedEmote then
-        UI.SpeedEmote.BackgroundColor3 = bgColor
-        UI.SpeedEmote.BackgroundTransparency = bgTransparency
-    end
-
      if UI.Changepage then
         UI.Changepage.BackgroundColor3 = bgColor
         UI.Changepage.BackgroundTransparency = bgTransparency
-    end
-
-    if UI.SpeedBox then
-        UI.SpeedBox.BackgroundColor3 = bgColor
-        UI.SpeedBox.BackgroundTransparency = bgTransparency
     end
 
     if UI.Favorite then
@@ -2108,10 +2084,9 @@ function ApplyTheme(themeData)
                 UI.EmoteWalkButton.ImageColor3 = getIconColor("Walk") 
                 ApplyFreezeButtonVisual()
             end
-            if UI.SpeedEmote then UI.SpeedEmote.Image = GetAsset(State.EmoteTheme.Icons.Speed); UI.SpeedEmote.ImageColor3 = getIconColor("Speed") end
             if UI.Changepage then UI.Changepage.Image = GetAsset(State.EmoteTheme.Icons.Page); UI.Changepage.ImageColor3 = getIconColor("Page") end
             if UI.Reload then UI.Reload.Image = GetAsset(State.EmoteTheme.Icons.Reload); UI.Reload.ImageColor3 = getIconColor("Reload") end
-            
+        
             if UI.Favorite then ApplyFavoriteButtonVisual() end 
 
             
@@ -3892,14 +3867,6 @@ function disconnectAllConnections()
     end
 end
 
-function loadSpeedEmoteConfig()
-    State.speedEmoteEnabled = Config.EmoteSpeedEnabled
-    if UI.SpeedBox then
-        UI.SpeedBox.Text = tostring(Config.EmoteSpeed)
-        updateSpeedBoxVisibility()
-    end
-end
-
 function extractAssetId(imageUrl)
     local assetId = string.match(imageUrl, "Asset&id=(%d+)")
     return assetId
@@ -4875,15 +4842,12 @@ function createGUIElements()
     if emotesWheel:FindFirstChild("Favorite") then
         emotesWheel.Favorite:Destroy()
     end
-    if emotesWheel:FindFirstChild("SpeedEmote") then
-        emotesWheel.SpeedEmote:Destroy()
+    
     end
     if emotesWheel:FindFirstChild("Changepage") then
         emotesWheel.Changepage:Destroy()
     end
-    if emotesWheel:FindFirstChild("SpeedBox") then
-        emotesWheel.SpeedBox:Destroy()
-    end
+    
     if emotesWheel:FindFirstChild("Reload") then
         emotesWheel.Reload:Destroy()
     end
@@ -4911,7 +4875,6 @@ function createGUIElements()
     UI.Search = Instance.new("TextBox")
     UI.Favorite = Instance.new("ImageButton")
     local UICorner2 = Instance.new("UICorner")
-    UI.SpeedBox = Instance.new("TextBox")
     local UICorner_4 = Instance.new("UICorner")
     UI.SpeedEmote = Instance.new("ImageButton")
     local UICorner_2 = Instance.new("UICorner")
