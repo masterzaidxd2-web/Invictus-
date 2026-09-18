@@ -1309,8 +1309,6 @@ rainbowNameRemote = rainbowNameRemote and rainbowNameRemote:FindFirstChild("SetR
 -- 2. أزرار الواجهة (باستخدام مكتبة Rayfield)
 -- يجب أن يكون المتغير Window معرفاً مسبقاً في سكربتك
 -- ===============================================
-local NameTab = Window:CreateTab("Name", 4483345998)
-
 NameTab:CreateToggle({ 
     Name = "Enable Effects", 
     CurrentValue = false, 
