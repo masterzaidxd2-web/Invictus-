@@ -108,7 +108,7 @@ Config = {
     FavVisible = true,
     ModeVisible = true,
     FreezeVisible = true,
-    SpeedVisible = true,
+    SpeedVisible = false,
     NavVisible = true,
     EmoteSpeed = 1,
     EmoteSpeedEnabled = false,
@@ -124,7 +124,7 @@ Config = {
     CustomFrames = {},
     AutoReloadEnabled = false,
     LastPlayedAnimationData = nil,
-    DiscordVisible = true
+    DiscordVisible = false
 }
 
 HUD = {
