@@ -1341,7 +1341,6 @@ local NameSettings = {
 -- ==========================================
 -- واجهة المستخدم (Rayfield - Name Tab)
 -- ==========================================
-local NameTab = Window:CreateTab("Name", 4483362458) -- يمكنك تغيير أيقونة التاب
 
 -- 1. قسم الـ Role / الاسم
 local RoleSection = NameTab:CreateSection("إعدادات الـ Role / الاسم")
