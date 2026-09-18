@@ -1971,6 +1971,8 @@ RunService.Heartbeat:Connect(function(dt)
       end
   end
 
+end) -- هذا السطر ضروري لإغلاق RunService.Heartbeat
+
 pcall(function()
   Rayfield:LoadConfiguration()
 end)
