@@ -1169,50 +1169,55 @@ PlayerTab:CreateToggle({
 })
 
 local AdvancedAntiRagdollConn = nil
+local AntiRagdollDescendantConn = nil
 
 PlayerTab:CreateToggle({ 
     Name = "🚫 Advanced Anti-Ragdoll & Anti-Fall", 
     CurrentValue = false, 
     Flag = "AntiRagdollToggle", 
     Callback = function(Value) 
-        AntiFallEnabled = Value -- إبقاء المتغير متصلاً بنظام الـ Anti-Grab الخاص بك
+        AntiFallEnabled = Value
+        
+        -- تنظيف الاتصالات القديمة عند تغيير زر التفعيل
+        if AdvancedAntiRagdollConn then AdvancedAntiRagdollConn:Disconnect(); AdvancedAntiRagdollConn = nil end
+        if AntiRagdollDescendantConn then AntiRagdollDescendantConn:Disconnect(); AntiRagdollDescendantConn = nil end
         
         if Value then
-            -- تفعيل الحماية المستمرة (تمنع الخصم من تطبيق الـ Ragdoll عليك بشكل متكرر)
-            if AdvancedAntiRagdollConn then AdvancedAntiRagdollConn:Disconnect() end
+            local char = lp.Character or lp.CharacterAdded:Wait()
+            local hum = char and char:FindFirstChildOfClass("Humanoid")
             
-            AdvancedAntiRagdollConn = RunService.Stepped:Connect(function()
-                local char = lp.Character
-                local hum = char and char:FindFirstChildOfClass("Humanoid")
-                
-                if char and hum and hum.Health > 0 then
-                    -- 1. منع حالة السقوط والتعثر
-                    pcall(function()
-                        hum:SetStateEnabled(Enum.HumanoidStateType.FallingDown, false)
-                        hum:SetStateEnabled(Enum.HumanoidStateType.Ragdoll, false)
-                        if hum:GetState() == Enum.HumanoidStateType.Ragdoll or hum:GetState() == Enum.HumanoidStateType.FallingDown then
+            if char and hum then
+                -- 1. التعافي الذكي عند تغير الحالة فقط بدلاً من الإجبار المستمر في كل إطار
+                AdvancedAntiRagdollConn = hum.StateChanged:Connect(function(_, newState)
+                    if newState == Enum.HumanoidStateType.Ragdoll or newState == Enum.HumanoidStateType.FallingDown then
+                        -- تأخير مجهري (0.05 ثانية) يسمح للعبة بمعالجة الضربة وإنهاء أنميشن اللكمة ثم إهوض الشخصية فوراً
+                        task.wait(0.05)
+                        pcall(function()
                             hum:ChangeState(Enum.HumanoidStateType.GettingUp)
-                        end
-                        hum.PlatformStand = false 
-                    end)
-                    
-                    -- 2. إرجاع المفاصل الأصلية وتدمير قيود السقوط التي يضيفها الخصم/السيرفر
-                    for _, obj in ipairs(char:GetDescendants()) do
-                        if obj:IsA("Motor6D") then
-                            if not obj.Enabled then obj.Enabled = true end
-                        elseif obj:IsA("BallSocketConstraint") or obj:IsA("HingeConstraint") then
-                            obj:Destroy() -- تدمير القيود الفيزيائية الوهمية
-                        end
+                            hum.PlatformStand = false
+                        end)
+                    end
+                end)
+                
+                -- 2. حماية المفاصل وقيود السقوط فور إضافتها (Event-Based) بدلاً من البحث المستمر
+                AntiRagdollDescendantConn = char.DescendantAdded:Connect(function(obj)
+                    if obj:IsA("BallSocketConstraint") or obj:IsA("HingeConstraint") then
+                        task.defer(function() obj:Destroy() end)
+                    elseif obj:IsA("Motor6D") then
+                        task.defer(function() if not obj.Enabled then obj.Enabled = true end end)
+                    end
+                end)
+                
+                -- تنظيف أولي سريع للقيود الحالية عند لحظة التفعيل
+                for _, obj in ipairs(char:GetDescendants()) do
+                    if obj:IsA("BallSocketConstraint") or obj:IsA("HingeConstraint") then
+                        obj:Destroy()
+                    elseif obj:IsA("Motor6D") and not obj.Enabled then
+                        obj.Enabled = true
                     end
                 end
-            end)
-        else
-            -- إيقاف الحماية المستمرة
-            if AdvancedAntiRagdollConn then
-                AdvancedAntiRagdollConn:Disconnect()
-                AdvancedAntiRagdollConn = nil
             end
-            
+        else
             -- إرجاع الحالات لطبيعتها عند الإطفاء
             local char = lp.Character
             local hum = char and char:FindFirstChildOfClass("Humanoid")
@@ -1225,6 +1230,7 @@ PlayerTab:CreateToggle({
         end
     end 
 })
+
 
 local VoidAntiFallConn = nil
 local lastSafeCFrame = CFrame.new(0, 10, 0)
