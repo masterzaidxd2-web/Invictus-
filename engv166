@@ -241,7 +241,7 @@ local function setupAntiGrab(char)
        end)
    end
    
-   -- وظيفة مساعدة لتسجيل الهدف وتفعيل الرسباون
+      -- وظيفة مساعدة لتسجيل الهدف وتفعيل الرسباون
    local function triggerRespawn(attackerName, reason)
        if attackerName and Players:FindFirstChild(attackerName) then
            if ChosenTargetName1 == "" or ChosenTargetName1 == attackerName then
@@ -255,6 +255,12 @@ local function setupAntiGrab(char)
                pcall(function() TargetDropdown3:Set({attackerName}) end)
            end
            SpecificTargetEnabled = true
+           
+           -- [ التعديل الجديد: تحديث زر المراقبة باسم الممسك وتلوينه بالأحمر ]
+           if getgenv().UpdateSpyTarget then
+               getgenv().UpdateSpyTarget(attackerName)
+           end
+           
            pcall(function()
                Rayfield:Notify({
                    Title = "Revenge System 🎯",
@@ -265,6 +271,7 @@ local function setupAntiGrab(char)
        end
        executeAutoReset(reason)
    end
+
 
    -- 1. فحص العناصر المضافة (مؤثرات الإمساك فقط)
    char.DescendantAdded:Connect(function(child)
