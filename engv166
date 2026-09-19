@@ -715,6 +715,108 @@ UserInputService.JumpRequest:Connect(function()
       if humanoid then humanoid:ChangeState(Enum.HumanoidStateType.Jumping) end
   end
 end)
+-- ===============================================
+-- زر المراقبة والانتقال المطول المدمج مع نظام الانتقام
+-- ===============================================
+local SpyGui = Instance.new("ScreenGui")
+SpyGui.Name = "FloatingSpyUI"
+SpyGui.ResetOnSpawn = false
+SpyGui.IgnoreGuiInset = true
+
+local successSpyGui = pcall(function() SpyGui.Parent = CoreGui end)
+if not successSpyGui then SpyGui.Parent = lp:WaitForChild("PlayerGui") end
+
+-- متغير لحفظ اسم الهدف الحالي لزر المراقبة
+getgenv().CurrentSpyTarget = "" 
+
+local SpyBtn = Instance.new("TextButton")
+SpyBtn.Size = UDim2.new(0, 150, 0, 45)
+SpyBtn.AnchorPoint = Vector2.new(1, 0)
+SpyBtn.Position = UDim2.new(1, -360, 0, 5) -- مكانه بجانب الأزرار العائمة الأخرى
+SpyBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+SpyBtn.Text = "🕵️ Target: None"
+SpyBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+SpyBtn.Font = Enum.Font.SourceSansBold
+SpyBtn.TextSize = 16
+SpyBtn.Active = true
+SpyBtn.Draggable = true -- قابل للسحب لتغيير مكانه
+SpyBtn.Parent = SpyGui
+
+local SpyUICorner = Instance.new("UICorner")
+SpyUICorner.CornerRadius = UDim.new(0, 8)
+SpyUICorner.Parent = SpyBtn
+
+local savedSpyCFrame = nil
+local currentSpyPlatform = nil
+local isSpyHolding = false
+
+-- 1. دالة الضغط المطول (الذهاب للاعب وإنشاء الأرضية)
+SpyBtn.MouseButton1Down:Connect(function()
+    if isSpyHolding or getgenv().CurrentSpyTarget == "" then return end
+    
+    local targetPlayer = Players:FindFirstChild(getgenv().CurrentSpyTarget)
+    
+    if not targetPlayer or not targetPlayer.Character or not targetPlayer.Character:FindFirstChild("HumanoidRootPart") then
+        return -- تجاهل الأمر إذا كان اللاعب غير موجود
+    end
+    
+    local character = lp.Character
+    local hrp = character and character:FindFirstChild("HumanoidRootPart")
+    
+    if hrp then
+        isSpyHolding = true
+        savedSpyCFrame = hrp.CFrame -- حفظ موقعك الأصلي
+        
+        local targetCFrame = targetPlayer.Character.HumanoidRootPart.CFrame
+        
+        -- إنشاء المنصة الديناميكية
+        local platform = Instance.new("Part")
+        platform.Size = Vector3.new(15, 1, 15)
+        platform.CFrame = targetCFrame * CFrame.new(0, -3.5, 0)
+        platform.Anchored = true
+        platform.CanCollide = true
+        platform.Transparency = 0.5
+        platform.Material = Enum.Material.ForceField
+        platform.Color = Color3.fromRGB(0, 255, 150)
+        platform.Name = "SpyPlatform"
+        platform.Parent = workspace
+        
+        currentSpyPlatform = platform
+        
+        -- نقل شخصيتك إلى اللاعب الهدف
+        hrp.CFrame = targetCFrame
+    end
+end)
+
+-- 2. دالة إنهاء الضغط (العودة وحذف المنصة)
+local function returnFromSpy()
+    if not isSpyHolding then return end
+    isSpyHolding = false
+    
+    local character = lp.Character
+    local hrp = character and character:FindFirstChild("HumanoidRootPart")
+    
+    if hrp and savedSpyCFrame then
+        hrp.CFrame = savedSpyCFrame
+    end
+    
+    if currentSpyPlatform then
+        currentSpyPlatform:Destroy()
+        currentSpyPlatform = nil
+    end
+    
+    savedSpyCFrame = nil
+end
+
+SpyBtn.MouseButton1Up:Connect(returnFromSpy)
+SpyBtn.MouseLeave:Connect(returnFromSpy)
+
+-- دالة لتحديث الزر من خارج السكربت (سيتم استدعاؤها من نظام الهروب)
+getgenv().UpdateSpyTarget = function(name)
+    getgenv().CurrentSpyTarget = name
+    SpyBtn.Text = "🕵️ " .. name
+    SpyBtn.TextColor3 = Color3.fromRGB(255, 50, 50) -- تحويل اللون للأحمر عند التحديد التلقائي
+end
 
 -- ===============================================
 -- [ 4 ] بناء واجهة Rayfield
