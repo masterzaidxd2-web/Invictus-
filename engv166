@@ -1265,6 +1265,135 @@ PlayerTab:CreateToggle({
         end
     end 
 })
+-------------------------------------------------------------------------
+-- [ Anti-Walk Fling System ] --
+-------------------------------------------------------------------------
+local walkflinging = false
+local walkFlingPower = 90000000 
+
+local function getRoot(char)
+    return char and (char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso") or char:FindFirstChild("UpperTorso"))
+end
+
+local function startWalkFling()
+    if walkflinging then return end
+    walkflinging = true
+    
+    pcall(function()
+        local char = game:GetService("Players").LocalPlayer.Character
+        local hum = char and char:FindFirstChildOfClass("Humanoid")
+        
+        -- إيقاف السكربت تلقائياً عند موت الشخصية لتجنب الأخطاء
+        if hum then
+            local deathConn
+            deathConn = hum.Died:Connect(function()
+                walkflinging = false
+                if deathConn then deathConn:Disconnect() end
+            end)
+        end
+
+        task.spawn(function()
+            local movel = 0.1
+            while walkflinging do
+                game:GetService("RunService").Heartbeat:Wait()
+                
+                pcall(function()
+                    local character = game:GetService("Players").LocalPlayer.Character
+                    local root = getRoot(character)
+                    
+                    if character and character.Parent and root and root.Parent then
+                        local vel = root.Velocity
+                        -- تطبيق قوة الطرد
+                        root.Velocity = vel * walkFlingPower + Vector3.new(0, walkFlingPower, 0)
+
+                        game:GetService("RunService").RenderStepped:Wait()
+                        if character and character.Parent and root and root.Parent then
+                            root.Velocity = vel
+                        end
+
+                        game:GetService("RunService").Stepped:Wait()
+                        if character and character.Parent and root and root.Parent then
+                            -- إضافة حركة اهتزازية خفيفة لضمان التصادم
+                            root.Velocity = vel + Vector3.new(0, movel, 0)
+                            movel = movel * -1
+                        end
+                    end
+                end)
+            end
+        end)
+    end)
+end
+
+local function stopWalkFling()
+    walkflinging = false
+end
+
+-- زر التشغيل والإيقاف في واجهة Rayfield
+PlayerTab:CreateToggle({
+    Name = "Anti-Walk Fling",
+    CurrentValue = false,
+    Flag = "AntiWalkFlingToggle", 
+    Callback = function(Value)
+        if Value then
+            startWalkFling()
+        else
+            stopWalkFling()
+        end
+    end,
+})
+-------------------------------------------------------------------------
+-- [ Anti-Fling System ] --
+-------------------------------------------------------------------------
+local antiflingConnection = nil
+
+local function startAntiFling()
+    pcall(function()
+        -- التأكد من عدم وجود اتصال سابق لتجنب التكرار واللاق
+        if antiflingConnection then antiflingConnection:Disconnect() end
+        
+        antiflingConnection = game:GetService("RunService").Stepped:Connect(function()
+            pcall(function()
+                local localPlayer = game:GetService("Players").LocalPlayer
+                for _, plr in pairs(game:GetService("Players"):GetPlayers()) do
+                    -- استهداف اللاعبين الآخرين فقط وإلغاء التصادم معهم
+                    if plr ~= localPlayer and plr.Character then
+                        for _, part in pairs(plr.Character:GetDescendants()) do
+                            if part:IsA("BasePart") then
+                                part.CanCollide = false
+                            end
+                        end
+                    end
+                end
+            end)
+        end)
+    end)
+end
+
+local function stopAntiFling()
+    pcall(function()
+        if antiflingConnection then
+            antiflingConnection:Disconnect()
+            antiflingConnection = nil
+        end
+    end)
+end
+
+-- زر التشغيل والإيقاف في واجهة Rayfield
+PlayerTab:CreateToggle({
+    Name = "Anti-Fling",
+    CurrentValue = false,
+    Flag = "AntiFlingToggle", 
+    Callback = function(Value)
+        if Value then
+            startAntiFling()
+        else
+            stopAntiFling()
+        end
+    end,
+})
+-------------------------------------------------------------------------
+
+-------------------------------------------------------------------------
 
 -- Waypoints
 WaypointsTab:CreateSection("Saved Waypoints Management")
