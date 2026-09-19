@@ -1706,6 +1706,58 @@ OthersTab:CreateButton({
 })
 
 OthersTab:CreateButton({
+    Name = "⏭️ Server Hop (Join Different Server)",
+    Callback = function()
+        local HttpService = game:GetService("HttpService")
+        local TeleportService = game:GetService("TeleportService")
+        local req = (syn and syn.request) or (http and http.request) or http_request or (fluxus and fluxus.request) or request
+        
+        if not req then
+            Rayfield:Notify({Title = "Error", Content = "المشغل الخاص بك لا يدعم طلبات HTTP.", Duration = 3})
+            return
+        end
+
+        Rayfield:Notify({Title = "Server Hop", Content = "جاري البحث عن سيرفر جديد...", Duration = 3})
+
+        task.spawn(function()
+            local success, err = pcall(function()
+                local url = "https://games.roblox.com/v1/games/" .. game.PlaceId .. "/servers/Public?sortOrder=Desc&excludeFullGames=true&limit=100"
+                local response = req({Url = url, Method = "GET"})
+                
+                if response and response.StatusCode == 200 then
+                    local data = HttpService:JSONDecode(response.Body)
+                    if data and data.data then
+                        local availableServers = {}
+                        
+                        -- فلترة السيرفرات الممتلئة أو السيرفر الحالي
+                        for _, server in ipairs(data.data) do
+                            if type(server) == "table" and server.id ~= game.JobId and server.playing < server.maxPlayers then
+                                table.insert(availableServers, server.id)
+                            end
+                        end
+                        
+                        if #availableServers > 0 then
+                            -- اختيار سيرفر عشوائي من القائمة لتجنب دخول جميع اللاعبين لنفس السيرفر
+                            local targetServer = availableServers[math.random(1, #availableServers)]
+                            Rayfield:Notify({Title = "Teleporting", Content = "تم إيجاد سيرفر! جاري الانتقال...", Duration = 3})
+                            TeleportService:TeleportToPlaceInstance(game.PlaceId, targetServer, game.Players.LocalPlayer)
+                        else
+                            Rayfield:Notify({Title = "Server Hop", Content = "لا توجد سيرفرات أخرى متاحة حالياً.", Duration = 3})
+                        end
+                    end
+                else
+                    Rayfield:Notify({Title = "Error", Content = "فشل في جلب بيانات السيرفرات.", Duration = 3})
+                end
+            end)
+            
+            if not success then
+                warn("Server Hop Error: ", err)
+            end
+        end)
+    end
+})
+
+OthersTab:CreateButton({
     Name = "🪄 Give Teleport Tool",
     Callback = function()
         local mouse = lp:GetMouse()
