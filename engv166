@@ -1163,17 +1163,16 @@ PlayerTab:CreateToggle({
     end 
 })
 
-local AntiRagdollConnection -- متغير لحفظ الاتصال لتجنب تكرار اللوب
+local AntiRagdollConnection
 
 PlayerTab:CreateToggle({
     Name = "🚫 Anti-Ragdoll (Advanced)",
     CurrentValue = false,
     Flag = "AntiRagdollToggle",
     Callback = function(Value)
-        AntiFallEnabled = Value -- تم الإبقاء على هذا المتغير لضمان عدم تعطل أنظمة حماية الإمساك والطيران المرتبطة به
+        AntiFallEnabled = Value 
         
         if Value then
-            -- تفعيل الكود الخاص بك عند تشغيل الزر
             if not AntiRagdollConnection then
                 AntiRagdollConnection = game:GetService("RunService").Heartbeat:Connect(function()
                     local player = game:GetService("Players").LocalPlayer
@@ -1181,23 +1180,20 @@ PlayerTab:CreateToggle({
                     if ch then
                         local hu = ch:FindFirstChildOfClass("Humanoid")
                         if hu then
-                            -- إيقاف حالات السقوط والفيزياء الخاصة بالـ Ragdoll
+                            -- إيقاف حالات التعثر فقط (بدون التدخل في فيزياء الإمساك)
                             for _, st in ipairs({
                                 Enum.HumanoidStateType.Ragdoll, 
-                                Enum.HumanoidStateType.Physics, 
-                                Enum.HumanoidStateType.FallingDown, 
-                                Enum.HumanoidStateType.PlatformStanding
+                                Enum.HumanoidStateType.FallingDown
                             }) do
                                 pcall(function() hu:SetStateEnabled(st, false) end)
                             end
-                            hu.PlatformStand = false
                         end
                         
-                        -- إزالة القيود (Constraints) وتفعيل المحركات (Motor6D)
+                        -- إزالة القيود الخاصة بالتعثر فقط
                         for _, o in pairs(ch:GetDescendants()) do
                             if (o:IsA("BaseConstraint") or o:IsA("Attachment")) and o.Name:lower():find("ragdoll") then 
                                 o:Destroy()
-                            elseif o:IsA("Motor6D") then 
+                            elseif o:IsA("Motor6D") and not o.Enabled then 
                                 o.Enabled = true 
                             end
                         end
@@ -1205,13 +1201,11 @@ PlayerTab:CreateToggle({
                 end)
             end
         else
-            -- إيقاف الكود عند إطفاء الزر
             if AntiRagdollConnection then
                 AntiRagdollConnection:Disconnect()
                 AntiRagdollConnection = nil
             end
             
-            -- إرجاع الحالات لطبيعتها حتى لا تعلق الشخصية
             local player = game:GetService("Players").LocalPlayer
             local ch = player.Character
             if ch then
@@ -1219,9 +1213,7 @@ PlayerTab:CreateToggle({
                 if hu then
                     for _, st in ipairs({
                         Enum.HumanoidStateType.Ragdoll, 
-                        Enum.HumanoidStateType.Physics, 
-                        Enum.HumanoidStateType.FallingDown, 
-                        Enum.HumanoidStateType.PlatformStanding
+                        Enum.HumanoidStateType.FallingDown
                     }) do
                         pcall(function() hu:SetStateEnabled(st, true) end)
                     end
