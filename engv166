@@ -1163,67 +1163,72 @@ PlayerTab:CreateToggle({
     end 
 })
 
-local AdvancedAntiRagdollConn = nil
-local AntiRagdollDescendantConn = nil
+local AntiRagdollConnection -- متغير لحفظ الاتصال لتجنب تكرار اللوب
 
-PlayerTab:CreateToggle({ 
-    Name = "🚫 Advanced Anti-Ragdoll & Anti-Fall", 
-    CurrentValue = false, 
-    Flag = "AntiRagdollToggle", 
-    Callback = function(Value) 
-        AntiFallEnabled = Value
-        
-        -- تنظيف الاتصالات القديمة عند تغيير زر التفعيل
-        if AdvancedAntiRagdollConn then AdvancedAntiRagdollConn:Disconnect(); AdvancedAntiRagdollConn = nil end
-        if AntiRagdollDescendantConn then AntiRagdollDescendantConn:Disconnect(); AntiRagdollDescendantConn = nil end
+PlayerTab:CreateToggle({
+    Name = "🚫 Anti-Ragdoll (Advanced)",
+    CurrentValue = false,
+    Flag = "AntiRagdollToggle",
+    Callback = function(Value)
+        AntiFallEnabled = Value -- تم الإبقاء على هذا المتغير لضمان عدم تعطل أنظمة حماية الإمساك والطيران المرتبطة به
         
         if Value then
-            local char = lp.Character or lp.CharacterAdded:Wait()
-            local hum = char and char:FindFirstChildOfClass("Humanoid")
+            -- تفعيل الكود الخاص بك عند تشغيل الزر
+            if not AntiRagdollConnection then
+                AntiRagdollConnection = game:GetService("RunService").Heartbeat:Connect(function()
+                    local player = game:GetService("Players").LocalPlayer
+                    local ch = player.Character
+                    if ch then
+                        local hu = ch:FindFirstChildOfClass("Humanoid")
+                        if hu then
+                            -- إيقاف حالات السقوط والفيزياء الخاصة بالـ Ragdoll
+                            for _, st in ipairs({
+                                Enum.HumanoidStateType.Ragdoll, 
+                                Enum.HumanoidStateType.Physics, 
+                                Enum.HumanoidStateType.FallingDown, 
+                                Enum.HumanoidStateType.PlatformStanding
+                            }) do
+                                pcall(function() hu:SetStateEnabled(st, false) end)
+                            end
+                            hu.PlatformStand = false
+                        end
+                        
+                        -- إزالة القيود (Constraints) وتفعيل المحركات (Motor6D)
+                        for _, o in pairs(ch:GetDescendants()) do
+                            if (o:IsA("BaseConstraint") or o:IsA("Attachment")) and o.Name:lower():find("ragdoll") then 
+                                o:Destroy()
+                            elseif o:IsA("Motor6D") then 
+                                o.Enabled = true 
+                            end
+                        end
+                    end
+                end)
+            end
+        else
+            -- إيقاف الكود عند إطفاء الزر
+            if AntiRagdollConnection then
+                AntiRagdollConnection:Disconnect()
+                AntiRagdollConnection = nil
+            end
             
-            if char and hum then
-                -- 1. التعافي الذكي عند تغير الحالة فقط بدلاً من الإجبار المستمر في كل إطار
-                AdvancedAntiRagdollConn = hum.StateChanged:Connect(function(_, newState)
-                    if newState == Enum.HumanoidStateType.Ragdoll or newState == Enum.HumanoidStateType.FallingDown then
-                        -- تأخير مجهري (0.05 ثانية) يسمح للعبة بمعالجة الضربة وإنهاء أنميشن اللكمة ثم إهوض الشخصية فوراً
-                        task.wait(0.05)
-                        pcall(function()
-                            hum:ChangeState(Enum.HumanoidStateType.GettingUp)
-                            hum.PlatformStand = false
-                        end)
-                    end
-                end)
-                
-                -- 2. حماية المفاصل وقيود السقوط فور إضافتها (Event-Based) بدلاً من البحث المستمر
-                AntiRagdollDescendantConn = char.DescendantAdded:Connect(function(obj)
-                    if obj:IsA("BallSocketConstraint") or obj:IsA("HingeConstraint") then
-                        task.defer(function() obj:Destroy() end)
-                    elseif obj:IsA("Motor6D") then
-                        task.defer(function() if not obj.Enabled then obj.Enabled = true end end)
-                    end
-                end)
-                
-                -- تنظيف أولي سريع للقيود الحالية عند لحظة التفعيل
-                for _, obj in ipairs(char:GetDescendants()) do
-                    if obj:IsA("BallSocketConstraint") or obj:IsA("HingeConstraint") then
-                        obj:Destroy()
-                    elseif obj:IsA("Motor6D") and not obj.Enabled then
-                        obj.Enabled = true
+            -- إرجاع الحالات لطبيعتها حتى لا تعلق الشخصية
+            local player = game:GetService("Players").LocalPlayer
+            local ch = player.Character
+            if ch then
+                local hu = ch:FindFirstChildOfClass("Humanoid")
+                if hu then
+                    for _, st in ipairs({
+                        Enum.HumanoidStateType.Ragdoll, 
+                        Enum.HumanoidStateType.Physics, 
+                        Enum.HumanoidStateType.FallingDown, 
+                        Enum.HumanoidStateType.PlatformStanding
+                    }) do
+                        pcall(function() hu:SetStateEnabled(st, true) end)
                     end
                 end
             end
-        else
-            -- إرجاع الحالات لطبيعتها عند الإطفاء
-            local char = lp.Character
-            local hum = char and char:FindFirstChildOfClass("Humanoid")
-            if hum then
-                pcall(function()
-                    hum:SetStateEnabled(Enum.HumanoidStateType.FallingDown, true)
-                    hum:SetStateEnabled(Enum.HumanoidStateType.Ragdoll, true)
-                end)
-            end
         end
-    end 
+    end,
 })
 
 
