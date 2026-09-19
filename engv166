@@ -744,8 +744,8 @@ pcall(function()
 end)
 
 local Window = Rayfield:CreateWindow({
- Name = "Invictus",
- LoadingTitle = "Aura, Grab, ESP & More",
+ Name = "Invictus v22",
+ LoadingTitle = "Aura, Grab, ESP, avatar, animation & More",
  LoadingSubtitle = "by Invictus",
  Theme = "Default",
  DisableRayfieldPrompts = false,
