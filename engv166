@@ -755,7 +755,7 @@ local Window = Rayfield:CreateWindow({
     FolderName = "KHURAFI_Data",
     FileName = "AuraDeltaSettings"
  },
- KeySystem = true,
+ KeySystem = false,
  KeySettings = {
     Title = "Key System",
     Subtitle = "أدخل المفتاح لتشغيل السكربت",
