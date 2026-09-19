@@ -1297,28 +1297,31 @@ local function startWalkFling()
             while walkflinging do
                 game:GetService("RunService").Heartbeat:Wait()
                 
-                pcall(function()
-                    local character = game:GetService("Players").LocalPlayer.Character
-                    local root = getRoot(character)
-                    
-                    if character and character.Parent and root and root.Parent then
-                        local vel = root.Velocity
-                        -- تطبيق قوة الطرد
-                        root.Velocity = vel * walkFlingPower + Vector3.new(0, walkFlingPower, 0)
-
-                        game:GetService("RunService").RenderStepped:Wait()
+                -- التحقق من حالة الفلينغ لمنع التعارض
+                if not getgenv().IsFlinging then
+                    pcall(function()
+                        local character = game:GetService("Players").LocalPlayer.Character
+                        local root = getRoot(character)
+                        
                         if character and character.Parent and root and root.Parent then
-                            root.Velocity = vel
-                        end
+                            local vel = root.Velocity
+                            -- تطبيق قوة الطرد
+                            root.Velocity = vel * walkFlingPower + Vector3.new(0, walkFlingPower, 0)
 
-                        game:GetService("RunService").Stepped:Wait()
-                        if character and character.Parent and root and root.Parent then
-                            -- إضافة حركة اهتزازية خفيفة لضمان التصادم
-                            root.Velocity = vel + Vector3.new(0, movel, 0)
-                            movel = movel * -1
+                            game:GetService("RunService").RenderStepped:Wait()
+                            if character and character.Parent and root and root.Parent then
+                                root.Velocity = vel
+                            end
+
+                            game:GetService("RunService").Stepped:Wait()
+                            if character and character.Parent and root and root.Parent then
+                                -- إضافة حركة اهتزازية خفيفة لضمان التصادم
+                                root.Velocity = vel + Vector3.new(0, movel, 0)
+                                movel = movel * -1
+                            end
                         end
-                    end
-                end)
+                    end)
+                end
             end
         end)
     end)
