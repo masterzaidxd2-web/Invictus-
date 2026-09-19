@@ -4,7 +4,7 @@ task.wait(0.5)
 pcall(function()
   game:GetService("StarterGui"):SetCore("SendNotification", {
       Title = "System",
-      Text = "Loading Invictus V14 UI...",
+      Text = "Loading Invictus V22 UI...",
       Duration = 3
   })
 end)
