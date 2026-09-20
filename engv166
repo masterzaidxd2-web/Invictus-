@@ -514,6 +514,14 @@ end
 
 FloatBtn.MouseButton1Click:Connect(function()
   IsInvisible = not IsInvisible
+  
+  -- إيقاظ محرك الفيزياء في الحالتين (عند التفعيل والإلغاء) لضمان استجابة السيرفر فوراً
+  if lp.Character and lp.Character:FindFirstChild("HumanoidRootPart") then
+      local root = lp.Character.HumanoidRootPart
+      root.CFrame = root.CFrame + Vector3.new(0, 0.05, 0)
+      root.AssemblyLinearVelocity = Vector3.new(0, 0.1, 0)
+  end
+
   if IsInvisible then
       FloatBtn.BackgroundColor3 = Color3.fromRGB(60, 220, 60); FloatBtn.Text = "Invis: ✅"
       updateInvisParts()
@@ -523,6 +531,7 @@ FloatBtn.MouseButton1Click:Connect(function()
       for _, item in pairs(invisParts) do if item.obj and item.obj.Parent then item.obj.Transparency = item.origTrans end end
   end
 end)
+
 
 local IsHoldingMagnet = false
 local MagnetGui = Instance.new("ScreenGui"); MagnetGui.Name = "FloatingMagnetUI"; MagnetGui.ResetOnSpawn = false
