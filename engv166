@@ -1275,17 +1275,29 @@ PlayerTab:CreateToggle({
     end 
 })
 
+
 -------------------------------------------------------------------------
--- [ Anti-Walk Fling System - الإصدار المحسن ] --
+-- [ Anti-Walk Fling System - الإصدار النهائي والآمن ] --
 -------------------------------------------------------------------------
-local walkflinging = false
+local RunService = game:GetService("RunService")
+local Players = game:GetService("Players")
+local lp = Players.LocalPlayer
+
+local walkFlingConnection = nil
 local antiWalkFlingToggleState = false
-local walkFlingPower = 90000000 
+-- تقليل الرقم لتجنب تعطل محرك الفيزياء (Physics Crash) عند الرسباون
+local walkFlingPower = 50000 
 
 local function stopWalkFling()
-    walkflinging = false
-    if lp.Character then
-        local root = lp.Character:FindFirstChild("HumanoidRootPart") or lp.Character:FindFirstChild("Torso")
+    -- تدمير حلقة الفلينج بشكل قاطع لمنع أي تكرار أو تكدس
+    if walkFlingConnection then
+        walkFlingConnection:Disconnect()
+        walkFlingConnection = nil
+    end
+    
+    local char = lp.Character
+    if char then
+        local root = char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso")
         if root then
             pcall(function()
                 root.AssemblyLinearVelocity = Vector3.zero
@@ -1296,82 +1308,56 @@ local function stopWalkFling()
 end
 
 local function startWalkFling()
-    if walkflinging then return end
-    walkflinging = true
+    stopWalkFling() -- تنظيف وإيقاف أي حلقة سابقة قبل بدء واحدة جديدة
+    if not antiWalkFlingToggleState then return end
 
-    task.spawn(function()
-        local movel = 0.1
-        while walkflinging do
-            game:GetService("RunService").Heartbeat:Wait()
-            
-            if not getgenv().IsFlinging then
-                pcall(function()
-                    local character = game:GetService("Players").LocalPlayer.Character
-                    if not character or not character:IsDescendantOf(workspace) then return end
-                    
-                    local hum = character:FindFirstChildOfClass("Humanoid")
-                    local root = character:FindFirstChild("HumanoidRootPart") or character:FindFirstChild("Torso")
-                    
-                    -- حماية لحظة الموت: تصفير القوة فوراً لمنع القذف البعيد عند الرسباون
-                    if not hum or hum.Health <= 0 or not root then
-                        if root then
-                            root.AssemblyLinearVelocity = Vector3.zero
-                            root.AssemblyAngularVelocity = Vector3.zero
-                        end
-                        return
-                    end
+    local movel = 0.1
+    walkFlingConnection = RunService.Heartbeat:Connect(function()
+        if getgenv().IsFlinging then return end
+        
+        local char = lp.Character
+        if not char or not char:IsDescendantOf(workspace) then return end
+        
+        local hum = char:FindFirstChildOfClass("Humanoid")
+        local root = char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso")
+        
+        -- التأكد من أن الشخصية حية وموجودة
+        if hum and hum.Health > 0 and root then
+            pcall(function()
+                local oldVel = root.AssemblyLinearVelocity
+                
+                -- تطبيق الفلينج بأمان
+                root.AssemblyLinearVelocity = Vector3.new(walkFlingPower, walkFlingPower, walkFlingPower)
+                
+                RunService.RenderStepped:Wait()
+                
+                if root and root.Parent then
+                    root.AssemblyLinearVelocity = oldVel
+                end
 
-                    -- حماية الرسباون: منع تطبيق الفلينج أثناء مرحلة الترسيب والتحميل
-                    if character:GetAttribute("SpawningGuard") then return end
-
-                    -- تطبيق قوة الفلينج بشكل آمن ومحدث
-                    if hum and hum.Health > 0 and root then
-                        local vel = root.AssemblyLinearVelocity
-                        
-                        root.AssemblyLinearVelocity = vel * walkFlingPower + Vector3.new(0, walkFlingPower, 0)
-
-                        game:GetService("RunService").RenderStepped:Wait()
-                        if character and character.Parent and root and root.Parent then
-                            root.AssemblyLinearVelocity = vel
-                        end
-
-                        game:GetService("RunService").Stepped:Wait()
-                        if character and character.Parent and root and root.Parent then
-                            root.AssemblyLinearVelocity = vel + Vector3.new(0, movel, 0)
-                            movel = movel * -1
-                        end
-                    end
-                end)
-            end
+                RunService.Stepped:Wait()
+                if root and root.Parent then
+                    root.AssemblyLinearVelocity = oldVel + Vector3.new(0, movel, 0)
+                    movel = movel * -1
+                end
+            end)
         end
     end)
 end
 
--- حدث الرسباون المحسن لمنع الانفجار الفيزيائي والغلتش في السماء
-game:GetService("Players").LocalPlayer.CharacterAdded:Connect(function(char)
-    -- إيقاف حلقة الفلينج القديمة فوراً
-    walkflinging = false
+-- حدث الرسباون: يتم تفعيله عند الموت أو إعادة الترسيب
+lp.CharacterAdded:Connect(function(char)
+    stopWalkFling() -- إيقاف حلقة الفلينج فوراً بمجرد الموت
     
-    -- تفعيل حماية الرسباون المؤقتة
-    char:SetAttribute("SpawningGuard", true)
-
-    -- تصفير أي سرعة متبقية للشخصية الجديدة فور ولادتها
-    local root = char:WaitForChild("HumanoidRootPart", 5) or char:WaitForChild("Torso", 5)
-    if root then
-        root.AssemblyLinearVelocity = Vector3.zero
-        root.AssemblyAngularVelocity = Vector3.zero
-    end
-
+    -- انتظار تحميل مجسم اللاعب الأساسي
+    local root = char:WaitForChild("HumanoidRootPart", 5)
+    
     if antiWalkFlingToggleState then
-        task.wait(1.5) -- انتظار استقرار الشخصية ومحرك الفيزياء على الأرض
-        if root and root.Parent then
-            root.AssemblyLinearVelocity = Vector3.zero
-            root.AssemblyAngularVelocity = Vector3.zero
+        -- إعطاء مهلة لمحرك الفيزياء لتهيئة جاذبية الشخصية الجديدة
+        task.wait(1.5)
+        if char:FindFirstChildOfClass("Humanoid") and char:FindFirstChildOfClass("Humanoid").Health > 0 then
+            startWalkFling()
         end
-        char:SetAttribute("SpawningGuard", nil)
-        startWalkFling()
-    else
-        char:SetAttribute("SpawningGuard", nil)
     end
 end)
 
@@ -1389,9 +1375,6 @@ PlayerTab:CreateToggle({
         end
     end,
 })
-
-
--------------------------------------------------------------------------
 
 -------------------------------------------------------------------------
 
