@@ -1321,10 +1321,67 @@ local function startWalkFling()
     local root = char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso")
     
     if not hum or hum.Health <= 0 or not root then return end
+-- تهيئة متغير الإيقاف المؤقت
+getgenv().IsHugging = false
 
-    local movel = 0.1
+local oldNamecall
+oldNamecall = hookmetamethod(game, "__namecall", function(self, ...)
+    local method = getnamecallmethod()
+    local args = {...}
+
+    if not checkcaller() and method == "InvokeServer" then
+        
+        -- 1. حالة بدء الاحتضان
+        if self.Name == "StartJointEmote" then
+            if args[1] and typeof(args[1]) == "Instance" and (args[1].Name:match("Hold") or args[1].Name:match("Hug")) then
+                getgenv().IsHugging = true
+                
+                local char = game.Players.LocalPlayer.Character
+                local root = char and char:FindFirstChild("HumanoidRootPart")
+                if root then
+                    -- تصفير السرعة لتجنب الاصطدام العنيف عند الالتحام
+                    root.AssemblyLinearVelocity = Vector3.zero
+                    root.AssemblyAngularVelocity = Vector3.zero
+                end
+            end
+            
+        -- 2. حالة إلغاء/الإفلات من الاحتضان
+        elseif self.Name == "CancelJointEmote" then
+            if getgenv().IsHugging then
+                local char = game.Players.LocalPlayer.Character
+                local root = char and char:FindFirstChild("HumanoidRootPart")
+                
+                -- تصفير السرعة فوراً في نفس الإطار (Frame) الذي يُرسل فيه أمر الإفلات
+                if root then
+                    root.AssemblyLinearVelocity = Vector3.zero
+                    root.AssemblyAngularVelocity = Vector3.zero
+                end
+                
+                -- استخدام task.spawn لتأخير إعادة تشغيل Fling جزءاً من الثانية
+                -- لضمان أن السيرفر قد كسر الـ Weld فعلياً قبل عودة السرعة الخرافية
+                task.spawn(function()
+                    task.wait(0.15) 
+                    if root then
+                        -- تصفير تأكيدي أخير
+                        root.AssemblyLinearVelocity = Vector3.zero
+                        root.AssemblyAngularVelocity = Vector3.zero
+                    end
+                    -- إعادة تشغيل Fling
+                    getgenv().IsHugging = false
+                end)
+            end
+        end
+        
+    end
+    
+    -- تمرير الحدث الأصلي للسيرفر
+    return oldNamecall(self, ...)
+end)
+
+local movel = 0.1
 walkFlingConnection = RunService.Heartbeat:Connect(function()
-    if getgenv().IsFlinging then return end
+    -- التعديل هنا: إيقاف تأثير Fling مؤقتاً إذا كنت تستخدم Fling أو إذا كنت تحتضن أحداً
+    if getgenv().IsFlinging or getgenv().IsHugging then return end
     
     local currentChar = lp.Character
     if not currentChar or currentChar ~= char then
@@ -1358,7 +1415,6 @@ walkFlingConnection = RunService.Heartbeat:Connect(function()
         end
     end)
 end)
-
 
 -- إعداد الشخصية والربط المباشر بحدث الموت
 local function setupCharacter(char)
