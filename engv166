@@ -1275,7 +1275,7 @@ PlayerTab:CreateToggle({
     end 
 })
 -------------------------------------------------------------------------
--- [ Anti-Walk Fling System - الإصدار النهائي والخالي من الأخطاء ] --
+-- [ Anti-Walk Fling System - النسخة المبسطة بمهلة 3 ثواني ] --
 -------------------------------------------------------------------------
 local RunService = game:GetService("RunService")
 local Players = game:GetService("Players")
@@ -1285,26 +1285,21 @@ local walkFlingConnection = nil
 local antiWalkFlingToggleState = false
 local walkFlingPower = 50000 
 
--- وظيفة لتصفير سرعة كل أجزاء الجسم
-local function clearAllVelocities(char)
-    if not char then return end
-    for _, part in ipairs(char:GetChildren()) do
-        if part:IsA("BasePart") then
-            pcall(function()
-                part.AssemblyLinearVelocity = Vector3.zero
-                part.AssemblyAngularVelocity = Vector3.zero
-            end)
-        end
-    end
-end
-
 local function stopWalkFling()
     if walkFlingConnection then
         walkFlingConnection:Disconnect()
         walkFlingConnection = nil
     end
+    -- تصفير السرعة لحظة الإيقاف
     if lp.Character then
-        clearAllVelocities(lp.Character)
+        for _, part in ipairs(lp.Character:GetChildren()) do
+            if part:IsA("BasePart") then
+                pcall(function()
+                    part.AssemblyLinearVelocity = Vector3.zero
+                    part.AssemblyAngularVelocity = Vector3.zero
+                end)
+            end
+        end
     end
 end
 
@@ -1361,7 +1356,6 @@ local function setupCharacter(char)
     stopWalkFling()
     
     local hum = char:WaitForChild("Humanoid", 5)
-    local root = char:WaitForChild("HumanoidRootPart", 5) or char:WaitForChild("Torso", 5)
     
     if hum then
         hum.Died:Connect(function()
@@ -1383,11 +1377,10 @@ if lp.Character then
 end
 
 -- ===============================================
--- [ نظام الهوك الآمن جداً (Crash-Proof Hook) ]
+-- [ نظام الهوك المبسط (إيقاف فوري / انتظار 3 ثواني للتشغيل) ]
 -- ===============================================
 local wasFlingActiveBeforeHug = false
 
--- استخدام pcall كجدار حماية رئيسي لمنع المشغل من التوقف
 pcall(function() 
     if not hookmetamethod then return end
     
@@ -1395,10 +1388,8 @@ pcall(function()
     oldNamecall = hookmetamethod(game, "__namecall", function(self, ...)
         local args = {...}
         
-        -- فصل معالجة الكود عن مسار اللعبة الأساسي لمنع التجميد
         task.spawn(function()
             pcall(function()
-                -- استخدام دوال التحقق بحذر لتجنب الأخطاء
                 if checkcaller and checkcaller() then return end
                 if typeof(self) ~= "Instance" then return end
                 
@@ -1409,22 +1400,16 @@ pcall(function()
                 if methodStr == "InvokeServer" or methodStr == "invokeServer" or methodStr == "FireServer" or methodStr == "fireServer" then
                     
                     if self.Name == "StartJointEmote" then
+                        -- عند بدء الاحتضان: الإيقاف فوراً
                         if antiWalkFlingToggleState then
                             wasFlingActiveBeforeHug = true
                             stopWalkFling()
                         end
                         
                     elseif self.Name == "CancelJointEmote" then
-                        -- تصفير السرعة بشكل *مستمر* لمدة 0.8 ثانية لضمان عدم الطيران
-                        local endTime = tick() + 0.8
-                        while tick() < endTime do
-                            if lp and lp.Character then
-                                clearAllVelocities(lp.Character)
-                            end
-                            task.wait()
-                        end
+                        -- عند ترك الصديق: انتظار 3 ثواني ثم إعادة التشغيل
+                        task.wait(3)
                         
-                        -- إعادة تشغيل الفلينق بعد استقرار الشخصية
                         if wasFlingActiveBeforeHug or antiWalkFlingToggleState then
                             startWalkFling()
                             wasFlingActiveBeforeHug = false
@@ -1439,7 +1424,6 @@ pcall(function()
 end)
 -- ===============================================
 
--- زر التشغيل والإيقاف في واجهة Rayfield
 PlayerTab:CreateToggle({
     Name = "Anti-Walk Fling",
     CurrentValue = false,
@@ -1453,7 +1437,6 @@ PlayerTab:CreateToggle({
         end
     end,
 })
-
 
     -------------------------------------------------------------------------
 
