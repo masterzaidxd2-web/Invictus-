@@ -1323,58 +1323,41 @@ local function startWalkFling()
     if not hum or hum.Health <= 0 or not root then return end
 
     local movel = 0.1
-    walkFlingConnection = RunService.Heartbeat:Connect(function()
-        if getgenv().IsFlinging then return end
-        
-        local currentChar = lp.Character
-        if not currentChar or currentChar ~= char then
-            stopWalkFling()
-            return
-        end
-        
-        local currentHum = currentChar:FindFirstChildOfClass("Humanoid")
-        local currentRoot = currentChar:FindFirstChild("HumanoidRootPart") or currentChar:FindFirstChild("Torso")
-        
-        if not currentHum or currentHum.Health <= 0 or not currentRoot then
-            stopWalkFling()
-            return
-        end
+walkFlingConnection = RunService.Heartbeat:Connect(function()
+    if getgenv().IsFlinging then return end
+    
+    local currentChar = lp.Character
+    if not currentChar or currentChar ~= char then
+        stopWalkFling()
+        return
+    end
+    
+    local currentHum = currentChar:FindFirstChildOfClass("Humanoid")
+    local currentRoot = currentChar:FindFirstChild("HumanoidRootPart") or currentChar:FindFirstChild("Torso")
+    
+    -- التحقق القاطع: إذا مات اللاعب أثناء الحلقة، يتم الإيقاف فوراً
+    if not currentHum or currentHum.Health <= 0 or not currentRoot then
+        stopWalkFling()
+        return
+    end
 
-        -- فحص تلقائي شامل لجميع روابط اللحام داخل شخصيتك
-        local isHoldingSomeone = false
-        for _, obj in ipairs(currentChar:GetDescendants()) do
-            if obj:IsA("JointInstance") or obj:IsA("WeldConstraint") then
-                local part0, part1 = obj.Part0, obj.Part1
-                if part0 and part1 then
-                    local otherPart = (part0:IsDescendantOf(currentChar) and part1) or (part1:IsDescendantOf(currentChar) and part0)
-                    if otherPart and otherPart.Parent and otherPart.Parent:FindFirstChildOfClass("Humanoid") and otherPart.Parent ~= currentChar then
-                        isHoldingSomeone = true
-                        break
-                    end
-                end
-            end
+    pcall(function()
+        local oldVel = currentRoot.AssemblyLinearVelocity
+        
+        currentRoot.AssemblyLinearVelocity = Vector3.new(walkFlingPower, walkFlingPower, walkFlingPower)
+        
+        RunService.RenderStepped:Wait()
+        if currentRoot and currentRoot.Parent and currentHum.Health > 0 then
+            currentRoot.AssemblyLinearVelocity = oldVel
         end
 
-        -- إذا وجد السكربت أنك ممسك بشخصية لاعب آخر، يتم إيقاف السرعة الوهمية فوراً
-        if isHoldingSomeone then return end
-
-        pcall(function()
-            local oldVel = currentRoot.AssemblyLinearVelocity
-            
-            currentRoot.AssemblyLinearVelocity = Vector3.new(walkFlingPower, walkFlingPower, walkFlingPower)
-            
-            RunService.RenderStepped:Wait()
-            if currentRoot and currentRoot.Parent and currentHum.Health > 0 then
-                currentRoot.AssemblyLinearVelocity = oldVel
-            end
-
-            RunService.Stepped:Wait()
-            if currentRoot and currentRoot.Parent and currentHum.Health > 0 then
-                currentRoot.AssemblyLinearVelocity = oldVel + Vector3.new(0, movel, 0)
-                movel = movel * -1
-            end
-        end)
+        RunService.Stepped:Wait()
+        if currentRoot and currentRoot.Parent and currentHum.Health > 0 then
+            currentRoot.AssemblyLinearVelocity = oldVel + Vector3.new(0, movel, 0)
+            movel = movel * -1
+        end
     end)
+end)
 
 
 -- إعداد الشخصية والربط المباشر بحدث الموت
