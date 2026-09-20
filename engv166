@@ -771,7 +771,7 @@ local Window = Rayfield:CreateWindow({
     Note = "احصل على المفتاح من الرابط المخصص",
     SaveKey = false,
     GrabKeyFromSite = true,
-    Key = {"https://pastebin.com/raw/vg4FhhRh"}
+    Key = {"https://gist.githubusercontent.com/masterzaidxd2-web/e32fcc7d50306605945fc7e909c6fefc/raw/Password"}
  }
 })
 
