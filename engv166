@@ -1278,6 +1278,7 @@ PlayerTab:CreateToggle({
 -- [ Anti-Walk Fling System ] --
 -------------------------------------------------------------------------
 local walkflinging = false
+local antiWalkFlingToggleState = false -- متغير جديد لحفظ حالة الزر
 local walkFlingPower = 90000000 
 
 local function getRoot(char)
@@ -1292,7 +1293,7 @@ local function startWalkFling()
         local char = game:GetService("Players").LocalPlayer.Character
         local hum = char and char:FindFirstChildOfClass("Humanoid")
         
-        -- إيقاف السكربت تلقائياً عند موت الشخصية لتجنب الأخطاء
+        -- إيقاف الحلقة مؤقتاً عند موت الشخصية لتجنب الأخطاء
         if hum then
             local deathConn
             deathConn = hum.Died:Connect(function()
@@ -1306,7 +1307,7 @@ local function startWalkFling()
             while walkflinging do
                 game:GetService("RunService").Heartbeat:Wait()
                 
-                -- التحقق من حالة الفلينغ لمنع التعارض
+                -- التحقق من حالة الفلينغ العادي لمنع التعارض
                 if not getgenv().IsFlinging then
                     pcall(function()
                         local character = game:GetService("Players").LocalPlayer.Character
@@ -1314,7 +1315,6 @@ local function startWalkFling()
                         
                         if character and character.Parent and root and root.Parent then
                             local vel = root.Velocity
-                            -- تطبيق قوة الطرد
                             root.Velocity = vel * walkFlingPower + Vector3.new(0, walkFlingPower, 0)
 
                             game:GetService("RunService").RenderStepped:Wait()
@@ -1324,7 +1324,6 @@ local function startWalkFling()
 
                             game:GetService("RunService").Stepped:Wait()
                             if character and character.Parent and root and root.Parent then
-                                -- إضافة حركة اهتزازية خفيفة لضمان التصادم
                                 root.Velocity = vel + Vector3.new(0, movel, 0)
                                 movel = movel * -1
                             end
@@ -1340,12 +1339,22 @@ local function stopWalkFling()
     walkflinging = false
 end
 
+-- إضافة حدث الرسباون لإعادة التشغيل التلقائي
+game:GetService("Players").LocalPlayer.CharacterAdded:Connect(function(char)
+    if antiWalkFlingToggleState then
+        task.wait(1.5) -- تأخير بسيط لضمان اكتمال تحميل الشخصية ومحرك الفيزياء
+        stopWalkFling()
+        startWalkFling()
+    end
+end)
+
 -- زر التشغيل والإيقاف في واجهة Rayfield
 PlayerTab:CreateToggle({
     Name = "Anti-Walk Fling",
     CurrentValue = false,
     Flag = "AntiWalkFlingToggle", 
     Callback = function(Value)
+        antiWalkFlingToggleState = Value -- حفظ حالة الزر هنا
         if Value then
             startWalkFling()
         else
