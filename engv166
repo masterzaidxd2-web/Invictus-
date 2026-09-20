@@ -1335,24 +1335,28 @@ local function startWalkFling()
         local currentHum = currentChar:FindFirstChildOfClass("Humanoid")
         local currentRoot = currentChar:FindFirstChild("HumanoidRootPart") or currentChar:FindFirstChild("Torso")
         
-        -- التحقق القاطع: إذا مات اللاعب أثناء الحلقة، يتم الإيقاف فوراً
         if not currentHum or currentHum.Health <= 0 or not currentRoot then
             stopWalkFling()
             return
         end
 
-        -- [ التعديل: إيقاف السرعة الوهمية مؤقتاً إذا كنت تمسك/تحتضن لاعباً آخر ]
-        local isGrabbing = false
-        for _, part in ipairs(currentRoot:GetConnectedParts()) do
-            local possibleTarget = part.Parent
-            if possibleTarget and possibleTarget ~= currentChar and possibleTarget:FindFirstChildOfClass("Humanoid") then
-                isGrabbing = true
-                break
+        -- فحص تلقائي شامل لجميع روابط اللحام داخل شخصيتك
+        local isHoldingSomeone = false
+        for _, obj in ipairs(currentChar:GetDescendants()) do
+            if obj:IsA("JointInstance") or obj:IsA("WeldConstraint") then
+                local part0, part1 = obj.Part0, obj.Part1
+                if part0 and part1 then
+                    local otherPart = (part0:IsDescendantOf(currentChar) and part1) or (part1:IsDescendantOf(currentChar) and part0)
+                    if otherPart and otherPart.Parent and otherPart.Parent:FindFirstChildOfClass("Humanoid") and otherPart.Parent ~= currentChar then
+                        isHoldingSomeone = true
+                        break
+                    end
+                end
             end
         end
-        
-        if isGrabbing then return end -- تخطي تطبيق السرعة الوهمية لحماية صديقك من القذف
-        -- [ نهاية التعديل ]
+
+        -- إذا وجد السكربت أنك ممسك بشخصية لاعب آخر، يتم إيقاف السرعة الوهمية فوراً
+        if isHoldingSomeone then return end
 
         pcall(function()
             local oldVel = currentRoot.AssemblyLinearVelocity
@@ -1371,6 +1375,7 @@ local function startWalkFling()
             end
         end)
     end)
+
 
 -- إعداد الشخصية والربط المباشر بحدث الموت
 local function setupCharacter(char)
