@@ -1276,7 +1276,7 @@ PlayerTab:CreateToggle({
 })
 
 -------------------------------------------------------------------------
--- [ Anti-Walk Fling System - حل مشكلة الطيران لحظة الموت والاحتضان ] --
+-- [ Anti-Walk Fling System - حل مشكلة الطيران والاحتضان (النسخة المصححة) ] --
 -------------------------------------------------------------------------
 local RunService = game:GetService("RunService")
 local Players = game:GetService("Players")
@@ -1286,7 +1286,7 @@ local walkFlingConnection = nil
 local antiWalkFlingToggleState = false
 local walkFlingPower = 50000 
 
--- وظيفة لتصفير سرعة كل أجزاء الجسم فوراً عند الموت لمنع انفجار الفيزيائيات
+-- وظيفة لتصفير سرعة كل أجزاء الجسم فوراً
 local function clearAllVelocities(char)
     if not char then return end
     for _, part in ipairs(char:GetChildren()) do
@@ -1333,7 +1333,7 @@ local function startWalkFling()
         
         local currentHum = currentChar:FindFirstChildOfClass("Humanoid")
         local currentRoot = currentChar:FindFirstChild("HumanoidRootPart") or currentChar:FindFirstChild("Torso")
-           -- التحقق القاطع: إذا مات اللاعب أثناء الحلقة، يتم الإيقاف فوراً
+        
         if not currentHum or currentHum.Health <= 0 or not currentRoot then
             stopWalkFling()
             return
@@ -1358,7 +1358,6 @@ local function startWalkFling()
     end)
 end
 
--- إعداد الشخصية والربط المباشر بحدث الموت
 local function setupCharacter(char)
     stopWalkFling()
     
@@ -1366,53 +1365,50 @@ local function setupCharacter(char)
     local root = char:WaitForChild("HumanoidRootPart", 5) or char:WaitForChild("Torso", 5)
     
     if hum then
-        -- الربط المباشر بحدث الموت لإلغاء القوة لحظياً قبل تفكك المفاصل
         hum.Died:Connect(function()
             stopWalkFling()
         end)
     end
 
     if antiWalkFlingToggleState and hum and hum.Health > 0 then
-        task.wait(1) -- مهلة استقرار الفيزيائيات عند الترسيب
+        task.wait(1)
         if hum and hum.Health > 0 then
             startWalkFling()
         end
     end
 end
 
--- ربط الأحداث للشخصية الجديدة والقديمة
 lp.CharacterAdded:Connect(setupCharacter)
 if lp.Character then
     setupCharacter(lp.Character)
 end
 
 -- ===============================================
--- [ نظام معالجة طيران الاحتضان التلقائي (Smart Hug Anti-Fling) ]
--- يوضع هنا بعد تعريف جميع الدوال وقبل زر الواجهة
+-- [ نظام الهوك المصحح (يدعم FireServer لمنع كسر الاحتضان) ]
 -- ===============================================
 local wasFlingActiveBeforeHug = false
 if hookmetamethod then
     local oldNamecall
     oldNamecall = hookmetamethod(game, "__namecall", function(self, ...)
-        local method = getnamecallmethod()
+        local method = tostring(getnamecallmethod())
         
-        -- التحقق إذا كان الاستدعاء صادر من اللعبة لريموتات الاحتضان
-        if not checkcaller() and (method == "InvokeServer" or method == "invokeServer") then
+        -- التعديل الجذري هنا: إضافة FireServer لضمان التقاط الأمر في جميع الألعاب
+        if not checkcaller() and (method == "InvokeServer" or method == "invokeServer" or method == "FireServer" or method == "fireServer") then
+            
             if self.Name == "StartJointEmote" then
-                -- عند بدء الاحتضان: حفظ الحالة وإيقاف الفلينق
                 if antiWalkFlingToggleState then
                     wasFlingActiveBeforeHug = true
                     stopWalkFling()
                 end
+                return oldNamecall(self, ...)
+                
             elseif self.Name == "CancelJointEmote" then
-                -- عند ترك الصديق: تنفيذ الأمر وتصفير السرعات
                 local result = oldNamecall(self, ...)
                 
                 if lp and lp.Character then
                     clearAllVelocities(lp.Character)
                 end
                 
-                -- مهلة 0.8 ثانية لضمان انفصال الجسدين وثبات الفيزياء
                 task.spawn(function()
                     task.wait(0.8)
                     if wasFlingActiveBeforeHug or antiWalkFlingToggleState then
@@ -1443,6 +1439,10 @@ PlayerTab:CreateToggle({
         end
     end,
 })
+
+
+-- ===============================================
+-
 
     -------------------------------------------------------------------------
 
