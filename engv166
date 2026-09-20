@@ -1288,56 +1288,52 @@ end
 local function startWalkFling()
     if walkflinging then return end
     walkflinging = true
-    
-    pcall(function()
-        local char = game:GetService("Players").LocalPlayer.Character
-        local hum = char and char:FindFirstChildOfClass("Humanoid")
-        
-        if hum then
-            local deathConn
-            deathConn = hum.Died:Connect(function()
-                walkflinging = false
-                -- تصفير السرعة فوراً لمنع القذف أثناء الريسباون
-                local root = getRoot(char)
-                if root then
-                    root.AssemblyLinearVelocity = Vector3.zero
-                    root.AssemblyAngularVelocity = Vector3.zero
-                end
-                if deathConn then deathConn:Disconnect() end
-            end)
-        end
 
-        task.spawn(function()
-            local movel = 0.1
-            while walkflinging do
-                game:GetService("RunService").Heartbeat:Wait()
-                
-                if not getgenv().IsFlinging then
-                    pcall(function()
-                        local character = game:GetService("Players").LocalPlayer.Character
-                        local humCheck = character and character:FindFirstChildOfClass("Humanoid")
-                        local root = getRoot(character)
-                        
-                        -- عدم تطبيق القوة إذا كانت الصحة 0
-                        if character and character.Parent and root and root.Parent and humCheck and humCheck.Health > 0 then
-                            local vel = root.Velocity
-                            root.Velocity = vel * walkFlingPower + Vector3.new(0, walkFlingPower, 0)
-
-                            game:GetService("RunService").RenderStepped:Wait()
-                            if character and character.Parent and root and root.Parent then
-                                root.Velocity = vel
-                            end
-
-                            game:GetService("RunService").Stepped:Wait()
-                            if character and character.Parent and root and root.Parent then
-                                root.Velocity = vel + Vector3.new(0, movel, 0)
-                                movel = movel * -1
-                            end
+    task.spawn(function()
+        local movel = 0.1
+        while walkflinging do
+            game:GetService("RunService").Heartbeat:Wait()
+            
+            if not getgenv().IsFlinging then
+                pcall(function()
+                    local character = game:GetService("Players").LocalPlayer.Character
+                    if not character then return end
+                    
+                    local hum = character:FindFirstChildOfClass("Humanoid")
+                    local root = character:FindFirstChild("HumanoidRootPart") or character:FindFirstChild("Torso")
+                    
+                    -- [ التعديل الجذري هنا ]
+                    -- إذا كانت الشخصية ميتة، نوقف السرعة فوراً ولا نطبق الـ Fling
+                    if hum and hum.Health <= 0 then
+                        if root then
+                            root.Velocity = Vector3.zero
+                            root.AssemblyLinearVelocity = Vector3.zero
+                            root.AssemblyAngularVelocity = Vector3.zero
                         end
-                    end)
-                end
+                        return -- تخطي باقي الكود حتى يترسبن اللاعب من جديد
+                    end
+
+                    -- إذا كان اللاعب حياً، نطبق الـ Fling بشكل طبيعي
+                    if root and hum and hum.Health > 0 then
+                        local vel = root.Velocity
+                        
+                        -- إضافة قوة الفلينج
+                        root.Velocity = vel * walkFlingPower + Vector3.new(0, walkFlingPower, 0)
+
+                        game:GetService("RunService").RenderStepped:Wait()
+                        if character and character.Parent and root and root.Parent then
+                            root.Velocity = vel
+                        end
+
+                        game:GetService("RunService").Stepped:Wait()
+                        if character and character.Parent and root and root.Parent then
+                            root.Velocity = vel + Vector3.new(0, movel, 0)
+                            movel = movel * -1
+                        end
+                    end
+                end)
             end
-        end)
+        end
     end)
 end
 
