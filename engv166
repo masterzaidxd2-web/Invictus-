@@ -1277,7 +1277,7 @@ PlayerTab:CreateToggle({
 
 
 -------------------------------------------------------------------------
--- [ Anti-Walk Fling System - الإصدار النهائي والآمن ] --
+-- [ Anti-Walk Fling System - حل مشكلة الطيران لحظة الموت ] --
 -------------------------------------------------------------------------
 local RunService = game:GetService("RunService")
 local Players = game:GetService("Players")
@@ -1285,81 +1285,108 @@ local lp = Players.LocalPlayer
 
 local walkFlingConnection = nil
 local antiWalkFlingToggleState = false
--- تقليل الرقم لتجنب تعطل محرك الفيزياء (Physics Crash) عند الرسباون
 local walkFlingPower = 50000 
 
-local function stopWalkFling()
-    -- تدمير حلقة الفلينج بشكل قاطع لمنع أي تكرار أو تكدس
-    if walkFlingConnection then
-        walkFlingConnection:Disconnect()
-        walkFlingConnection = nil
-    end
-    
-    local char = lp.Character
-    if char then
-        local root = char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso")
-        if root then
+-- وظيفة لتصفير سرعة كل أجزاء الجسم فوراً عند الموت لمنع انفجار الفيزيائيات
+local function clearAllVelocities(char)
+    if not char then return end
+    for _, part in ipairs(char:GetChildren()) do
+        if part:IsA("BasePart") then
             pcall(function()
-                root.AssemblyLinearVelocity = Vector3.zero
-                root.AssemblyAngularVelocity = Vector3.zero
+                part.AssemblyLinearVelocity = Vector3.zero
+                part.AssemblyAngularVelocity = Vector3.zero
             end)
         end
     end
 end
 
+local function stopWalkFling()
+    if walkFlingConnection then
+        walkFlingConnection:Disconnect()
+        walkFlingConnection = nil
+    end
+    if lp.Character then
+        clearAllVelocities(lp.Character)
+    end
+end
+
 local function startWalkFling()
-    stopWalkFling() -- تنظيف وإيقاف أي حلقة سابقة قبل بدء واحدة جديدة
+    stopWalkFling()
     if not antiWalkFlingToggleState then return end
+
+    local char = lp.Character
+    if not char then return end
+    
+    local hum = char:FindFirstChildOfClass("Humanoid")
+    local root = char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso")
+    
+    if not hum or hum.Health <= 0 or not root then return end
 
     local movel = 0.1
     walkFlingConnection = RunService.Heartbeat:Connect(function()
         if getgenv().IsFlinging then return end
         
-        local char = lp.Character
-        if not char or not char:IsDescendantOf(workspace) then return end
-        
-        local hum = char:FindFirstChildOfClass("Humanoid")
-        local root = char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso")
-        
-        -- التأكد من أن الشخصية حية وموجودة
-        if hum and hum.Health > 0 and root then
-            pcall(function()
-                local oldVel = root.AssemblyLinearVelocity
-                
-                -- تطبيق الفلينج بأمان
-                root.AssemblyLinearVelocity = Vector3.new(walkFlingPower, walkFlingPower, walkFlingPower)
-                
-                RunService.RenderStepped:Wait()
-                
-                if root and root.Parent then
-                    root.AssemblyLinearVelocity = oldVel
-                end
-
-                RunService.Stepped:Wait()
-                if root and root.Parent then
-                    root.AssemblyLinearVelocity = oldVel + Vector3.new(0, movel, 0)
-                    movel = movel * -1
-                end
-            end)
+        local currentChar = lp.Character
+        if not currentChar or currentChar ~= char then
+            stopWalkFling()
+            return
         end
+        
+        local currentHum = currentChar:FindFirstChildOfClass("Humanoid")
+        local currentRoot = currentChar:FindFirstChild("HumanoidRootPart") or currentChar:FindFirstChild("Torso")
+        
+        -- التحقق القاطع: إذا مات اللاعب أثناء الحلقة، يتم الإيقاف فوراً
+        if not currentHum or currentHum.Health <= 0 or not currentRoot then
+            stopWalkFling()
+            return
+        end
+
+        pcall(function()
+            local oldVel = currentRoot.AssemblyLinearVelocity
+            
+            currentRoot.AssemblyLinearVelocity = Vector3.new(walkFlingPower, walkFlingPower, walkFlingPower)
+            
+            RunService.RenderStepped:Wait()
+            if currentRoot and currentRoot.Parent and currentHum.Health > 0 then
+                currentRoot.AssemblyLinearVelocity = oldVel
+            end
+
+            RunService.Stepped:Wait()
+            if currentRoot and currentRoot.Parent and currentHum.Health > 0 then
+                currentRoot.AssemblyLinearVelocity = oldVel + Vector3.new(0, movel, 0)
+                movel = movel * -1
+            end
+        end)
     end)
 end
 
--- حدث الرسباون: يتم تفعيله عند الموت أو إعادة الترسيب
-lp.CharacterAdded:Connect(function(char)
-    stopWalkFling() -- إيقاف حلقة الفلينج فوراً بمجرد الموت
+-- إعداد الشخصية والربط المباشر بحدث الموت
+local function setupCharacter(char)
+    stopWalkFling()
     
-    -- انتظار تحميل مجسم اللاعب الأساسي
-    local root = char:WaitForChild("HumanoidRootPart", 5)
+    local hum = char:WaitForChild("Humanoid", 5)
+    local root = char:WaitForChild("HumanoidRootPart", 5) or char:WaitForChild("Torso", 5)
     
-    if antiWalkFlingToggleState then
-        -- إعطاء مهلة لمحرك الفيزياء لتهيئة جاذبية الشخصية الجديدة
-        task.wait(1.5)
-        if char:FindFirstChildOfClass("Humanoid") and char:FindFirstChildOfClass("Humanoid").Health > 0 then
+    if hum then
+        -- الربط المباشر بحدث الموت لإلغاء القوة لحظياً قبل تفكك المفاصل
+        hum.Died:Connect(function()
+            stopWalkFling()
+        end)
+    end
+
+    if antiWalkFlingToggleState and hum and hum.Health > 0 then
+        task.wait(1) -- مهلة استقرار الفيزيائيات عند الترسيب
+        if hum and hum.Health > 0 then
             startWalkFling()
         end
     end
-end)
+end
+
+-- ربط الأحداث للشخصية الجديدة والقديمة
+lp.CharacterAdded:Connect(setupCharacter)
+if lp.Character then
+    setupCharacter(lp.Character)
+end
 
 -- زر التشغيل والإيقاف في واجهة Rayfield
 PlayerTab:CreateToggle({
