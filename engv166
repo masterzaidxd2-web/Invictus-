@@ -1344,56 +1344,7 @@ PlayerTab:CreateToggle({
         end
     end,
 })
--------------------------------------------------------------------------
--- [ Anti-Fling System ] --
--------------------------------------------------------------------------
-local antiflingConnection = nil
 
-local function startAntiFling()
-    pcall(function()
-        -- التأكد من عدم وجود اتصال سابق لتجنب التكرار واللاق
-        if antiflingConnection then antiflingConnection:Disconnect() end
-        
-        antiflingConnection = game:GetService("RunService").Stepped:Connect(function()
-            pcall(function()
-                local localPlayer = game:GetService("Players").LocalPlayer
-                for _, plr in pairs(game:GetService("Players"):GetPlayers()) do
-                    -- استهداف اللاعبين الآخرين فقط وإلغاء التصادم معهم
-                    if plr ~= localPlayer and plr.Character then
-                        for _, part in pairs(plr.Character:GetDescendants()) do
-                            if part:IsA("BasePart") then
-                                part.CanCollide = false
-                            end
-                        end
-                    end
-                end
-            end)
-        end)
-    end)
-end
-
-local function stopAntiFling()
-    pcall(function()
-        if antiflingConnection then
-            antiflingConnection:Disconnect()
-            antiflingConnection = nil
-        end
-    end)
-end
-
--- زر التشغيل والإيقاف في واجهة Rayfield
-PlayerTab:CreateToggle({
-    Name = "Anti-Fling",
-    CurrentValue = false,
-    Flag = "AntiFlingToggle", 
-    Callback = function(Value)
-        if Value then
-            startAntiFling()
-        else
-            stopAntiFling()
-        end
-    end,
-})
 -------------------------------------------------------------------------
 
 -------------------------------------------------------------------------
