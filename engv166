@@ -1275,7 +1275,8 @@ PlayerTab:CreateToggle({
     end 
 })
 -------------------------------------------------------------------------
--- [ Anti-Walk Fling System - نسخة متوافقة مع نظام Cobalt و Communicator ] --
+-------------------------------------------------------------------------
+-- [ Anti-Walk Fling System - نسخة معدلة لحماية الأصدقاء من القذف ] --
 -------------------------------------------------------------------------
 local RunService = game:GetService("RunService")
 local Players = game:GetService("Players")
@@ -1285,6 +1286,27 @@ local walkFlingConnection = nil
 local antiWalkFlingToggleState = false
 local walkFlingPower = 50000 
 local isHugging = false
+
+-- دالة سريعة للتحقق مما إذا كان هناك لاعب آخر ملتصق بك (احتضان/حمل)
+local function isSomeoneAttached(char)
+    if not char then return false end
+    -- فحص داخل الشخصية
+    for _, obj in pairs(char:GetChildren()) do
+        if obj:IsA("Weld") or obj:IsA("WeldConstraint") then
+            return true
+        end
+    end
+    -- فحص داخل الجذع (الأكثر شيوعاً في الاحتضان)
+    local root = char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso")
+    if root then
+        for _, obj in pairs(root:GetChildren()) do
+            if obj:IsA("Weld") or obj:IsA("WeldConstraint") then
+                return true
+            end
+        end
+    end
+    return false
+end
 
 local function stopWalkFling()
     if walkFlingConnection then
@@ -1317,7 +1339,8 @@ local function startWalkFling()
 
     local movel = 0.1
     walkFlingConnection = RunService.Heartbeat:Connect(function()
-        if getgenv().IsFlinging or isHugging then return end
+        -- النظام يتوقف تلقائياً إذا كنت تحتضن أو إذا كان هناك لاعب ملتصق بك
+        if getgenv().IsFlinging or isHugging or isSomeoneAttached(char) then return end
         
         local currentChar = lp.Character
         if not currentChar or currentChar ~= char then
@@ -1353,7 +1376,7 @@ local function startWalkFling()
 end
 
 -- ===============================================
--- [ نظام التقاط البيانات عبر Cobalt (Communicator) ]
+-- [ نظام التقاط البيانات عبر Cobalt (Communicator) المحدث ]
 -- ===============================================
 pcall(function()
     if not hookmetamethod then return end
@@ -1366,18 +1389,26 @@ pcall(function()
         if not checkcaller() and (method == "FireServer" or method == "fireServer" or method == "InvokeServer" or method == "invokeServer") then
             if typeof(self) == "Instance" then
                 local name = self.Name
-                -- التحقق مما إذا كان الاتصال يمر عبر نظام Cobalt (Communicator / ActorCommunicator)
+                -- بناءً على البيانات التي أرسلتها، الريموت هو Communicator
                 if name == "Communicator" or name == "ActorCommunicator" or name:find("Comm") then
                     local isHugAction = false
                     
-                    -- فحص محتوى البيانات (Arguments) هل تخص الاحتضان (Hugs / Hold 1)
                     for _, arg in ipairs(args) do
-                        if typeof(arg) == "string" and (arg:lower():find("hug") or arg:lower():find("hold")) then
-                            isHugAction = true
-                            break
-                        elseif typeof(arg) == "Instance" and (arg.Name:lower():find("hug") or arg.Name:lower():find("hold")) then
-                            isHugAction = true
-                            break
+                        if typeof(arg) == "Instance" then
+                            local argName = arg.Name:lower()
+                            
+                            pcall(function()
+                                -- الفحص الدقيق 100% بناءً على المسار الذي استخرجته:
+                                if argName:find("hold 1") or argName:find("hug") or argName:find("carry") then
+                                    isHugAction = true
+                                end
+                                
+                                if arg.Parent and arg.Parent.Name == "Hugs" then
+                                    isHugAction = true
+                                end
+                            end)
+                            
+                            if isHugAction then break end
                         end
                     end
                     
@@ -1386,8 +1417,8 @@ pcall(function()
                             isHugging = true
                             stopWalkFling()
                             
-                            -- الانتظار لمدة 3 ثوانٍ بعد ترك الاحتضان لإعادة تشغيل الـ Fling تلقائياً
-                            task.wait(3)
+                            -- إيقاف الحماية لمدة 5 ثوانٍ عند إرسال أمر الاحتضان
+                            task.wait(5)
                             isHugging = false
                             if antiWalkFlingToggleState then
                                 startWalkFling()
@@ -1429,7 +1460,7 @@ end
 
 -- زر التشغيل والإيقاف في واجهة Rayfield
 PlayerTab:CreateToggle({
-    Name = "Anti-Walk Fling",
+    Name = "Anti-Walk Fling (Safe Hug)",
     CurrentValue = false,
     Flag = "AntiWalkFlingToggle", 
     Callback = function(Value)
