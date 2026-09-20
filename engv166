@@ -1275,8 +1275,7 @@ PlayerTab:CreateToggle({
     end 
 })
 -------------------------------------------------------------------------
--------------------------------------------------------------------------
--- [ Anti-Walk Fling System - نسخة معدلة لحماية الأصدقاء من القذف ] --
+-- [ Anti-Walk Fling System - Ultimate Safe Hug Edition ] --
 -------------------------------------------------------------------------
 local RunService = game:GetService("RunService")
 local Players = game:GetService("Players")
@@ -1287,21 +1286,19 @@ local antiWalkFlingToggleState = false
 local walkFlingPower = 50000 
 local isHugging = false
 
--- دالة سريعة للتحقق مما إذا كان هناك لاعب آخر ملتصق بك (احتضان/حمل)
+-- 1. الفحص الفيزيائي الشامل (يفحص جميع أنواع الروابط بين اللاعبين)
 local function isSomeoneAttached(char)
     if not char then return false end
-    -- فحص داخل الشخصية
-    for _, obj in pairs(char:GetChildren()) do
-        if obj:IsA("Weld") or obj:IsA("WeldConstraint") then
-            return true
-        end
-    end
-    -- فحص داخل الجذع (الأكثر شيوعاً في الاحتضان)
-    local root = char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso")
-    if root then
-        for _, obj in pairs(root:GetChildren()) do
-            if obj:IsA("Weld") or obj:IsA("WeldConstraint") then
-                return true
+    for _, desc in ipairs(char:GetDescendants()) do
+        -- يشمل Motor6D و Weld و أي مفصل آخر
+        if desc:IsA("JointInstance") or desc:IsA("WeldConstraint") then
+            local p0 = desc.Part0
+            local p1 = desc.Part1
+            if p0 and p1 then
+                -- إذا كان أحد الأجزاء يتبع لك، والآخر يتبع لشخص آخر، فأنتم ملتصقون!
+                if (p0:IsDescendantOf(char) and not p1:IsDescendantOf(char)) or (p1:IsDescendantOf(char) and not p0:IsDescendantOf(char)) then
+                    return true
+                end
             end
         end
     end
@@ -1339,7 +1336,7 @@ local function startWalkFling()
 
     local movel = 0.1
     walkFlingConnection = RunService.Heartbeat:Connect(function()
-        -- النظام يتوقف تلقائياً إذا كنت تحتضن أو إذا كان هناك لاعب ملتصق بك
+        -- يتوقف فوراً إذا كان هناك احتضان نشط أو إذا كنت ملتصقاً بأي لاعب آخر فيزيائياً
         if getgenv().IsFlinging or isHugging or isSomeoneAttached(char) then return end
         
         local currentChar = lp.Character
@@ -1375,9 +1372,7 @@ local function startWalkFling()
     end)
 end
 
--- ===============================================
--- [ نظام التقاط البيانات عبر Cobalt (Communicator) المحدث ]
--- ===============================================
+-- 2. اعتراض الشبكة الشامل (بدون شرط اسم الريموت)
 pcall(function()
     if not hookmetamethod then return end
     
@@ -1387,52 +1382,70 @@ pcall(function()
         local method = getnamecallmethod and getnamecallmethod() or ""
         
         if not checkcaller() and (method == "FireServer" or method == "fireServer" or method == "InvokeServer" or method == "invokeServer") then
-            if typeof(self) == "Instance" then
-                local name = self.Name
-                -- بناءً على البيانات التي أرسلتها، الريموت هو Communicator
-                if name == "Communicator" or name == "ActorCommunicator" or name:find("Comm") then
-                    local isHugAction = false
-                    
-                    for _, arg in ipairs(args) do
-                        if typeof(arg) == "Instance" then
-                            local argName = arg.Name:lower()
-                            
-                            pcall(function()
-                                -- الفحص الدقيق 100% بناءً على المسار الذي استخرجته:
-                                if argName:find("hold 1") or argName:find("hug") or argName:find("carry") then
+            local isHugAction = false
+            
+            -- فحص أي بيانات مرسلة للسيرفر
+            pcall(function()
+                for _, arg in pairs(args) do
+                    if typeof(arg) == "Instance" then
+                        local argName = arg.Name:lower()
+                        if argName:find("hold 1") or argName:find("hug") or argName:find("carry") or (arg.Parent and arg.Parent.Name == "Hugs") then
+                            isHugAction = true
+                        end
+                    elseif typeof(arg) == "table" then
+                        for _, v in pairs(arg) do
+                            if typeof(v) == "Instance" then
+                                local vName = v.Name:lower()
+                                if vName:find("hold 1") or vName:find("hug") or vName:find("carry") or (v.Parent and v.Parent.Name == "Hugs") then
                                     isHugAction = true
                                 end
-                                
-                                if arg.Parent and arg.Parent.Name == "Hugs" then
-                                    isHugAction = true
-                                end
-                            end)
-                            
-                            if isHugAction then break end
+                            end
                         end
                     end
-                    
-                    if isHugAction then
-                        task.spawn(function()
-                            isHugging = true
-                            stopWalkFling()
-                            
-                            -- إيقاف الحماية لمدة 5 ثوانٍ عند إرسال أمر الاحتضان
-                            task.wait(5)
-                            isHugging = false
-                            if antiWalkFlingToggleState then
-                                startWalkFling()
-                            end
-                        end)
-                    end
                 end
+            end)
+            
+            if isHugAction then
+                task.spawn(function()
+                    isHugging = true
+                    stopWalkFling()
+                    task.wait(6) -- أمان 6 ثوانٍ للابتعاد
+                    isHugging = false
+                    if antiWalkFlingToggleState then
+                        startWalkFling()
+                    end
+                end)
             end
         end
         
-        return oldNamecall(self, unpack(args))
+        return oldNamecall(self, ...)
     end)
 end)
--- ===============================================
+
+-- 3. مراقبة الأنيميشن (خط الدفاع الأقوى المباشر)
+local function setupAnimator(hum)
+    local animator = hum:FindFirstChildOfClass("Animator") or hum:WaitForChild("Animator", 3)
+    if animator then
+        animator.AnimationPlayed:Connect(function(track)
+            local anim = track.Animation
+            if anim then
+                local name = anim.Name:lower()
+                if name:find("hug") or name:find("hold") or name:find("carry") then
+                    isHugging = true
+                    stopWalkFling()
+                    
+                    track.Stopped:Connect(function()
+                        task.wait(3) -- أمان 3 ثوانٍ بعد انتهاء حركة الاحتضان
+                        isHugging = false
+                        if antiWalkFlingToggleState then
+                            startWalkFling()
+                        end
+                    end)
+                end
+            end
+        end)
+    end
+end
 
 local function setupCharacter(char)
     stopWalkFling()
@@ -1442,6 +1455,11 @@ local function setupCharacter(char)
     if hum then
         hum.Died:Connect(function()
             stopWalkFling()
+        end)
+        
+        -- تشغيل مراقبة الأنيميشن
+        task.spawn(function()
+            setupAnimator(hum)
         end)
     end
 
@@ -1458,9 +1476,9 @@ if lp.Character then
     setupCharacter(lp.Character)
 end
 
--- زر التشغيل والإيقاف في واجهة Rayfield
+-- زر التشغيل
 PlayerTab:CreateToggle({
-    Name = "Anti-Walk Fling (Safe Hug)",
+    Name = "Anti-Walk Fling",
     CurrentValue = false,
     Flag = "AntiWalkFlingToggle", 
     Callback = function(Value)
