@@ -1275,9 +1275,8 @@ PlayerTab:CreateToggle({
     end 
 })
 
-
 -------------------------------------------------------------------------
--- [ Anti-Walk Fling System - حل مشكلة الطيران لحظة الموت ] --
+-- [ Anti-Walk Fling System - حل مشكلة الطيران لحظة الموت والاحتضان ] --
 -------------------------------------------------------------------------
 local RunService = game:GetService("RunService")
 local Players = game:GetService("Players")
@@ -1334,8 +1333,7 @@ local function startWalkFling()
         
         local currentHum = currentChar:FindFirstChildOfClass("Humanoid")
         local currentRoot = currentChar:FindFirstChild("HumanoidRootPart") or currentChar:FindFirstChild("Torso")
-        
-        -- التحقق القاطع: إذا مات اللاعب أثناء الحلقة، يتم الإيقاف فوراً
+           -- التحقق القاطع: إذا مات اللاعب أثناء الحلقة، يتم الإيقاف فوراً
         if not currentHum or currentHum.Health <= 0 or not currentRoot then
             stopWalkFling()
             return
@@ -1388,6 +1386,49 @@ if lp.Character then
     setupCharacter(lp.Character)
 end
 
+-- ===============================================
+-- [ نظام معالجة طيران الاحتضان التلقائي (Smart Hug Anti-Fling) ]
+-- يوضع هنا بعد تعريف جميع الدوال وقبل زر الواجهة
+-- ===============================================
+local wasFlingActiveBeforeHug = false
+if hookmetamethod then
+    local oldNamecall
+    oldNamecall = hookmetamethod(game, "__namecall", function(self, ...)
+        local method = getnamecallmethod()
+        
+        -- التحقق إذا كان الاستدعاء صادر من اللعبة لريموتات الاحتضان
+        if not checkcaller() and (method == "InvokeServer" or method == "invokeServer") then
+            if self.Name == "StartJointEmote" then
+                -- عند بدء الاحتضان: حفظ الحالة وإيقاف الفلينق
+                if antiWalkFlingToggleState then
+                    wasFlingActiveBeforeHug = true
+                    stopWalkFling()
+                end
+            elseif self.Name == "CancelJointEmote" then
+                -- عند ترك الصديق: تنفيذ الأمر وتصفير السرعات
+                local result = oldNamecall(self, ...)
+                
+                if lp and lp.Character then
+                    clearAllVelocities(lp.Character)
+                end
+                
+                -- مهلة 0.8 ثانية لضمان انفصال الجسدين وثبات الفيزياء
+                task.spawn(function()
+                    task.wait(0.8)
+                    if wasFlingActiveBeforeHug or antiWalkFlingToggleState then
+                        startWalkFling()
+                        wasFlingActiveBeforeHug = false
+                    end
+                end)
+                return result
+            end
+        end
+        
+        return oldNamecall(self, ...)
+    end)
+end
+-- ===============================================
+
 -- زر التشغيل والإيقاف في واجهة Rayfield
 PlayerTab:CreateToggle({
     Name = "Anti-Walk Fling",
@@ -1403,7 +1444,7 @@ PlayerTab:CreateToggle({
     end,
 })
 
--------------------------------------------------------------------------
+    -------------------------------------------------------------------------
 
 -- Waypoints
 WaypointsTab:CreateSection("Saved Waypoints Management")
