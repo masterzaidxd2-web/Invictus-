@@ -1293,11 +1293,16 @@ local function startWalkFling()
         local char = game:GetService("Players").LocalPlayer.Character
         local hum = char and char:FindFirstChildOfClass("Humanoid")
         
-        -- إيقاف الحلقة مؤقتاً عند موت الشخصية لتجنب الأخطاء
         if hum then
             local deathConn
             deathConn = hum.Died:Connect(function()
                 walkflinging = false
+                -- تصفير السرعة فوراً لمنع القذف أثناء الريسباون
+                local root = getRoot(char)
+                if root then
+                    root.AssemblyLinearVelocity = Vector3.zero
+                    root.AssemblyAngularVelocity = Vector3.zero
+                end
                 if deathConn then deathConn:Disconnect() end
             end)
         end
@@ -1307,13 +1312,14 @@ local function startWalkFling()
             while walkflinging do
                 game:GetService("RunService").Heartbeat:Wait()
                 
-                -- التحقق من حالة الفلينغ العادي لمنع التعارض
                 if not getgenv().IsFlinging then
                     pcall(function()
                         local character = game:GetService("Players").LocalPlayer.Character
+                        local humCheck = character and character:FindFirstChildOfClass("Humanoid")
                         local root = getRoot(character)
                         
-                        if character and character.Parent and root and root.Parent then
+                        -- عدم تطبيق القوة إذا كانت الصحة 0
+                        if character and character.Parent and root and root.Parent and humCheck and humCheck.Health > 0 then
                             local vel = root.Velocity
                             root.Velocity = vel * walkFlingPower + Vector3.new(0, walkFlingPower, 0)
 
