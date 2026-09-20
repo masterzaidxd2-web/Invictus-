@@ -1275,10 +1275,11 @@ PlayerTab:CreateToggle({
     end 
 })
 -------------------------------------------------------------------------
--- [ Anti-Walk Fling System - Ultimate Safe Hug Edition ] --
+-- [ Anti-Walk Fling System - الإصدار الذكي بناءً على تجربتك اليدوية ] --
 -------------------------------------------------------------------------
 local RunService = game:GetService("RunService")
 local Players = game:GetService("Players")
+local StarterGui = game:GetService("StarterGui")
 local lp = Players.LocalPlayer
 
 local walkFlingConnection = nil
@@ -1286,16 +1287,26 @@ local antiWalkFlingToggleState = false
 local walkFlingPower = 50000 
 local isHugging = false
 
--- 1. الفحص الفيزيائي الشامل (يفحص جميع أنواع الروابط بين اللاعبين)
+-- نظام الإشعارات لتعرف حالة السكربت
+local function notify(title, text)
+    pcall(function()
+        StarterGui:SetCore("SendNotification", {
+            Title = title,
+            Text = text,
+            Duration = 3
+        })
+    end)
+end
+
+-- دالة فحص الالتصاق المحسنة
 local function isSomeoneAttached(char)
     if not char then return false end
     for _, desc in ipairs(char:GetDescendants()) do
-        -- يشمل Motor6D و Weld و أي مفصل آخر
-        if desc:IsA("JointInstance") or desc:IsA("WeldConstraint") then
-            local p0 = desc.Part0
-            local p1 = desc.Part1
+        if desc:IsA("JointInstance") or desc:IsA("WeldConstraint") or desc:IsA("Motor6D") or desc:IsA("AlignPosition") then
+            local p0 = desc.Part0 or (desc:IsA("AlignPosition") and desc.Attachment0 and desc.Attachment0.Parent)
+            local p1 = desc.Part1 or (desc:IsA("AlignPosition") and desc.Attachment1 and desc.Attachment1.Parent)
+            
             if p0 and p1 then
-                -- إذا كان أحد الأجزاء يتبع لك، والآخر يتبع لشخص آخر، فأنتم ملتصقون!
                 if (p0:IsDescendantOf(char) and not p1:IsDescendantOf(char)) or (p1:IsDescendantOf(char) and not p0:IsDescendantOf(char)) then
                     return true
                 end
@@ -1336,43 +1347,36 @@ local function startWalkFling()
 
     local movel = 0.1
     walkFlingConnection = RunService.Heartbeat:Connect(function()
-        -- يتوقف فوراً إذا كان هناك احتضان نشط أو إذا كنت ملتصقاً بأي لاعب آخر فيزيائياً
-        if getgenv().IsFlinging or isHugging or isSomeoneAttached(char) then return end
+        if getgenv().IsFlinging or isHugging then return end
         
-        local currentChar = lp.Character
-        if not currentChar or currentChar ~= char then
-            stopWalkFling()
-            return
-        end
-        
-        local currentHum = currentChar:FindFirstChildOfClass("Humanoid")
-        local currentRoot = currentChar:FindFirstChild("HumanoidRootPart") or currentChar:FindFirstChild("Torso")
-        
-        if not currentHum or currentHum.Health <= 0 or not currentRoot then
-            stopWalkFling()
-            return
-        end
+        local currentRoot = lp.Character and (lp.Character:FindFirstChild("HumanoidRootPart") or lp.Character:FindFirstChild("Torso"))
+        if not currentRoot then return end
 
         pcall(function()
             local oldVel = currentRoot.AssemblyLinearVelocity
-            
             currentRoot.AssemblyLinearVelocity = Vector3.new(walkFlingPower, walkFlingPower, walkFlingPower)
             
             RunService.RenderStepped:Wait()
-            if currentRoot and currentRoot.Parent and currentHum.Health > 0 then
-                currentRoot.AssemblyLinearVelocity = oldVel
+            if isHugging or not antiWalkFlingToggleState then
+                currentRoot.AssemblyLinearVelocity = Vector3.zero
+                return
             end
+            currentRoot.AssemblyLinearVelocity = oldVel
 
             RunService.Stepped:Wait()
-            if currentRoot and currentRoot.Parent and currentHum.Health > 0 then
-                currentRoot.AssemblyLinearVelocity = oldVel + Vector3.new(0, movel, 0)
-                movel = movel * -1
+            if isHugging or not antiWalkFlingToggleState then
+                currentRoot.AssemblyLinearVelocity = Vector3.zero
+                return
             end
+            currentRoot.AssemblyLinearVelocity = oldVel + Vector3.new(0, movel, 0)
+            movel = movel * -1
         end)
     end)
 end
 
--- 2. اعتراض الشبكة الشامل (بدون شرط اسم الريموت)
+-- ===============================================
+-- [ اعتراض الأوامر التلقائي (يعمل مثل طريقتك اليدوية تماماً) ]
+-- ===============================================
 pcall(function()
     if not hookmetamethod then return end
     
@@ -1381,71 +1385,50 @@ pcall(function()
         local args = {...}
         local method = getnamecallmethod and getnamecallmethod() or ""
         
-        if not checkcaller() and (method == "FireServer" or method == "fireServer" or method == "InvokeServer" or method == "invokeServer") then
-            local isHugAction = false
-            
-            -- فحص أي بيانات مرسلة للسيرفر
-            pcall(function()
+        if not checkcaller() and (method == "FireServer" or method == "InvokeServer") then
+            if typeof(self) == "Instance" and (self.Name == "Communicator" or self.Name:find("Comm")) then
+                local hugDetected = false
+                
                 for _, arg in pairs(args) do
                     if typeof(arg) == "Instance" then
                         local argName = arg.Name:lower()
                         if argName:find("hold 1") or argName:find("hug") or argName:find("carry") or (arg.Parent and arg.Parent.Name == "Hugs") then
-                            isHugAction = true
-                        end
-                    elseif typeof(arg) == "table" then
-                        for _, v in pairs(arg) do
-                            if typeof(v) == "Instance" then
-                                local vName = v.Name:lower()
-                                if vName:find("hold 1") or vName:find("hug") or vName:find("carry") or (v.Parent and v.Parent.Name == "Hugs") then
-                                    isHugAction = true
-                                end
-                            end
+                            hugDetected = true
                         end
                     end
                 end
-            end)
-            
-            if isHugAction then
-                task.spawn(function()
-                    isHugging = true
-                    stopWalkFling()
-                    task.wait(6) -- أمان 6 ثوانٍ للابتعاد
-                    isHugging = false
-                    if antiWalkFlingToggleState then
-                        startWalkFling()
-                    end
-                end)
-            end
-        end
-        
-        return oldNamecall(self, ...)
-    end)
-end)
-
--- 3. مراقبة الأنيميشن (خط الدفاع الأقوى المباشر)
-local function setupAnimator(hum)
-    local animator = hum:FindFirstChildOfClass("Animator") or hum:WaitForChild("Animator", 3)
-    if animator then
-        animator.AnimationPlayed:Connect(function(track)
-            local anim = track.Animation
-            if anim then
-                local name = anim.Name:lower()
-                if name:find("hug") or name:find("hold") or name:find("carry") then
-                    isHugging = true
-                    stopWalkFling()
-                    
-                    track.Stopped:Connect(function()
-                        task.wait(3) -- أمان 3 ثوانٍ بعد انتهاء حركة الاحتضان
+                
+                if hugDetected then
+                    task.spawn(function()
+                        isHugging = true
+                        stopWalkFling()
+                        notify("الاحتضان آمن", "تم إيقاف الفلينق تلقائياً! خذ وقتك 🫂")
+                        
+                        task.wait(1.5) -- ننتظر قليلاً حتى تلتصق الشخصيتان في السيرفر
+                        
+                        -- الحلقة الذكية: السكربت سيتوقف هنا ولن يحسب وقتاً.
+                        -- سيظل ينتظر طالما أنك لا تزال تحتضن صديقك (مثلما أطفأته يدوياً)
+                        while isSomeoneAttached(lp.Character) do
+                            task.wait(0.2)
+                        end
+                        
+                        -- بعد أن تتركه تماماً، ننتظر ثانيتين للتأكد أنه ابتعد
+                        task.wait(2)
                         isHugging = false
+                        
+                        -- نعيد التشغيل فقط إذا كان الزر لا يزال مفعلاً في القائمة
                         if antiWalkFlingToggleState then
+                            notify("حماية الفلينق", "تم إعادة تشغيل الحماية ⚠️")
                             startWalkFling()
                         end
                     end)
                 end
             end
-        end)
-    end
-end
+        end
+        
+        return oldNamecall(self, unpack(args))
+    end)
+end)
 
 local function setupCharacter(char)
     stopWalkFling()
@@ -1455,11 +1438,6 @@ local function setupCharacter(char)
     if hum then
         hum.Died:Connect(function()
             stopWalkFling()
-        end)
-        
-        -- تشغيل مراقبة الأنيميشن
-        task.spawn(function()
-            setupAnimator(hum)
         end)
     end
 
@@ -1476,9 +1454,8 @@ if lp.Character then
     setupCharacter(lp.Character)
 end
 
--- زر التشغيل
 PlayerTab:CreateToggle({
-    Name = "Anti-Walk Fling",
+    Name = "Anti-Walk Fling (Auto-Safe Mode)",
     CurrentValue = false,
     Flag = "AntiWalkFlingToggle", 
     Callback = function(Value)
