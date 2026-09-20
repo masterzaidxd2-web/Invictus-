@@ -1275,7 +1275,7 @@ PlayerTab:CreateToggle({
     end 
 })
 -------------------------------------------------------------------------
--- [ Anti-Walk Fling System - حل مشكلة الطيران والاحتضان (النسخة الآمنة) ] --
+-- [ Anti-Walk Fling System - الإصدار النهائي والخالي من الأخطاء ] --
 -------------------------------------------------------------------------
 local RunService = game:GetService("RunService")
 local Players = game:GetService("Players")
@@ -1285,7 +1285,7 @@ local walkFlingConnection = nil
 local antiWalkFlingToggleState = false
 local walkFlingPower = 50000 
 
--- وظيفة لتصفير سرعة كل أجزاء الجسم فوراً
+-- وظيفة لتصفير سرعة كل أجزاء الجسم
 local function clearAllVelocities(char)
     if not char then return end
     for _, part in ipairs(char:GetChildren()) do
@@ -1383,47 +1383,60 @@ if lp.Character then
 end
 
 -- ===============================================
--- [ نظام الهوك الآمن (بدون أخطاء أو كراش) ]
+-- [ نظام الهوك الآمن جداً (Crash-Proof Hook) ]
 -- ===============================================
 local wasFlingActiveBeforeHug = false
-if hookmetamethod then
+
+-- استخدام pcall كجدار حماية رئيسي لمنع المشغل من التوقف
+pcall(function() 
+    if not hookmetamethod then return end
+    
     local oldNamecall
     oldNamecall = hookmetamethod(game, "__namecall", function(self, ...)
-        -- حماية ضرورية: التأكد أن self هو كائن له اسم (Instance) لتفادي انهيار السكربت
-        if not checkcaller() and typeof(self) == "Instance" then
-            local method = tostring(getnamecallmethod())
-            
-            if method == "InvokeServer" or method == "invokeServer" or method == "FireServer" or method == "fireServer" then
+        local args = {...}
+        
+        -- فصل معالجة الكود عن مسار اللعبة الأساسي لمنع التجميد
+        task.spawn(function()
+            pcall(function()
+                -- استخدام دوال التحقق بحذر لتجنب الأخطاء
+                if checkcaller and checkcaller() then return end
+                if typeof(self) ~= "Instance" then return end
                 
-                if self.Name == "StartJointEmote" then
-                    if antiWalkFlingToggleState then
-                        wasFlingActiveBeforeHug = true
-                        stopWalkFling()
-                    end
-                    return oldNamecall(self, ...)
+                local method = getnamecallmethod and getnamecallmethod()
+                if not method then return end
+                
+                local methodStr = tostring(method)
+                if methodStr == "InvokeServer" or methodStr == "invokeServer" or methodStr == "FireServer" or methodStr == "fireServer" then
                     
-                elseif self.Name == "CancelJointEmote" then
-                    local result = oldNamecall(self, ...)
-                    
-                    if lp and lp.Character then
-                        clearAllVelocities(lp.Character)
-                    end
-                    
-                    task.spawn(function()
-                        task.wait(0.8)
+                    if self.Name == "StartJointEmote" then
+                        if antiWalkFlingToggleState then
+                            wasFlingActiveBeforeHug = true
+                            stopWalkFling()
+                        end
+                        
+                    elseif self.Name == "CancelJointEmote" then
+                        -- تصفير السرعة بشكل *مستمر* لمدة 0.8 ثانية لضمان عدم الطيران
+                        local endTime = tick() + 0.8
+                        while tick() < endTime do
+                            if lp and lp.Character then
+                                clearAllVelocities(lp.Character)
+                            end
+                            task.wait()
+                        end
+                        
+                        -- إعادة تشغيل الفلينق بعد استقرار الشخصية
                         if wasFlingActiveBeforeHug or antiWalkFlingToggleState then
                             startWalkFling()
                             wasFlingActiveBeforeHug = false
                         end
-                    end)
-                    return result
+                    end
                 end
-            end
-        end
+            end)
+        end)
         
-        return oldNamecall(self, ...)
+        return oldNamecall(self, unpack(args))
     end)
-end
+end)
 -- ===============================================
 
 -- زر التشغيل والإيقاف في واجهة Rayfield
@@ -1441,8 +1454,6 @@ PlayerTab:CreateToggle({
     end,
 })
 
--- ===============================================
--
 
     -------------------------------------------------------------------------
 
