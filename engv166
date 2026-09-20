@@ -1275,7 +1275,7 @@ PlayerTab:CreateToggle({
     end 
 })
 -------------------------------------------------------------------------
--- [ Anti-Walk Fling System - النسخة المبسطة بمهلة 3 ثواني ] --
+-- [ Anti-Walk Fling System - نسخة الهواتف (بدون هوك لضمان التوافق) ] --
 -------------------------------------------------------------------------
 local RunService = game:GetService("RunService")
 local Players = game:GetService("Players")
@@ -1284,28 +1284,33 @@ local lp = Players.LocalPlayer
 local walkFlingConnection = nil
 local antiWalkFlingToggleState = false
 local walkFlingPower = 50000 
+local isHugging = false
+
+local function clearAllVelocities(char)
+    if not char then return end
+    for _, part in ipairs(char:GetChildren()) do
+        if part:IsA("BasePart") then
+            pcall(function()
+                part.AssemblyLinearVelocity = Vector3.zero
+                part.AssemblyAngularVelocity = Vector3.zero
+            end)
+        end
+    end
+end
 
 local function stopWalkFling()
     if walkFlingConnection then
         walkFlingConnection:Disconnect()
         walkFlingConnection = nil
     end
-    -- تصفير السرعة لحظة الإيقاف
     if lp.Character then
-        for _, part in ipairs(lp.Character:GetChildren()) do
-            if part:IsA("BasePart") then
-                pcall(function()
-                    part.AssemblyLinearVelocity = Vector3.zero
-                    part.AssemblyAngularVelocity = Vector3.zero
-                end)
-            end
-        end
+        clearAllVelocities(lp.Character)
     end
 end
 
 local function startWalkFling()
     stopWalkFling()
-    if not antiWalkFlingToggleState then return end
+    if not antiWalkFlingToggleState or isHugging then return end
 
     local char = lp.Character
     if not char then return end
@@ -1317,7 +1322,7 @@ local function startWalkFling()
 
     local movel = 0.1
     walkFlingConnection = RunService.Heartbeat:Connect(function()
-        if getgenv().IsFlinging then return end
+        if getgenv().IsFlinging or isHugging then return end
         
         local currentChar = lp.Character
         if not currentChar or currentChar ~= char then
@@ -1352,11 +1357,70 @@ local function startWalkFling()
     end)
 end
 
+-- نظام مراقبة الاحتضان المخصص للهواتف عن طريق تتبع الـ Welds
+local function monitorCharacterForHugs(char)
+    char.DescendantAdded:Connect(function(descendant)
+        if descendant:IsA("Weld") or descendant:IsA("WeldConstraint") then
+            task.delay(0.1, function()
+                if descendant and descendant.Parent then
+                    local part0 = descendant.Part0
+                    local part1 = descendant.Part1
+                    if part0 and part1 then
+                        local char0 = part0.Parent
+                        local char1 = part1.Parent
+                        -- التحقق إذا كان الـ Weld يربطنا بلاعب آخر
+                        if (char0 == char and char1 ~= char and Players:GetPlayerFromCharacter(char1)) or
+                           (char1 == char and char0 ~= char and Players:GetPlayerFromCharacter(char0)) then
+                            isHugging = true
+                            stopWalkFling()
+                        end
+                    end
+                end
+            end)
+        end
+    end)
+
+    char.DescendantRemoving:Connect(function(descendant)
+        if descendant:IsA("Weld") or descendant:IsA("WeldConstraint") then
+            if isHugging then
+                task.delay(0.2, function()
+                    local stillHugging = false
+                    for _, obj in ipairs(char:GetDescendants()) do
+                        if (obj:IsA("Weld") or obj:IsA("WeldConstraint")) then
+                            local p0, p1 = obj.Part0, obj.Part1
+                            if p0 and p1 then
+                                local c0, c1 = p0.Parent, p1.Parent
+                                if (c0 == char and c1 ~= char and Players:GetPlayerFromCharacter(c1)) or
+                                   (c1 == char and c0 ~= char and Players:GetPlayerFromCharacter(c0)) then
+                                    stillHugging = true
+                                    break
+                                end
+                            end
+                        end
+                    end
+
+                    -- إذا ترك الصديق وتم فك الارتباط
+                    if not stillHugging then
+                        isHugging = true
+                        -- الانتظار 3 ثوانٍ بالضبط قبل إعادة التشغيل
+                        task.wait(3)
+                        isHugging = false
+                        if antiWalkFlingToggleState then
+                            startWalkFling()
+                        end
+                    end
+                end)
+            end
+        end
+    end)
+end
+
 local function setupCharacter(char)
     stopWalkFling()
+    isHugging = false
+    monitorCharacterForHugs(char)
     
     local hum = char:WaitForChild("Humanoid", 5)
-    
     if hum then
         hum.Died:Connect(function()
             stopWalkFling()
@@ -1376,54 +1440,7 @@ if lp.Character then
     setupCharacter(lp.Character)
 end
 
--- ===============================================
--- [ نظام الهوك المبسط (إيقاف فوري / انتظار 3 ثواني للتشغيل) ]
--- ===============================================
-local wasFlingActiveBeforeHug = false
-
-pcall(function() 
-    if not hookmetamethod then return end
-    
-    local oldNamecall
-    oldNamecall = hookmetamethod(game, "__namecall", function(self, ...)
-        local args = {...}
-        
-        task.spawn(function()
-            pcall(function()
-                if checkcaller and checkcaller() then return end
-                if typeof(self) ~= "Instance" then return end
-                
-                local method = getnamecallmethod and getnamecallmethod()
-                if not method then return end
-                
-                local methodStr = tostring(method)
-                if methodStr == "InvokeServer" or methodStr == "invokeServer" or methodStr == "FireServer" or methodStr == "fireServer" then
-                    
-                    if self.Name == "StartJointEmote" then
-                        -- عند بدء الاحتضان: الإيقاف فوراً
-                        if antiWalkFlingToggleState then
-                            wasFlingActiveBeforeHug = true
-                            stopWalkFling()
-                        end
-                        
-                    elseif self.Name == "CancelJointEmote" then
-                        -- عند ترك الصديق: انتظار 3 ثواني ثم إعادة التشغيل
-                        task.wait(3)
-                        
-                        if wasFlingActiveBeforeHug or antiWalkFlingToggleState then
-                            startWalkFling()
-                            wasFlingActiveBeforeHug = false
-                        end
-                    end
-                end
-            end)
-        end)
-        
-        return oldNamecall(self, unpack(args))
-    end)
-end)
--- ===============================================
-
+-- زر التشغيل والإيقاف في واجهة Rayfield
 PlayerTab:CreateToggle({
     Name = "Anti-Walk Fling",
     CurrentValue = false,
