@@ -1324,28 +1324,42 @@ local function startWalkFling()
     walkFlingConnection = RunService.Heartbeat:Connect(function()
         if isHugging or not antiWalkFlingToggleState then return end
         
-        local currentRoot = lp.Character and (lp.Character:FindFirstChild("HumanoidRootPart") or lp.Character:FindFirstChild("Torso"))
-        if not currentRoot then return end
+        local currentChar = lp.Character
+        local currentRoot = currentChar and (currentChar:FindFirstChild("HumanoidRootPart") or currentChar:FindFirstChild("Torso"))
+        local currentHum = currentChar and currentChar:FindFirstChildOfClass("Humanoid")
+        
+        if not currentRoot or not currentHum then return end
+
+        -- 🟢 نظام الترافك: إذا كان اللاعب يتحرك (يقوم بالركض/المشي)، يتم إيقاف الفلينق مؤقتاً
+        if currentHum.MoveDirection.Magnitude > 0 then
+            return
+        end
 
         pcall(function()
             local oldVel = currentRoot.AssemblyLinearVelocity
             currentRoot.AssemblyLinearVelocity = Vector3.new(walkFlingPower, walkFlingPower, walkFlingPower)
             RunService.RenderStepped:Wait()
-            if isHugging or not antiWalkFlingToggleState then
+            
+            -- فحص الحركة مجدداً أثناء الإطارات السريعة
+            if isHugging or not antiWalkFlingToggleState or currentHum.MoveDirection.Magnitude > 0 then
                 currentRoot.AssemblyLinearVelocity = Vector3.zero
                 return
             end
+            
             currentRoot.AssemblyLinearVelocity = oldVel
             RunService.Stepped:Wait()
-            if isHugging or not antiWalkFlingToggleState then
+            
+            if isHugging or not antiWalkFlingToggleState or currentHum.MoveDirection.Magnitude > 0 then
                 currentRoot.AssemblyLinearVelocity = Vector3.zero
                 return
             end
+            
             currentRoot.AssemblyLinearVelocity = oldVel + Vector3.new(0, movel, 0)
             movel = movel * -1
         end)
     end)
 end
+
 
 -- ===============================================
 -- [ اعتراض الريموتات الدقيق بناءً على بياناتك ]
