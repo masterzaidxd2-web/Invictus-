@@ -1275,14 +1275,17 @@ PlayerTab:CreateToggle({
     end 
 })
 -------------------------------------------------------------------------
--- [ Anti-Walk Fling System - الإصدار النهائي والذهبي والتلقائي 100% ] --
+-- [ Anti-Walk Fling System - الإصدار الخالي من التقطيع (Smooth Movement) ] --
 -------------------------------------------------------------------------
 local RunService = game:GetService("RunService")
 local Players = game:GetService("Players")
 local StarterGui = game:GetService("StarterGui")
 local lp = Players.LocalPlayer
 
-local walkFlingConnection = nil
+local steppedConnection = nil
+local heartbeatConnection = nil
+local storedVelocity = Vector3.zero
+
 local antiWalkFlingToggleState = false
 local walkFlingPower = 50000 
 local isHugging = false
@@ -1294,17 +1297,15 @@ local function notify(title, text)
 end
 
 local function stopWalkFling()
-    if walkFlingConnection then
-        walkFlingConnection:Disconnect()
-        walkFlingConnection = nil
-    end
+    if steppedConnection then steppedConnection:Disconnect() steppedConnection = nil end
+    if heartbeatConnection then heartbeatConnection:Disconnect() heartbeatConnection = nil end
+    
     if lp.Character then
-        for _, part in ipairs(lp.Character:GetChildren()) do
-            if part:IsA("BasePart") then
-                pcall(function()
-                    part.AssemblyLinearVelocity = Vector3.zero
-                    part.AssemblyAngularVelocity = Vector3.zero
-                end)
+        local root = lp.Character:FindFirstChild("HumanoidRootPart") or lp.Character:FindFirstChild("Torso")
+        if root then
+            -- نصفر السرعة فقط إذا كانت لا تزال على سرعة الفلينق العالية، لكي لا نزعج الركض العادي
+            if root.AssemblyLinearVelocity.Magnitude > 10000 then
+                root.AssemblyLinearVelocity = Vector3.zero
             end
         end
     end
@@ -1320,30 +1321,21 @@ local function startWalkFling()
     local root = char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso")
     if not hum or hum.Health <= 0 or not root then return end
 
-    local movel = 0.1
-    walkFlingConnection = RunService.Heartbeat:Connect(function()
+    -- 1. قبل حساب الفيزياء: نحفظ سرعتك الحقيقية ونضع سرعة الفلينق
+    steppedConnection = RunService.Stepped:Connect(function()
         if isHugging or not antiWalkFlingToggleState then return end
+        if not root or not root.Parent then return end
         
-        local currentRoot = lp.Character and (lp.Character:FindFirstChild("HumanoidRootPart") or lp.Character:FindFirstChild("Torso"))
-        if not currentRoot then return end
+        storedVelocity = root.AssemblyLinearVelocity
+        root.AssemblyLinearVelocity = Vector3.new(walkFlingPower, walkFlingPower, walkFlingPower)
+    end)
 
-        pcall(function()
-            local oldVel = currentRoot.AssemblyLinearVelocity
-            currentRoot.AssemblyLinearVelocity = Vector3.new(walkFlingPower, walkFlingPower, walkFlingPower)
-            RunService.RenderStepped:Wait()
-            if isHugging or not antiWalkFlingToggleState then
-                currentRoot.AssemblyLinearVelocity = Vector3.zero
-                return
-            end
-            currentRoot.AssemblyLinearVelocity = oldVel
-            RunService.Stepped:Wait()
-            if isHugging or not antiWalkFlingToggleState then
-                currentRoot.AssemblyLinearVelocity = Vector3.zero
-                return
-            end
-            currentRoot.AssemblyLinearVelocity = oldVel + Vector3.new(0, movel, 0)
-            movel = movel * -1
-        end)
+    -- 2. بعد حساب الفيزياء: نعيد سرعتك الحقيقية فوراً في نفس اللحظة (بدون أي Wait)
+    heartbeatConnection = RunService.Heartbeat:Connect(function()
+        if isHugging or not antiWalkFlingToggleState then return end
+        if not root or not root.Parent then return end
+        
+        root.AssemblyLinearVelocity = storedVelocity
     end)
 end
 
@@ -1373,15 +1365,12 @@ pcall(function()
                     end
                 end
                 
-            -- 2. ريموت إلغاء الاحتضان (الذي اكتشفته أنت)
+            -- 2. ريموت إلغاء الاحتضان
             elseif self.Name == "CancelJointEmote" then
                 if isHugging then
                     task.spawn(function()
                         notify("حماية الفلينق", "تم الإفلات.. ننتظر ابتعاد الشخصية ⏳")
-                        
-                        -- هذا الانتظار هو السر الفيزيائي لتفريغ السرعة
                         task.wait(2) 
-                        
                         isHugging = false
                         if antiWalkFlingToggleState then
                             startWalkFling()
@@ -1411,7 +1400,7 @@ lp.CharacterAdded:Connect(setupCharacter)
 if lp.Character then setupCharacter(lp.Character) end
 
 PlayerTab:CreateToggle({
-    Name = "Auto-Safe Walk Fling (Perfect Edition)",
+    Name = "Auto-Safe Walk Fling (Smooth Run)",
     CurrentValue = false,
     Flag = "AntiWalkFlingToggle", 
     Callback = function(Value)
