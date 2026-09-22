@@ -1363,7 +1363,41 @@ PlayerTab:CreateToggle({
         if Value then startWalkFling() else stopWalkFling() end
     end,
 })
- 
+ -- ===============================================
+-- إعدادات الـ Spinbot (دوران الجسد بالكامل)
+-- ===============================================
+local SpinbotEnabled = false
+local SpinbotSpeed = 25
+
+-- تأكد من أن 'PlayerTab' هو اسم المتغير الصحيح لخانة اللاعب في السكربت الخاص بك
+PlayerTab:CreateSection("🌀 Spinbot (Full Body)")
+
+PlayerTab:CreateToggle({ 
+    Name = "Enable Spinbot", 
+    CurrentValue = false, 
+    Flag = "SpinbotToggle", 
+    Callback = function(Value) 
+        SpinbotEnabled = Value 
+        -- تنظيف الـ Gyro عند الإيقاف ليعود الجسم لحالته الطبيعية
+        if not Value and lp.Character and lp.Character:FindFirstChild("HumanoidRootPart") then
+            local bg = lp.Character.HumanoidRootPart:FindFirstChild("SpinbotGyro")
+            if bg then bg:Destroy() end
+        end
+    end 
+})
+
+PlayerTab:CreateSlider({ 
+    Name = "Spin Speed", 
+    Range = {5, 100}, 
+    Increment = 1, 
+    Suffix = "Speed", 
+    CurrentValue = 25, 
+    Flag = "SpinbotSpeedSlider", 
+    Callback = function(Value) 
+        SpinbotSpeed = Value 
+    end 
+})
+
 -- Waypoints Tab
 WaypointsTab:CreateSection("Saved Waypoints Management")
 local NewWaypointName = ""
@@ -2024,6 +2058,28 @@ RunService.Heartbeat:Connect(function(dt)
           if activeTargetHRP then shouldGrab = shouldGrab or true end
       end
   end
+    -- ===============================================
+    -- نظام الـ Spinbot باستخدام منطق BodyGyro
+    -- ===============================================
+    if SpinbotEnabled and lp.Character and lp.Character:FindFirstChild("HumanoidRootPart") then
+        local myRoot = lp.Character.HumanoidRootPart
+        local bg = myRoot:FindFirstChild("SpinbotGyro")
+        
+        -- استنساخ نفس خصائص AutoLookGyro لتدوير الجسد بالكامل[span_2](start_span)[span_2](end_span)
+        if not bg then
+            bg = Instance.new("BodyGyro")
+            bg.Name = "SpinbotGyro"
+            bg.MaxTorque = Vector3.new(0, 400000, 0) -- تثبيت الدوران على محور Y فقط[span_3](start_span)[span_3](end_span)
+            bg.P = 30000 -- نفس قوة التوجيه الموجودة في AutoLook[span_4](start_span)[span_4](end_span)
+            bg.D = 100 -- نفس قوة التخميد[span_5](start_span)[span_5](end_span)
+            bg.Parent = myRoot
+            bg.CFrame = myRoot.CFrame 
+        end
+        
+        -- تحديث الدوران باستمرار بناءً على السرعة المحددة
+        -- استخدام (dt * 60) لضمان استقرار السرعة مهما اختلف معدل الإطارات (FPS)
+        bg.CFrame = bg.CFrame * CFrame.Angles(0, math.rad(SpinbotSpeed * (dt * 60)), 0)
+    end
 
   -- دمج الأعداء اليدويين كأهداف استهداف للمغناطيس أو القفل
   local myChar = lp.Character
