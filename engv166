@@ -1365,77 +1365,44 @@ PlayerTab:CreateToggle({
 })
 
 local RunService = game:GetService("RunService")
-local spinConnection = nil
+local Players = game:GetService("Players")
+local lp = Players.LocalPlayer
+
 local isSpinning = false
 local spinSpeed = 10
-local spinMover = nil
 
 local function toggleSpin(state)
     isSpinning = state
-    local char = lp.Character
-
+    
     if isSpinning then
-        if char then
-            local hrp = char:FindFirstChild("HumanoidRootPart")
-            local hum = char:FindFirstChildOfClass("Humanoid")
-            
-            if hrp and hum then
-                hum.AutoRotate = false 
+        -- استخدام BindToRenderStep بأولوية 'Last' لضمان تنفيذ الدوران بعد سكربتات اللعبة
+        RunService:BindToRenderStep("InvictusArenaSpin", Enum.RenderPriority.Last.Value, function(deltaTime)
+            local char = lp.Character
+            if char and char:FindFirstChild("HumanoidRootPart") then
+                local hrp = char.HumanoidRootPart
+                local hum = char:FindFirstChildOfClass("Humanoid")
                 
-                -- تنظيف أي محركات دوران سابقة لتفادي التداخل
-                for _, v in ipairs(hrp:GetChildren()) do
-                    if v.Name == "InvictusSpinMover" then v:Destroy() end
+                -- إيقاف التوجيه التلقائي إن أمكن
+                if hum then 
+                    hum.AutoRotate = false 
                 end
-
-                -- استخدام BodyAngularVelocity لفرض الدوران فيزيائياً وتجاوز قيود الحلبة
-                spinMover = Instance.new("BodyAngularVelocity")
-                spinMover.Name = "InvictusSpinMover"
-                spinMover.MaxTorque = Vector3.new(0, math.huge, 0)
-                spinMover.AngularVelocity = Vector3.new(0, spinSpeed, 0)
-                spinMover.Parent = hrp
-
-                if spinConnection then spinConnection:Disconnect() end
-                spinConnection = RunService.Heartbeat:Connect(function()
-                    if spinMover and spinMover.Parent then
-                        -- التحديث المستمر لسرعة الدوران لضمان استجابة السلايدر
-                        spinMover.AngularVelocity = Vector3.new(0, spinSpeed, 0)
-                    else
-                        -- إعادة إنشاء المحرك في حال قامت الحلبة بحذفه تلقائياً
-                        if hrp then
-                            spinMover = Instance.new("BodyAngularVelocity")
-                            spinMover.Name = "InvictusSpinMover"
-                            spinMover.MaxTorque = Vector3.new(0, math.huge, 0)
-                            spinMover.AngularVelocity = Vector3.new(0, spinSpeed, 0)
-                            spinMover.Parent = hrp
-                        end
-                    end
-                end)
+                
+                -- دمج دوران مستمر فوق الإحداثيات التي تفرضها الحلبة
+                -- استخدمنا deltaTime لضمان سلاسة الدوران مهما اختلف معدل الإطارات (FPS)
+                local rotationAmount = math.rad(spinSpeed * 100 * deltaTime)
+                hrp.CFrame = hrp.CFrame * CFrame.Angles(0, rotationAmount, 0)
             end
-        end
+        end)
     else
-        -- إيقاف الدوران وتنظيف المحركات
-        if spinConnection then
-            spinConnection:Disconnect()
-            spinConnection = nil
+        -- إيقاف الدوران وإلغاء الربط عند إغلاق الزر
+        RunService:UnbindFromRenderStep("InvictusArenaSpin")
+        local char = lp.Character
+        if char and char:FindFirstChildOfClass("Humanoid") then
+            char:FindFirstChildOfClass("Humanoid").AutoRotate = true
         end
-        if char then
-            local hrp = char:FindFirstChild("HumanoidRootPart")
-            local hum = char:FindFirstChildOfClass("Humanoid")
-            
-            if hrp then
-                for _, v in ipairs(hrp:GetChildren()) do
-                    if v.Name == "InvictusSpinMover" then v:Destroy() end
-                end
-            end
-            if hum then
-                hum.AutoRotate = true
-            end
-        end
-        spinMover = nil
     end
 end
 
--- زر تفعيل الدوران
 PlayerTab:CreateToggle({
     Name = "Enable SpinBot",
     CurrentValue = false,
@@ -1445,7 +1412,6 @@ PlayerTab:CreateToggle({
     end,
 })
 
--- سلايدر التحكم بسرعة الدوران
 PlayerTab:CreateSlider({
     Name = "Spin Speed",
     Range = {1, 100},
