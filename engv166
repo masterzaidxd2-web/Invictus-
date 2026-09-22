@@ -1368,40 +1368,70 @@ local RunService = game:GetService("RunService")
 local spinConnection = nil
 local isSpinning = false
 local spinSpeed = 10
+local spinMover = nil
 
 local function toggleSpin(state)
     isSpinning = state
+    local char = lp.Character
+
     if isSpinning then
-        if spinConnection then spinConnection:Disconnect() end
-        
-        spinConnection = RunService.RenderStepped:Connect(function()
-            local char = lp.Character
-            if char then
-                local hrp = char:FindFirstChild("HumanoidRootPart")
-                local hum = char:FindFirstChildOfClass("Humanoid")
+        if char then
+            local hrp = char:FindFirstChild("HumanoidRootPart")
+            local hum = char:FindFirstChildOfClass("Humanoid")
+            
+            if hrp and hum then
+                hum.AutoRotate = false 
                 
-                if hrp and hum then
-                    -- إيقاف تحكم اللعبة التلقائي في اتجاه اللاعب
-                    hum.AutoRotate = false 
-                    -- فرض الدوران
-                    hrp.CFrame = hrp.CFrame * CFrame.Angles(0, math.rad(spinSpeed), 0)
+                -- تنظيف أي محركات دوران سابقة لتفادي التداخل
+                for _, v in ipairs(hrp:GetChildren()) do
+                    if v.Name == "InvictusSpinMover" then v:Destroy() end
                 end
+
+                -- استخدام BodyAngularVelocity لفرض الدوران فيزيائياً وتجاوز قيود الحلبة
+                spinMover = Instance.new("BodyAngularVelocity")
+                spinMover.Name = "InvictusSpinMover"
+                spinMover.MaxTorque = Vector3.new(0, math.huge, 0)
+                spinMover.AngularVelocity = Vector3.new(0, spinSpeed, 0)
+                spinMover.Parent = hrp
+
+                if spinConnection then spinConnection:Disconnect() end
+                spinConnection = RunService.Heartbeat:Connect(function()
+                    if spinMover and spinMover.Parent then
+                        -- التحديث المستمر لسرعة الدوران لضمان استجابة السلايدر
+                        spinMover.AngularVelocity = Vector3.new(0, spinSpeed, 0)
+                    else
+                        -- إعادة إنشاء المحرك في حال قامت الحلبة بحذفه تلقائياً
+                        if hrp then
+                            spinMover = Instance.new("BodyAngularVelocity")
+                            spinMover.Name = "InvictusSpinMover"
+                            spinMover.MaxTorque = Vector3.new(0, math.huge, 0)
+                            spinMover.AngularVelocity = Vector3.new(0, spinSpeed, 0)
+                            spinMover.Parent = hrp
+                        end
+                    end
+                end)
             end
-        end)
+        end
     else
-        -- إيقاف الدوران
+        -- إيقاف الدوران وتنظيف المحركات
         if spinConnection then
             spinConnection:Disconnect()
             spinConnection = nil
         end
-        -- إعادة تحكم اللعبة الطبيعي (AutoRotate) عند إيقاف الزر
-        local char = lp.Character
         if char then
+            local hrp = char:FindFirstChild("HumanoidRootPart")
             local hum = char:FindFirstChildOfClass("Humanoid")
+            
+            if hrp then
+                for _, v in ipairs(hrp:GetChildren()) do
+                    if v.Name == "InvictusSpinMover" then v:Destroy() end
+                end
+            end
             if hum then
                 hum.AutoRotate = true
             end
         end
+        spinMover = nil
     end
 end
 
@@ -1427,8 +1457,6 @@ PlayerTab:CreateSlider({
         spinSpeed = Value
     end,
 })
-
-
 
 -- Waypoints Tab
 WaypointsTab:CreateSection("Saved Waypoints Management")
