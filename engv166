@@ -1363,8 +1363,7 @@ PlayerTab:CreateToggle({
         if Value then startWalkFling() else stopWalkFling() end
     end,
 })
-
-local RunService = game:GetService("RunService")
+ local RunService = game:GetService("RunService")
 local Players = game:GetService("Players")
 local lp = Players.LocalPlayer
 
@@ -1386,44 +1385,50 @@ local function toggleSpin(state)
     isSpinning = state
     
     if isSpinning then
-        -- إيقاف الدوران التلقائي لمنع التعارض
-        if lp.Character and lp.Character:FindFirstChild("Humanoid") then
-            lp.Character.Humanoid.AutoRotate = false
-        end
-
         RunService:BindToRenderStep("InvictusTargetSpin", Enum.RenderPriority.Camera.Value + 1, function()
             local char = lp.Character
             if char and char:FindFirstChild("HumanoidRootPart") then
                 local hrp = char.HumanoidRootPart
+                local humanoid = char:FindFirstChild("Humanoid")
                 
-                -- حساب زاوية الدوران بناءً على الوقت والسرعة
+                -- فرض إيقاف الدوران التلقائي للعبة باستمرار (لأن الحلبة قد تحاول إعادة تفعيله)
+                if humanoid then
+                    humanoid.AutoRotate = false
+                end
+                
+                -- 1. تنظيف أي جيرو أو أدوات دوران تفرضها الحلبة
+                for _, obj in pairs(hrp:GetChildren()) do
+                    if (obj:IsA("BodyGyro") or obj:IsA("AlignOrientation") or obj:IsA("BodyAngularVelocity")) then
+                        -- نحذف أي شيء لا يخص سكربتاتنا (نستثني SpinBotGyro و AutoLookGyro)
+                        if obj.Name ~= "SpinBotGyro" and obj.Name ~= "AutoLookGyro" then
+                            obj:Destroy()
+                        end
+                    end
+                end
+                
+                -- 2. إنشاء وتشغيل الدوران الخاص بنا
                 local angle = tick() * spinSpeed
                 local lookDirection = Vector3.new(math.sin(angle), 0, math.cos(angle))
                 
-                -- تطبيق نفس آلية AutoLook لإنشاء جيرو ذو قوة عالية للتغلب على الحلبة
                 local bg = hrp:FindFirstChild("SpinBotGyro")
                 if not bg then
                     bg = Instance.new("BodyGyro")
                     bg.Name = "SpinBotGyro"
-                    -- التركيز على الدوران الأفقي (المحور Y) بقوة عزم 400000
                     bg.MaxTorque = Vector3.new(0, 400000, 0)
-                    bg.P = 30000 -- طاقة استجابة عالية
-                    bg.D = 100   -- تخفيف الاهتزاز
+                    bg.P = 30000 
+                    bg.D = 100   
                     bg.Parent = hrp
                 end
                 
-                -- إجبار الشخصية على الدوران المستمر
                 bg.CFrame = CFrame.lookAt(hrp.Position, hrp.Position + lookDirection)
             end
         end)
     else
         -- إيقاف حلقة الدوران
         RunService:UnbindFromRenderStep("InvictusTargetSpin")
-        
-        -- مسح الـ BodyGyro الذي قمنا بإنشائه
         removeSpinGyro()
         
-        -- إعادة تفعيل الدوران التلقائي للشخصية
+        -- إعادة تفعيل الدوران التلقائي
         if lp.Character and lp.Character:FindFirstChild("Humanoid") then
             lp.Character.Humanoid.AutoRotate = true
         end
@@ -1452,7 +1457,6 @@ PlayerTab:CreateSlider({
         spinSpeed = Value
     end,
 })
-
 
 -- Waypoints Tab
 WaypointsTab:CreateSection("Saved Waypoints Management")
