@@ -1370,41 +1370,61 @@ local lp = Players.LocalPlayer
 
 local isSpinning = false
 local spinSpeed = 10
+local spinAngle = 0
+
+-- متغيرات لحفظ حالة المفصل الأصلية
+local originalC0 = nil
+local lastJoint = nil
+
+-- دالة للحصول على المفصل الأساسي سواء كانت الشخصية R6 أو R15
+local function getRootJoint()
+    local char = lp.Character
+    if char and char:FindFirstChild("HumanoidRootPart") then
+        return char.HumanoidRootPart:FindFirstChild("RootJoint")
+    end
+    return nil
+end
 
 local function toggleSpin(state)
     isSpinning = state
     
     if isSpinning then
-        -- استخدام BindToRenderStep بأولوية 'Last' لضمان تنفيذ الدوران بعد سكربتات اللعبة
-        RunService:BindToRenderStep("InvictusArenaSpin", Enum.RenderPriority.Last.Value, function(deltaTime)
-            local char = lp.Character
-            if char and char:FindFirstChild("HumanoidRootPart") then
-                local hrp = char.HumanoidRootPart
-                local hum = char:FindFirstChildOfClass("Humanoid")
-                
-                -- إيقاف التوجيه التلقائي إن أمكن
-                if hum then 
-                    hum.AutoRotate = false 
+        RunService:BindToRenderStep("InvictusJointSpin", Enum.RenderPriority.Camera.Value + 1, function(deltaTime)
+            local currentJoint = getRootJoint()
+            
+            if currentJoint then
+                -- حفظ الإحداثيات الأصلية للمفصل (مفيدة إذا ترسبن اللاعب)
+                if lastJoint ~= currentJoint then
+                    originalC0 = currentJoint.C0
+                    lastJoint = currentJoint
                 end
                 
-                -- دمج دوران مستمر فوق الإحداثيات التي تفرضها الحلبة
-                -- استخدمنا deltaTime لضمان سلاسة الدوران مهما اختلف معدل الإطارات (FPS)
-                local rotationAmount = math.rad(spinSpeed * 100 * deltaTime)
-                hrp.CFrame = hrp.CFrame * CFrame.Angles(0, rotationAmount, 0)
+                -- زيادة زاوية الدوران بناءً على سرعة السلايدر
+                spinAngle = spinAngle + math.rad(spinSpeed * 50 * deltaTime)
+                
+                -- تدوير الجسد المرئي حول محوره (المحور الصادي Y)
+                currentJoint.C0 = originalC0 * CFrame.Angles(0, spinAngle, 0)
             end
         end)
     else
-        -- إيقاف الدوران وإلغاء الربط عند إغلاق الزر
-        RunService:UnbindFromRenderStep("InvictusArenaSpin")
-        local char = lp.Character
-        if char and char:FindFirstChildOfClass("Humanoid") then
-            char:FindFirstChildOfClass("Humanoid").AutoRotate = true
+        -- إيقاف الدوران
+        RunService:UnbindFromRenderStep("InvictusJointSpin")
+        
+        -- إعادة المفصل لوضعه الطبيعي فور إيقاف الزر
+        local currentJoint = getRootJoint()
+        if currentJoint and originalC0 then
+            currentJoint.C0 = originalC0
         end
+        
+        -- تصفير المتغيرات
+        originalC0 = nil
+        lastJoint = nil
+        spinAngle = 0
     end
 end
 
 PlayerTab:CreateToggle({
-    Name = "Enable SpinBot",
+    Name = "Enable SpinBot (FPP Bypass)",
     CurrentValue = false,
     Flag = "SpinToggle",
     Callback = function(Value)
