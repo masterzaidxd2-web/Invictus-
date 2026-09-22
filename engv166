@@ -1364,6 +1364,57 @@ PlayerTab:CreateToggle({
     end,
 })
 
+local RunService = game:GetService("RunService")
+local spinConnection = nil
+local isSpinning = false
+local spinSpeed = 10 -- السرعة الافتراضية
+
+-- دالة تشغيل وإيقاف الدوران
+local function toggleSpin(state)
+    isSpinning = state
+    if isSpinning then
+        -- إيقاف أي اتصال سابق لتجنب التكرار
+        if spinConnection then spinConnection:Disconnect() end
+        
+        spinConnection = RunService.Heartbeat:Connect(function()
+            local char = lp.Character
+            if char and char:FindFirstChild("HumanoidRootPart") then
+                local hrp = char.HumanoidRootPart
+                -- تدوير اللاعب حول محور Y (اليمين واليسار)
+                hrp.CFrame = hrp.CFrame * CFrame.Angles(0, math.rad(spinSpeed), 0)
+            end
+        end)
+    else
+        -- إيقاف الدوران عند إغلاق الزر
+        if spinConnection then
+            spinConnection:Disconnect()
+            spinConnection = nil
+        end
+    end
+end
+
+-- زر تفعيل الدوران
+PlayerTab:CreateToggle({
+    Name = "تفعيل الدوران المستمر (Spin)",
+    CurrentValue = false,
+    Flag = "SpinToggle",
+    Callback = function(Value)
+        toggleSpin(Value)
+    end,
+})
+
+-- سلايدر التحكم بسرعة الدوران
+PlayerTab:CreateSlider({
+    Name = "سرعة الدوران",
+    Range = {1, 100}, -- يمكنك تغيير الحد الأقصى للسرعة (100) إلى رقم أعلى إذا أردت دورانًا جنونيًا
+    Increment = 1,
+    Suffix = " Speed",
+    CurrentValue = 10,
+    Flag = "SpinSpeedSlider",
+    Callback = function(Value)
+        spinSpeed = Value
+    end,
+})
 
 -- Waypoints Tab
 WaypointsTab:CreateSection("Saved Waypoints Management")
