@@ -1267,29 +1267,50 @@ pcall(function()
     oldNamecall = hookmetamethod(game, "__namecall", function(self, ...)
         local args = {...}
         local method = getnamecallmethod and getnamecallmethod() or ""
-        if not checkcaller() and method == "InvokeServer" then
-            if self.Name == "StartJointEmote" then
-                local anim = args[1]
-                if typeof(anim) == "Instance" and (anim.Name:find("Hold") or anim.Name:find("Hug") or (anim.Parent and anim.Parent.Name == "Hugs")) then
-                    if not isHugging then
-                        isHugging = true
-                        task.spawn(function()
-                            stopWalkFling()
-                            notify("حماية الفلينق", "تم إيقاف الفلينق 🫂 (احتضان آمن)")
-                        end)
-                    end
-                end
-            elseif self.Name == "CancelJointEmote" then
-                if isHugging then
+        
+        if method == "InvokeServer" then
+            -- 1. إضافة نظام إيقاف الفلينق عند الإمساك (Grab) لمدة 6 ثواني
+            if self.Name == "Grab" then
+                if not isHugging then
+                    isHugging = true
                     task.spawn(function()
-                        notify("حماية الفلينق", "تم الإفلات.. ننتظر ابتعاد الشخصية ⏳")
-                        task.wait(2) 
+                        stopWalkFling()
+                        notify("حماية الفلينق", "تم إيقاف الفلينق لمدة 6 ثواني بسبب الإمساك 🛑")
+                        task.wait(6) -- الانتظار لمدة 6 ثواني
                         isHugging = false
                         if antiWalkFlingToggleState then
                             startWalkFling()
-                            notify("حماية الفلينق", "تم إعادة تشغيل الفلينق ⚠️")
+                            notify("حماية الفلينق", "تم إعادة تشغيل الفلينق بعد الإمساك ⚠️")
                         end
                     end)
+                end
+            end
+
+            -- 2. حماية الإيموت الأصلية (تعمل فقط إذا كان الاستدعاء من اللعبة نفسها وليس من السكربت)
+            if not checkcaller() then
+                if self.Name == "StartJointEmote" then
+                    local anim = args[1]
+                    if typeof(anim) == "Instance" and (anim.Name:find("Hold") or anim.Name:find("Hug") or (anim.Parent and anim.Parent.Name == "Hugs")) then
+                        if not isHugging then
+                            isHugging = true
+                            task.spawn(function()
+                                stopWalkFling()
+                                notify("حماية الفلينق", "تم إيقاف الفلينق 🫂 (احتضان آمن)")
+                            end)
+                        end
+                    end
+                elseif self.Name == "CancelJointEmote" then
+                    if isHugging then
+                        task.spawn(function()
+                            notify("حماية الفلينق", "تم الإفلات.. ننتظر ابتعاد الشخصية ⏳")
+                            task.wait(2) 
+                            isHugging = false
+                            if antiWalkFlingToggleState then
+                                startWalkFling()
+                                notify("حماية الفلينق", "تم إعادة تشغيل الفلينق ⚠️")
+                            end
+                        end)
+                    end
                 end
             end
         end
