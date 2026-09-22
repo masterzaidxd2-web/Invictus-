@@ -1367,35 +1367,47 @@ PlayerTab:CreateToggle({
 local RunService = game:GetService("RunService")
 local spinConnection = nil
 local isSpinning = false
-local spinSpeed = 10 -- السرعة الافتراضية
+local spinSpeed = 10
 
--- دالة تشغيل وإيقاف الدوران
 local function toggleSpin(state)
     isSpinning = state
     if isSpinning then
-        -- إيقاف أي اتصال سابق لتجنب التكرار
         if spinConnection then spinConnection:Disconnect() end
         
-        spinConnection = RunService.Heartbeat:Connect(function()
+        spinConnection = RunService.RenderStepped:Connect(function()
             local char = lp.Character
-            if char and char:FindFirstChild("HumanoidRootPart") then
-                local hrp = char.HumanoidRootPart
-                -- تدوير اللاعب حول محور Y (اليمين واليسار)
-                hrp.CFrame = hrp.CFrame * CFrame.Angles(0, math.rad(spinSpeed), 0)
+            if char then
+                local hrp = char:FindFirstChild("HumanoidRootPart")
+                local hum = char:FindFirstChildOfClass("Humanoid")
+                
+                if hrp and hum then
+                    -- إيقاف تحكم اللعبة التلقائي في اتجاه اللاعب
+                    hum.AutoRotate = false 
+                    -- فرض الدوران
+                    hrp.CFrame = hrp.CFrame * CFrame.Angles(0, math.rad(spinSpeed), 0)
+                end
             end
         end)
     else
-        -- إيقاف الدوران عند إغلاق الزر
+        -- إيقاف الدوران
         if spinConnection then
             spinConnection:Disconnect()
             spinConnection = nil
+        end
+        -- إعادة تحكم اللعبة الطبيعي (AutoRotate) عند إيقاف الزر
+        local char = lp.Character
+        if char then
+            local hum = char:FindFirstChildOfClass("Humanoid")
+            if hum then
+                hum.AutoRotate = true
+            end
         end
     end
 end
 
 -- زر تفعيل الدوران
 PlayerTab:CreateToggle({
-    Name = "تفعيل الدوران المستمر (Spin)",
+    Name = "Enable SpinBot",
     CurrentValue = false,
     Flag = "SpinToggle",
     Callback = function(Value)
@@ -1405,8 +1417,8 @@ PlayerTab:CreateToggle({
 
 -- سلايدر التحكم بسرعة الدوران
 PlayerTab:CreateSlider({
-    Name = "سرعة الدوران",
-    Range = {1, 100}, -- يمكنك تغيير الحد الأقصى للسرعة (100) إلى رقم أعلى إذا أردت دورانًا جنونيًا
+    Name = "Spin Speed",
+    Range = {1, 100},
     Increment = 1,
     Suffix = " Speed",
     CurrentValue = 10,
@@ -1415,6 +1427,8 @@ PlayerTab:CreateSlider({
         spinSpeed = Value
     end,
 })
+
+
 
 -- Waypoints Tab
 WaypointsTab:CreateSection("Saved Waypoints Management")
