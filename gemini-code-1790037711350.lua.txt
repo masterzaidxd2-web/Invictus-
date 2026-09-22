@@ -1189,12 +1189,12 @@ PlayerTab:CreateToggle({
         end
     end 
 })
-
 -- Walk Fling System
 local walkFlingConnection = nil
 local antiWalkFlingToggleState = false
 local walkFlingPower = 50000 
 local isHugging = false
+local isGrabPause = false -- المتغير الجديد الخاص بإيقاف الفلينق عند الالتحام
 
 local function notify(title, text)
     pcall(function()
@@ -1221,7 +1221,8 @@ end
 
 local function startWalkFling()
     stopWalkFling()
-    if not antiWalkFlingToggleState or isHugging then return end
+    -- منع تشغيل الفلينق في حالة وجود التحام أو احتضان
+    if not antiWalkFlingToggleState or isHugging or isGrabPause then return end
 
     local char = lp.Character
     if not char then return end
@@ -1231,7 +1232,7 @@ local function startWalkFling()
 
     local movel = 0.1
     walkFlingConnection = RunService.Heartbeat:Connect(function()
-        if isHugging or not antiWalkFlingToggleState then return end
+        if isHugging or isGrabPause or not antiWalkFlingToggleState then return end
         local currentChar = lp.Character
         local currentRoot = currentChar and (currentChar:FindFirstChild("HumanoidRootPart") or currentChar:FindFirstChild("Torso"))
         local currentHum = currentChar and currentChar:FindFirstChildOfClass("Humanoid")
@@ -1245,13 +1246,13 @@ local function startWalkFling()
             local oldVel = currentRoot.AssemblyLinearVelocity
             currentRoot.AssemblyLinearVelocity = Vector3.new(walkFlingPower, walkFlingPower, walkFlingPower)
             RunService.RenderStepped:Wait()
-            if isHugging or not antiWalkFlingToggleState or currentHum.MoveDirection.Magnitude > 0 then
+            if isHugging or isGrabPause or not antiWalkFlingToggleState or currentHum.MoveDirection.Magnitude > 0 then
                 currentRoot.AssemblyLinearVelocity = Vector3.zero
                 return
             end
             currentRoot.AssemblyLinearVelocity = oldVel
             RunService.Stepped:Wait()
-            if isHugging or not antiWalkFlingToggleState or currentHum.MoveDirection.Magnitude > 0 then
+            if isHugging or isGrabPause or not antiWalkFlingToggleState or currentHum.MoveDirection.Magnitude > 0 then
                 currentRoot.AssemblyLinearVelocity = Vector3.zero
                 return
             end
@@ -1285,7 +1286,7 @@ pcall(function()
                         notify("حماية الفلينق", "تم الإفلات.. ننتظر ابتعاد الشخصية ⏳")
                         task.wait(2) 
                         isHugging = false
-                        if antiWalkFlingToggleState then
+                        if antiWalkFlingToggleState and not isGrabPause then
                             startWalkFling()
                             notify("حماية الفلينق", "تم إعادة تشغيل الفلينق ⚠️")
                         end
@@ -1300,13 +1301,66 @@ end)
 local function setupCharacter(char)
     stopWalkFling()
     isHugging = false
+    isGrabPause = false -- تصفير حالة الالتحام عند الترسبن الجديد
+
     local hum = char:WaitForChild("Humanoid", 5)
-    if hum then hum.Died:Connect(function() stopWalkFling() end) end
+    if hum then 
+        hum.Died:Connect(function() stopWalkFling() end) 
+        
+        -- دالة مؤقت الإيقاف عند الالتحام
+        local function handleGrabPause()
+            if isGrabPause or not antiWalkFlingToggleState then return end
+            isGrabPause = true
+            stopWalkFling()
+            notify("حماية الفلينق", "تم اكتشاف التحام (Grab)! إيقاف الفلينق لـ 6 ثوانٍ 🛑")
+            
+            task.spawn(function()
+                task.wait(6)
+                isGrabPause = false
+                if antiWalkFlingToggleState and not isHugging then
+                    startWalkFling()
+                    notify("حماية الفلينق", "عاد الفلينق للعمل بعد انتهاء مدة الالتحام ⚠️")
+                end
+            end)
+        end
+
+        -- 1. كشف الالتحام عبر الأجزاء المضافة 
+        char.DescendantAdded:Connect(function(child)
+            task.wait(0.05)
+            if child:IsA("Weld") or child:IsA("WeldConstraint") or child:IsA("Motor6D") then return end
+            
+            local name = child.Name:lower()
+            if name:find("grab") or name:find("stun") or name:find("hold") or name:find("carry") then
+                if hum:GetState() == Enum.HumanoidStateType.PlatformStanding or hum.WalkSpeed < 5 then
+                    handleGrabPause()
+                end
+            end
+        end)
+
+        -- 2. كشف الالتحام عبر التصاق اللاعبين أو حالة السقوط
+        hum.StateChanged:Connect(function(_, newState)
+            if newState == Enum.HumanoidStateType.PlatformStanding or newState == Enum.HumanoidStateType.Physics then
+                task.wait(0.05)
+                local root = char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso")
+                if root then
+                    for _, part in ipairs(root:GetConnectedParts()) do
+                        local potentialEnemy = part.Parent
+                        if potentialEnemy and potentialEnemy ~= char and potentialEnemy:FindFirstChildOfClass("Humanoid") then
+                            handleGrabPause()
+                            return
+                        end
+                    end
+                end
+            end
+        end)
+    end
+    
     if antiWalkFlingToggleState then
         task.wait(1)
         startWalkFling()
     end
 end
+
 lp.CharacterAdded:Connect(setupCharacter)
 if lp.Character then setupCharacter(lp.Character) end
 
