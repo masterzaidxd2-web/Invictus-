@@ -223,6 +223,7 @@ findHitRemote()
 
 local GrabRF = ReplicatedStorage:FindFirstChild("OldPackages") and ReplicatedStorage.OldPackages.Knit.Services.CombatService.RF.Grab
 
+local AuraToggleUI = nil
 local AuraEnabled = false
 local rangeVal = 50
 local apsVal = 15
