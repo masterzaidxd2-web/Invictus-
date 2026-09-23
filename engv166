@@ -797,7 +797,7 @@ local Window = Rayfield:CreateWindow({
     FolderName = "KHURAFI_Data",
     FileName = "AuraDeltaSettings"
  },
- KeySystem = false,
+ KeySystem = true,
  KeySettings = {
     Title = "Key System",
     Subtitle = "أدخل المفتاح لتشغيل السكربت",
@@ -1370,7 +1370,7 @@ local SpinbotEnabled = false
 local SpinbotSpeed = 25
 
 -- تأكد من أن 'PlayerTab' هو اسم المتغير الصحيح لخانة اللاعب في السكربت الخاص بك
-PlayerTab:CreateSection("🌀 Spinbot (Full Body)")
+PlayerTab:CreateSection("🌀 Spinbot (Full Body 360° Close it if you want a specific target)")
 
 PlayerTab:CreateToggle({ 
     Name = "Enable Spinbot", 
