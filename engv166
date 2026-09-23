@@ -2058,46 +2058,33 @@ RunService.Heartbeat:Connect(function(dt)
           if activeTargetHRP then shouldGrab = shouldGrab or true end
       end
   end
-        -- ===============================================
-    -- نظام الـ Spinbot المعدل (تخطي حماية وتوجيه الحلبة)
+    -- ===============================================
+    -- نظام الـ Spinbot المطور (تخطي قفل الكاميرا داخل الحلبة)
     -- ===============================================
     if SpinbotEnabled and lp.Character and lp.Character:FindFirstChild("HumanoidRootPart") and lp.Character:FindFirstChild("Humanoid") then
         local myRoot = lp.Character.HumanoidRootPart
         local hum = lp.Character.Humanoid
-        local bg = myRoot:FindFirstChild("SpinbotGyro")
         
-        -- 1. إيقاف الدوران الافتراضي للعبة لمنع التعارض الداخلي
+        -- 1. إجبار اللعبة على عدم تدوير الجسد مع الكاميرا
         hum.AutoRotate = false 
 
-        -- 2. تدمير أي أدوات توجيه تفرضها اللعبة عند دخول الحلبة (تمنع تجميد الجسم)
-        for _, v in pairs(myRoot:GetChildren()) do
-            if (v:IsA("AlignOrientation") or v:IsA("BodyGyro")) and v.Name ~= "SpinbotGyro" and v.Name ~= "AutoLookGyro" then
-                v:Destroy()
-            end
-        end
+        -- 2. إزالة أي BodyGyro سابق لمنع التعارض
+        local oldBg = myRoot:FindFirstChild("SpinbotGyro")
+        if oldBg then oldBg:Destroy() end
+
+        -- 3. تحديث زاوية الدوران بشكل المستمر
+        _G.SpinAngle = ((_G.SpinAngle or 0) + math.rad(SpinbotSpeed * (dt * 60))) % (math.pi * 2)
         
-        if not bg then
-            bg = Instance.new("BodyGyro")
-            bg.Name = "SpinbotGyro"
-            -- 3. استخدام القوة القصوى لضمان تغلب السكربت على فيزياء الحلبة
-            bg.MaxTorque = Vector3.new(0, math.huge, 0) 
-            bg.P = 500000 
-            bg.D = 100 
-            bg.Parent = myRoot
-            bg.CFrame = myRoot.CFrame 
-        end
-        
-        bg.CFrame = bg.CFrame * CFrame.Angles(0, math.rad(SpinbotSpeed * (dt * 60)), 0)
+        -- 4. فرض الدوران المباشر على CFrame لتجاوز سكربت الكاميرا الخاص باللعبة
+        local currentPos = myRoot.Position
+        myRoot.CFrame = CFrame.new(currentPos) * CFrame.Angles(0, _G.SpinAngle, 0)
     else
-        -- تنظيف وإعادة الوضع لطبيعته عند الإيقاف لتجنب تعليق الشخصية
+        -- إعادة وضع الدوران إلى الطبيعي عند إيقاف السكربت
         if lp.Character and lp.Character:FindFirstChild("Humanoid") then
             lp.Character.Humanoid.AutoRotate = true
         end
-        if lp.Character and lp.Character:FindFirstChild("HumanoidRootPart") then
-            local oldBg = lp.Character.HumanoidRootPart:FindFirstChild("SpinbotGyro")
-            if oldBg then oldBg:Destroy() end
-        end
     end
+
 
   -- دمج الأعداء اليدويين كأهداف استهداف للمغناطيس أو القفل
   local myChar = lp.Character
