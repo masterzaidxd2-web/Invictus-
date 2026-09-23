@@ -2059,6 +2059,39 @@ RunService.Heartbeat:Connect(function(dt)
           end
       end
   end
+    -- نظام تشغيل Aura Kill All عند تعرضك للإمساك
+    if AuraKillOnGrab and lp.Character then
+        -- استخدام الدالة الموجودة مسبقاً للتحقق من حالة الإمساك
+        if isBeingGrabbed(lp.Character) then
+            local currentTick = tick()
+            -- استخدام سرعة الضرب المحددة في شريط التمرير (apsVal)
+            if currentTick - lastHitTick >= (1 / apsVal) then
+                lastHitTick = currentTick
+                local myhrp = lp.Character:FindFirstChild("HumanoidRootPart")
+                
+                if myhrp then
+                    -- استهداف جميع اللاعبين المحيطين (باستثناء قائمة Safe)
+                    for _, p in ipairs(Players:GetPlayers()) do
+                        if p ~= lp and p.Character and not isSafe(p.Name) then
+                            local hrp = p.Character:FindFirstChild("HumanoidRootPart")
+                            local hum = p.Character:FindFirstChildOfClass("Humanoid")
+                            
+                            if hrp and hum and hum.Health > 0 then
+                                local dist = (hrp.Position - myhrp.Position).Magnitude
+                                -- التحقق من وجود الخصم ضمن نطاق الضرر المحدد (rangeVal)
+                                if dist <= rangeVal then
+                                    task.spawn(function()
+                                        doHit(hum, hrp.Position + hrp.CFrame.LookVector * 2)
+                                    end)
+                                end
+                            end
+                        end
+                    end
+                end
+            end
+        end
+    end
+
 
   local shouldGrab = AutoGrab
   local activeTargetHRP = nil 
