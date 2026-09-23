@@ -2058,27 +2058,45 @@ RunService.Heartbeat:Connect(function(dt)
           if activeTargetHRP then shouldGrab = shouldGrab or true end
       end
   end
+        -- ===============================================
+    -- نظام الـ Spinbot المعدل (تخطي حماية وتوجيه الحلبة)
     -- ===============================================
-    -- نظام الـ Spinbot باستخدام منطق BodyGyro
-    -- ===============================================
-    if SpinbotEnabled and lp.Character and lp.Character:FindFirstChild("HumanoidRootPart") then
+    if SpinbotEnabled and lp.Character and lp.Character:FindFirstChild("HumanoidRootPart") and lp.Character:FindFirstChild("Humanoid") then
         local myRoot = lp.Character.HumanoidRootPart
+        local hum = lp.Character.Humanoid
         local bg = myRoot:FindFirstChild("SpinbotGyro")
         
-        -- استنساخ نفس خصائص AutoLookGyro لتدوير الجسد بالكامل[span_2](start_span)[span_2](end_span)
+        -- 1. إيقاف الدوران الافتراضي للعبة لمنع التعارض الداخلي
+        hum.AutoRotate = false 
+
+        -- 2. تدمير أي أدوات توجيه تفرضها اللعبة عند دخول الحلبة (تمنع تجميد الجسم)
+        for _, v in pairs(myRoot:GetChildren()) do
+            if (v:IsA("AlignOrientation") or v:IsA("BodyGyro")) and v.Name ~= "SpinbotGyro" and v.Name ~= "AutoLookGyro" then
+                v:Destroy()
+            end
+        end
+        
         if not bg then
             bg = Instance.new("BodyGyro")
             bg.Name = "SpinbotGyro"
-            bg.MaxTorque = Vector3.new(0, 400000, 0) -- تثبيت الدوران على محور Y فقط[span_3](start_span)[span_3](end_span)
-            bg.P = 30000 -- نفس قوة التوجيه الموجودة في AutoLook[span_4](start_span)[span_4](end_span)
-            bg.D = 100 -- نفس قوة التخميد[span_5](start_span)[span_5](end_span)
+            -- 3. استخدام القوة القصوى لضمان تغلب السكربت على فيزياء الحلبة
+            bg.MaxTorque = Vector3.new(0, math.huge, 0) 
+            bg.P = 500000 
+            bg.D = 100 
             bg.Parent = myRoot
             bg.CFrame = myRoot.CFrame 
         end
         
-        -- تحديث الدوران باستمرار بناءً على السرعة المحددة
-        -- استخدام (dt * 60) لضمان استقرار السرعة مهما اختلف معدل الإطارات (FPS)
         bg.CFrame = bg.CFrame * CFrame.Angles(0, math.rad(SpinbotSpeed * (dt * 60)), 0)
+    else
+        -- تنظيف وإعادة الوضع لطبيعته عند الإيقاف لتجنب تعليق الشخصية
+        if lp.Character and lp.Character:FindFirstChild("Humanoid") then
+            lp.Character.Humanoid.AutoRotate = true
+        end
+        if lp.Character and lp.Character:FindFirstChild("HumanoidRootPart") then
+            local oldBg = lp.Character.HumanoidRootPart:FindFirstChild("SpinbotGyro")
+            if oldBg then oldBg:Destroy() end
+        end
     end
 
   -- دمج الأعداء اليدويين كأهداف استهداف للمغناطيس أو القفل
