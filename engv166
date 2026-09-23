@@ -854,13 +854,13 @@ MainTab:CreateButton({ Name = "Refresh Targets", Callback = function() AuraTarge
 GrabTab:CreateSection("Anti-Grab & Revenge")
 GrabTab:CreateToggle({ Name = "Auto-Escape & Target Attacker", CurrentValue = false, Flag = "AntiGrabToggle", Callback = function(Value) AntiGrabEnabled = Value end })
 
-local AutoAuraOnGrabEnabled = false
+_G.AutoAuraOnGrabEnabled = false
 GrabTab:CreateToggle({ 
     Name = "⚔️ Auto Aura Kill On Grab", 
     CurrentValue = false, 
     Flag = "AutoAuraOnGrabToggle", 
     Callback = function(Value) 
-        AutoAuraOnGrabEnabled = Value 
+        _G.AutoAuraOnGrabEnabled = Value 
     end 
 })
 
