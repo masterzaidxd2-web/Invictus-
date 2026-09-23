@@ -825,6 +825,18 @@ MainTab:CreateSlider({ Name = "Damage Range", Range = {5, 100}, Increment = 1, S
 MainTab:CreateSlider({ Name = "Hit Speed", Range = {1, 60}, Increment = 1, Suffix = "Hit/s", CurrentValue = 15, Flag = "APSSlider", Callback = function(Value) apsVal = Value end })
 local AuraTargetDropdown = MainTab:CreateDropdown({ Name = "Target", Options = getPlayerNames(true), CurrentOption = {"All"}, MultipleOptions = false, Flag = "AuraTargetDropdown", Callback = function(Options) if Options[1] then AuraTargetSelected = Options[1]; refreshAllEsp() end end })
 MainTab:CreateButton({ Name = "Refresh Targets", Callback = function() AuraTargetDropdown:Refresh(getPlayerNames(true)) end })
+-- متغير تفعيل ميزة القتل التلقائي عند الإمساك
+local AuraKillOnGrab = false
+
+MainTab:CreateToggle({
+    Name = "Aura Kill All On Grab",
+    CurrentValue = false,
+    Flag = "AuraKillOnGrabToggle",
+    Callback = function(Value)
+        AuraKillOnGrab = Value
+    end
+})
+
 
 -- Grab Tab
 GrabTab:CreateSection("Anti-Grab & Revenge")
