@@ -328,10 +328,14 @@ local function setupAntiGrab(char)
        local name = child.Name:lower()
        if name:find("grab") or name:find("stun") or name:find("hold") or name:find("carry") then
            
-           -- نظام تشغيل الأورا عند الإمساك
+                      -- نظام تشغيل الأورا عند الإمساك
            if AutoAuraOnGrabEnabled and not AuraEnabled then
-               AuraEnabled = true
-               pcall(function() AuraToggleUI:Set(true) end) -- تفعيل الزر في الواجهة ليتمكن اللاعب من إغلاقه يدوياً
+               if AuraToggleUI then
+                   pcall(function() AuraToggleUI:Set(true) end) -- هذا سيقوم تلقائياً بتحويل AuraEnabled إلى true عبر الـ Callback
+               else
+                   AuraEnabled = true -- كإجراء احتياطي في حال لم تكن الواجهة محملة بعد
+               end
+               
                pcall(function()
                    Rayfield:Notify({
                        Title = "Aura Kill ⚔️",
