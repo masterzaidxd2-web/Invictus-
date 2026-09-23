@@ -1101,39 +1101,60 @@ PlayerTab:CreateToggle({ Name = "Show Floating Fling Button", CurrentValue = fal
 PlayerTab:CreateToggle({ Name = "🧱 Noclip", CurrentValue = false, Flag = "NoclipToggle", Callback = function(Value) if Value then noclip() else clip() end end })
 PlayerTab:CreateToggle({ Name = "👥 Stand on Players' Heads", CurrentValue = false, Flag = "PlayerCollisionToggle", Callback = function(Value) PlayerCollisionEnabled = Value; if Value then enablePlayerCollisions() else disablePlayerCollisions() end end })
 
--- متغيرات لحفظ الاتصالات حتى نتمكن من إيقافها عند إطفاء الزر
-local StateConnection
+local AntiRagdollConnection
 local CharAddedConnection
 
--- دالة للتحكم في حالة الـ Ragdoll بسلاسة
-local function ToggleAntiRagdoll(character, isEnabled)
-    if not character then return end
-    local humanoid = character:WaitForChild("Humanoid", 3)
-    if not humanoid then return end
-
-    if isEnabled then
-        -- تعطيل السقوط من جذور المحرك
-        humanoid:SetStateEnabled(Enum.HumanoidStateType.Ragdoll, false)
-        humanoid:SetStateEnabled(Enum.HumanoidStateType.FallingDown, false)
-        
-        -- مراقبة حالة اللاعب وإجباره على النهوض فقط إذا حاول السيرفر إسقاطه
-        if StateConnection then StateConnection:Disconnect() end
-        StateConnection = humanoid.StateChanged:Connect(function(oldState, newState)
-            if newState == Enum.HumanoidStateType.Ragdoll or newState == Enum.HumanoidStateType.FallingDown then
-                humanoid:ChangeState(Enum.HumanoidStateType.GettingUp)
+-- دالة ذكية للتحقق مما إذا كان اللاعب يتعرض للإمساك حالياً
+local function isBeingGrabbed(character)
+    for _, descendant in ipairs(character:GetDescendants()) do
+        if descendant:IsA("Constraint") or descendant:IsA("Weld") or descendant:IsA("WeldConstraint") then
+            local name = descendant.Name:lower()
+            if name:find("grab") or name:find("carry") or name:find("hold") or name:find("stun") then
+                return true
             end
-        end)
-    else
-        -- إعادة كل شيء لطبيعته عند إطفاء الزر
-        pcall(function()
-            humanoid:SetStateEnabled(Enum.HumanoidStateType.Ragdoll, true)
-            humanoid:SetStateEnabled(Enum.HumanoidStateType.FallingDown, true)
-        end)
-        if StateConnection then
-            StateConnection:Disconnect()
-            StateConnection = nil
         end
     end
+    return false
+end
+
+-- دالة تشغيل Anti-Ragdoll
+local function startAntiRagdoll(character)
+    if not character then return end
+    local hu = character:WaitForChild("Humanoid", 3)
+    if not hu then return end
+
+    if AntiRagdollConnection then AntiRagdollConnection:Disconnect() end
+
+    AntiRagdollConnection = game:GetService("RunService").Heartbeat:Connect(function()
+        if not character or not character.Parent then return end
+
+        -- إذا كنت متلبساً بحالة إمساك، يتوقف السكربت مؤقتاً لكي يعمل Anti-Grab
+        if isBeingGrabbed(character) then
+            return
+        end
+
+        -- منع الاستلقاء والجلوس
+        if hu.PlatformStand then hu.PlatformStand = false end
+        if hu.Sit then hu.Sit = false end
+
+        -- النهوض الفوري
+        local state = hu:GetState()
+        if state == Enum.HumanoidStateType.Ragdoll 
+           or state == Enum.HumanoidStateType.FallingDown 
+           or state == Enum.HumanoidStateType.PlatformStanding 
+           or state == Enum.HumanoidStateType.Physics then
+            hu:ChangeState(Enum.HumanoidStateType.GettingUp)
+        end
+
+        -- إرجاع المفاصل وتدمير قيود الـ Ragdoll
+        for _, o in ipairs(character:GetDescendants()) do
+            if o:IsA("Motor6D") and not o.Enabled then
+                o.Enabled = true
+            elseif (o:IsA("BaseConstraint") or o:IsA("Attachment")) and o.Name:lower():find("ragdoll") then
+                o:Destroy()
+            end
+        end
+    end)
 end
 
 PlayerTab:CreateToggle({
@@ -1142,22 +1163,20 @@ PlayerTab:CreateToggle({
     Flag = "AntiRagdollToggle",
     Callback = function(Value)
         local player = game:GetService("Players").LocalPlayer
-        AntiFallEnabled = Value -- إبقاء المتغير الخاص بك في حال كنت تستخدمه في مكان آخر
-        
+        AntiFallEnabled = Value
+
         if Value then
-            -- تفعيل الميزة على الشخصية الحالية
-            ToggleAntiRagdoll(player.Character, true)
-            
-            -- ضمان استمرار الميزة حتى إذا مات اللاعب وترسبن من جديد
+            startAntiRagdoll(player.Character)
+
             if CharAddedConnection then CharAddedConnection:Disconnect() end
             CharAddedConnection = player.CharacterAdded:Connect(function(newChar)
-                ToggleAntiRagdoll(newChar, true)
+                startAntiRagdoll(newChar)
             end)
         else
-            -- إيقاف الميزة عن الشخصية الحالية
-            ToggleAntiRagdoll(player.Character, false)
-            
-            -- إيقاف تطبيقها عند الترسبن القادم
+            if AntiRagdollConnection then
+                AntiRagdollConnection:Disconnect()
+                AntiRagdollConnection = nil
+            end
             if CharAddedConnection then
                 CharAddedConnection:Disconnect()
                 CharAddedConnection = nil
@@ -1165,7 +1184,6 @@ PlayerTab:CreateToggle({
         end
     end,
 })
-
 
 local VoidAntiFallConn = nil
 local lastSafeCFrame = CFrame.new(0, 10, 0)
