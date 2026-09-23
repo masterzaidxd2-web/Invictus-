@@ -315,8 +315,9 @@ local function setupAntiGrab(char)
        executeAutoReset(reason)
    end
 
-   char.DescendantAdded:Connect(function(child)
-       if not AntiGrabEnabled then return end
+      char.DescendantAdded:Connect(function(child)
+       -- تعديل الشرط ليعمل الحدث إذا كان الـ AntiGrab أو الـ AutoAura مفعلاً
+       if not AntiGrabEnabled and not AutoAuraOnGrabEnabled then return end
        task.wait(0.05) 
        
        if child:IsA("Weld") or child:IsA("WeldConstraint") or child:IsA("Motor6D") then
@@ -325,11 +326,29 @@ local function setupAntiGrab(char)
        
        local name = child.Name:lower()
        if name:find("grab") or name:find("stun") or name:find("hold") or name:find("carry") then
-           if hum and (hum:GetState() == Enum.HumanoidStateType.PlatformStanding or hum.WalkSpeed < 5) then
-               executeAutoReset("Grab effect: " .. child.Name)
+           
+           -- نظام تشغيل الأورا عند الإمساك
+           if AutoAuraOnGrabEnabled and not AuraEnabled then
+               AuraEnabled = true
+               pcall(function() AuraToggleUI:Set(true) end) -- تفعيل الزر في الواجهة ليتمكن اللاعب من إغلاقه يدوياً
+               pcall(function()
+                   Rayfield:Notify({
+                       Title = "Aura Kill ⚔️",
+                       Content = "تم تفعيل الأورا تلقائياً بسبب تعرضك للإمساك!",
+                       Duration = 3
+                   })
+               end)
+           end
+
+           -- نظام الهروب (Anti-Grab) القديم
+           if AntiGrabEnabled then
+               if hum and (hum:GetState() == Enum.HumanoidStateType.PlatformStanding or hum.WalkSpeed < 5) then
+                   executeAutoReset("Grab effect: " .. child.Name)
+               end
            end
        end
    end)
+
    
    if hum then
        hum.StateChanged:Connect(function(_, newState)
@@ -820,7 +839,7 @@ local SettingsTab = Window:CreateTab("Settings", 4483345998)
 local OthersTab = Window:CreateTab("Others", 4483345998)
 
 -- Aura Tab
-MainTab:CreateToggle({ Name = "Enable Aura (STATUS)", CurrentValue = false, Flag = "AuraToggle", Callback = function(Value) AuraEnabled = Value end })
+local AuraToggleUI = MainTab:CreateToggle({ Name = "Enable Aura (STATUS)", CurrentValue = false, Flag = "AuraToggle", Callback = function(Value) AuraEnabled = Value end })
 MainTab:CreateSlider({ Name = "Damage Range", Range = {5, 100}, Increment = 1, Suffix = "Studs", CurrentValue = 50, Flag = "RangeSlider", Callback = function(Value) rangeVal = Value end })
 MainTab:CreateSlider({ Name = "Hit Speed", Range = {1, 60}, Increment = 1, Suffix = "Hit/s", CurrentValue = 15, Flag = "APSSlider", Callback = function(Value) apsVal = Value end })
 local AuraTargetDropdown = MainTab:CreateDropdown({ Name = "Target", Options = getPlayerNames(true), CurrentOption = {"All"}, MultipleOptions = false, Flag = "AuraTargetDropdown", Callback = function(Options) if Options[1] then AuraTargetSelected = Options[1]; refreshAllEsp() end end })
@@ -829,6 +848,16 @@ MainTab:CreateButton({ Name = "Refresh Targets", Callback = function() AuraTarge
 -- Grab Tab
 GrabTab:CreateSection("Anti-Grab & Revenge")
 GrabTab:CreateToggle({ Name = "Auto-Escape & Target Attacker", CurrentValue = false, Flag = "AntiGrabToggle", Callback = function(Value) AntiGrabEnabled = Value end })
+
+local AutoAuraOnGrabEnabled = false
+GrabTab:CreateToggle({ 
+    Name = "⚔️ Auto Aura Kill On Grab", 
+    CurrentValue = false, 
+    Flag = "AutoAuraOnGrabToggle", 
+    Callback = function(Value) 
+        AutoAuraOnGrabEnabled = Value 
+    end 
+})
 
 GrabTab:CreateSection("General Grab Settings")
 GrabTab:CreateToggle({ Name = "Continuous Grab (All)", CurrentValue = false, Flag = "AutoGrabToggle", Callback = function(Value) AutoGrab = Value end })
