@@ -316,9 +316,9 @@ local function setupAntiGrab(char)
        executeAutoReset(reason)
    end
 
-      char.DescendantAdded:Connect(function(child)
-       -- تعديل الشرط ليعمل الحدث إذا كان الـ AntiGrab أو الـ AutoAura مفعلاً
-       if not AntiGrabEnabled and not AutoAuraOnGrabEnabled then return end
+         char.DescendantAdded:Connect(function(child)
+       -- نستخدم _G هنا لكي يرى الزر حتى لو تم إنشاؤه في أسفل السكربت
+       if not AntiGrabEnabled and not _G.AutoAuraOnGrabEnabled then return end
        task.wait(0.05) 
        
        if child:IsA("Weld") or child:IsA("WeldConstraint") or child:IsA("Motor6D") then
@@ -328,14 +328,12 @@ local function setupAntiGrab(char)
        local name = child.Name:lower()
        if name:find("grab") or name:find("stun") or name:find("hold") or name:find("carry") then
            
-                      -- نظام تشغيل الأورا عند الإمساك
-           if AutoAuraOnGrabEnabled and not AuraEnabled then
-               if AuraToggleUI then
-                   pcall(function() AuraToggleUI:Set(true) end) -- هذا سيقوم تلقائياً بتحويل AuraEnabled إلى true عبر الـ Callback
-               else
-                   AuraEnabled = true -- كإجراء احتياطي في حال لم تكن الواجهة محملة بعد
+           -- نظام تشغيل الأورا عند الإمساك
+           if _G.AutoAuraOnGrabEnabled and not AuraEnabled then
+               AuraEnabled = true
+               if _G.AuraToggleUI then
+                   pcall(function() _G.AuraToggleUI:Set(true) end) -- تفعيل الزر الرئيسي فعلياً
                end
-               
                pcall(function()
                    Rayfield:Notify({
                        Title = "Aura Kill ⚔️",
