@@ -840,7 +840,7 @@ local SettingsTab = Window:CreateTab("Settings", 4483345998)
 local OthersTab = Window:CreateTab("Others", 4483345998)
 
 -- Aura Tab
-local AuraToggleUI = MainTab:CreateToggle({ Name = "Enable Aura (STATUS)", CurrentValue = false, Flag = "AuraToggle", Callback = function(Value) AuraEnabled = Value end })
+AuraToggleUI = MainTab:CreateToggle({ Name = "Enable Aura (STATUS)", CurrentValue = false, Flag = "AuraToggle", Callback = function(Value) AuraEnabled = Value end })
 MainTab:CreateSlider({ Name = "Damage Range", Range = {5, 100}, Increment = 1, Suffix = "Studs", CurrentValue = 50, Flag = "RangeSlider", Callback = function(Value) rangeVal = Value end })
 MainTab:CreateSlider({ Name = "Hit Speed", Range = {1, 60}, Increment = 1, Suffix = "Hit/s", CurrentValue = 15, Flag = "APSSlider", Callback = function(Value) apsVal = Value end })
 local AuraTargetDropdown = MainTab:CreateDropdown({ Name = "Target", Options = getPlayerNames(true), CurrentOption = {"All"}, MultipleOptions = false, Flag = "AuraTargetDropdown", Callback = function(Options) if Options[1] then AuraTargetSelected = Options[1]; refreshAllEsp() end end })
