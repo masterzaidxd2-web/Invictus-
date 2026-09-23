@@ -1116,13 +1116,32 @@ PlayerTab:CreateToggle({
                     if ch then
                         local hu = ch:FindFirstChildOfClass("Humanoid")
                         if hu then
+                            -- منع الاستلقاء والجلوس وإلغاء حالات التقييد
+                            hu.PlatformStand = false
+                            hu.Sit = false
+
                             for _, st in ipairs({
                                 Enum.HumanoidStateType.Ragdoll, 
-                                Enum.HumanoidStateType.FallingDown
+                                Enum.HumanoidStateType.FallingDown,
+                                Enum.HumanoidStateType.PlatformStanding
                             }) do
                                 pcall(function() hu:SetStateEnabled(st, false) end)
                             end
+
+                            -- إجبار الشخصية على القيام والركض تلقائياً فوراً دون الحاجة لضغط زر القفز
+                            local currentState = hu:GetState()
+                            if currentState == Enum.HumanoidStateType.Ragdoll 
+                               or currentState == Enum.HumanoidStateType.FallingDown 
+                               or currentState == Enum.HumanoidStateType.PlatformStanding 
+                               or currentState == Enum.HumanoidStateType.GettingUp 
+                               or currentState == Enum.HumanoidStateType.Physics then
+                                
+                                hu:ChangeState(Enum.HumanoidStateType.GettingUp)
+                                hu:ChangeState(Enum.HumanoidStateType.Running)
+                            end
                         end
+
+                        -- إزالة قيود الـ Ragdoll وإعادة تفعيل المفاصل
                         for _, o in pairs(ch:GetDescendants()) do
                             if (o:IsA("BaseConstraint") or o:IsA("Attachment")) and o.Name:lower():find("ragdoll") then 
                                 o:Destroy()
@@ -1139,13 +1158,14 @@ PlayerTab:CreateToggle({
                 AntiRagdollConnection = nil
             end
             local player = game:GetService("Players").LocalPlayer
-            local ch = player.Character
+            local ch = player and player.Character
             if ch then
                 local hu = ch:FindFirstChildOfClass("Humanoid")
                 if hu then
                     for _, st in ipairs({
                         Enum.HumanoidStateType.Ragdoll, 
-                        Enum.HumanoidStateType.FallingDown
+                        Enum.HumanoidStateType.FallingDown,
+                        Enum.HumanoidStateType.PlatformStanding
                     }) do
                         pcall(function() hu:SetStateEnabled(st, true) end)
                     end
@@ -1154,6 +1174,7 @@ PlayerTab:CreateToggle({
         end
     end,
 })
+
 
 local VoidAntiFallConn = nil
 local lastSafeCFrame = CFrame.new(0, 10, 0)
