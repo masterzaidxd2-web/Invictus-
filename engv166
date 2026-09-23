@@ -820,11 +820,66 @@ local SettingsTab = Window:CreateTab("Settings", 4483345998)
 local OthersTab = Window:CreateTab("Others", 4483345998)
 
 -- Aura Tab
-MainTab:CreateToggle({ Name = "Enable Aura (STATUS)", CurrentValue = false, Flag = "AuraToggle", Callback = function(Value) AuraEnabled = Value end })
+-- قمنا بحفظ الزر في متغير (AuraToggleElement) لكي نتمكن من تحديث حالته بصرياً عند تشغيله التلقائي
+local AuraToggleElement = MainTab:CreateToggle({ Name = "Enable Aura (STATUS)", CurrentValue = false, Flag = "AuraToggle", Callback = function(Value) AuraEnabled = Value end })
+
+local AutoAuraOnGrab = false
+MainTab:CreateToggle({ 
+    Name = "⚡ Auto Aura Kill All On Grab", 
+    CurrentValue = false, 
+    Flag = "AutoAuraOnGrabToggle", 
+    Callback = function(Value) 
+        AutoAuraOnGrab = Value 
+    end 
+})
+
 MainTab:CreateSlider({ Name = "Damage Range", Range = {5, 100}, Increment = 1, Suffix = "Studs", CurrentValue = 50, Flag = "RangeSlider", Callback = function(Value) rangeVal = Value end })
 MainTab:CreateSlider({ Name = "Hit Speed", Range = {1, 60}, Increment = 1, Suffix = "Hit/s", CurrentValue = 15, Flag = "APSSlider", Callback = function(Value) apsVal = Value end })
 local AuraTargetDropdown = MainTab:CreateDropdown({ Name = "Target", Options = getPlayerNames(true), CurrentOption = {"All"}, MultipleOptions = false, Flag = "AuraTargetDropdown", Callback = function(Options) if Options[1] then AuraTargetSelected = Options[1]; refreshAllEsp() end end })
 MainTab:CreateButton({ Name = "Refresh Targets", Callback = function() AuraTargetDropdown:Refresh(getPlayerNames(true)) end })
+
+-- ===============================================
+-- نظام تشغيل الأورا التلقائي عند التعرض للإمساك
+-- ===============================================
+local function setupAutoAuraGrab(char)
+    if not char then return end
+    local hum = char:WaitForChild("Humanoid", 3)
+    
+    char.DescendantAdded:Connect(function(child)
+        if not AutoAuraOnGrab then return end
+        task.wait(0.05) 
+        
+        -- تجاهل اللحامات العادية لمنع التفعيل الخاطئ
+        if child:IsA("Weld") or child:IsA("WeldConstraint") or child:IsA("Motor6D") then
+            return
+        end
+        
+        -- كشف ملفات الإمساك والتثبيت
+        local name = child.Name:lower()
+        if name:find("grab") or name:find("stun") or name:find("hold") or name:find("carry") then
+            -- التأكد من أن اللاعب فعلاً مسحوب أو مقيد الحركة
+            if hum and (hum:GetState() == Enum.HumanoidStateType.PlatformStanding or hum.WalkSpeed < 5) then
+                if not AuraEnabled or AuraTargetSelected ~= "All" then
+                    AuraEnabled = true
+                    AuraTargetSelected = "All"
+                    
+                    pcall(function()
+                        if AuraToggleElement then AuraToggleElement:Set(true) end
+                        if AuraTargetDropdown then AuraTargetDropdown:Set({"All"}) end
+                        Rayfield:Notify({
+                            Title = "Auto Aura ⚡",
+                            Content = "تم تفعيل Aura Kill All تلقائياً للرد على الإمساك!",
+                            Duration = 3
+                        })
+                    end)
+                end
+            end
+        end
+    end)
+end
+
+if lp.Character then setupAutoAuraGrab(lp.Character) end
+lp.CharacterAdded:Connect(setupAutoAuraGrab)
 
 -- Grab Tab
 GrabTab:CreateSection("Anti-Grab & Revenge")
