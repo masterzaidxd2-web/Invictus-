@@ -2057,6 +2057,179 @@ OthersTab:CreateToggle({
         end
     end,
 })
+-- ===============================================
+-- [ نظام الحركات (Troll / Bang System) ]
+-- ===============================================
+local RunService = game:GetService("RunService")
+local TargetPlayerName = ""
+local AttachLoop = nil
+local CurrentMode = ""
+local BangSpeed = 35
+local TimeCounter = 0
+
+OthersTab:CreateSection("🔥 نظام الحركات (Troll)")
+
+-- 1. دالة لجلب أسماء اللاعبين في السيرفر (بدون اسم اللاعب نفسه)
+local function GetPlayerNames()
+    local playerNames = {}
+    local lp = game.Players.LocalPlayer
+    for _, player in ipairs(game.Players:GetPlayers()) do
+        if player.Name ~= lp.Name then -- لا تضيف اسمك للقائمة
+            table.insert(playerNames, player.Name)
+        end
+    end
+    -- إذا كان السيرفر فارغاً (أنت وحدك)
+    if #playerNames == 0 then
+        table.insert(playerNames, "لا يوجد لاعبون آخرون")
+    end
+    return playerNames
+end
+
+-- 2. قائمة اختيار اسم اللاعب
+local PlayerDropdown = OthersTab:CreateDropdown({
+    Name = "اختر اللاعب (Target Player)",
+    Options = GetPlayerNames(),
+    CurrentOption = {"اختر لاعباً..."},
+    MultipleOptions = false,
+    Flag = "PlayerDropdown", 
+    Callback = function(Option)
+        -- القائمة تعود بجدول يحتوي الخيار المختار، نأخذ العنصر الأول
+        if Option[1] ~= "اختر لاعباً..." and Option[1] ~= "لا يوجد لاعبون آخرون" then
+            TargetPlayerName = Option[1]
+        else
+            TargetPlayerName = ""
+        end
+    end,
+})
+
+-- 3. زر تحديث قائمة اللاعبين
+OthersTab:CreateButton({
+    Name = "🔄 تحديث قائمة اللاعبين",
+    Callback = function()
+        PlayerDropdown:Refresh(GetPlayerNames(), {"اختر لاعباً..."})
+        Rayfield:Notify({
+            Title = "تم التحديث",
+            Content = "تم تحديث قائمة اللاعبين في السيرفر.",
+            Duration = 2
+        })
+    end
+})
+
+-- 4. مؤشر التحكم بسرعة الحركة
+OthersTab:CreateSlider({
+    Name = "سرعة الحركة (Speed)",
+    Range = {0, 100},
+    Increment = 1,
+    CurrentValue = 35,
+    Flag = "BangSpeedSlider",
+    Callback = function(Value)
+        BangSpeed = Value
+    end,
+})
+
+-- الدالة الأساسية لتشغيل الحركات (تقوم بإيقاف الحركة السابقة تلقائياً)
+local function StartAttachLoop(mode)
+    -- التحقق من اختيار لاعب أولاً
+    if TargetPlayerName == "" then
+        Rayfield:Notify({
+            Title = "خطأ",
+            Content = "يرجى اختيار لاعب من القائمة أولاً!",
+            Duration = 3
+        })
+        return
+    end
+
+    -- إيقاف أي حركة سابقة إذا كانت تعمل
+    if AttachLoop then 
+        AttachLoop:Disconnect() 
+        AttachLoop = nil 
+    end
+    
+    CurrentMode = mode
+    TimeCounter = 0
+    
+    AttachLoop = RunService.Heartbeat:Connect(function(deltaTime)
+        local targetPlayer = game.Players:FindFirstChild(TargetPlayerName)
+        local lp = game.Players.LocalPlayer
+        
+        -- التأكد من أن اللاعب المستهدف لا يزال موجوداً وأن الشخصيات موجودة
+        if targetPlayer and targetPlayer.Character and targetPlayer.Character:FindFirstChild("HumanoidRootPart") and lp.Character and lp.Character:FindFirstChild("HumanoidRootPart") then
+            local targetRoot = targetPlayer.Character.HumanoidRootPart
+            local localRoot = lp.Character.HumanoidRootPart
+            
+            localRoot.Velocity = Vector3.new(0, 0, 0)
+            
+            -- حساب السرعة
+            if BangSpeed > 0 then
+                TimeCounter = TimeCounter + (deltaTime * BangSpeed * 2)
+            else
+                TimeCounter = 0
+            end
+            
+            -- تنفيذ الحركة بناءً على الزر المضغوط
+            if CurrentMode == "MOUTH" then
+                local bangOffset = math.sin(TimeCounter) * 0.75
+                localRoot.CFrame = targetRoot.CFrame * CFrame.new(0, 1.25, -0.4 + bangOffset) * CFrame.Angles(0, math.rad(180), 0)
+            elseif CurrentMode == "BACK" then
+                local bangOffset = math.sin(TimeCounter) * 0.75
+                localRoot.CFrame = targetRoot.CFrame * CFrame.new(0, -0.5, 0.4 - bangOffset)
+            elseif CurrentMode == "ROTATE" then
+                local radius = 2
+                local x = math.cos(TimeCounter) * radius
+                local z = math.sin(TimeCounter) * radius
+                localRoot.CFrame = CFrame.new(targetRoot.Position + Vector3.new(x, 1, z), targetRoot.Position)
+            end
+        else
+            -- إذا غادر اللاعب السيرفر أثناء تشغيل الحركة
+            AttachLoop:Disconnect()
+            AttachLoop = nil
+            TargetPlayerName = ""
+            Rayfield:Notify({
+                Title = "تنبيه",
+                Content = "لقد غادر اللاعب السيرفر أو ماتت شخصيته.",
+                Duration = 3
+            })
+        end
+    end)
+end
+
+-- 5. أزرار تشغيل الحركات
+OthersTab:CreateButton({
+    Name = "Mouth Bang (حركة أمامية)",
+    Callback = function() 
+        StartAttachLoop("MOUTH") 
+    end
+})
+
+OthersTab:CreateButton({
+    Name = "Back Mode (حركة خلفية)",
+    Callback = function() 
+        StartAttachLoop("BACK") 
+    end
+})
+
+OthersTab:CreateButton({
+    Name = "Fast Rotation (دوران سريع)",
+    Callback = function() 
+        StartAttachLoop("ROTATE") 
+    end
+})
+
+-- 6. زر الإيقاف النهائي
+OthersTab:CreateButton({
+    Name = "🛑 إيقاف الحركة (Stop Follow)",
+    Callback = function()
+        if AttachLoop then 
+            AttachLoop:Disconnect() 
+            AttachLoop = nil 
+            Rayfield:Notify({
+                Title = "إيقاف",
+                Content = "تم إيقاف الحركة بنجاح.",
+                Duration = 2
+            })
+        end
+    end
+})
 
 -- ===============================================
 -- [ 4.5 ] Global Chat System (Enhanced)
