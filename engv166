@@ -2033,10 +2033,11 @@ if http_req then
     -- [ Tags & Colors Configuration ]
     local DefaultNameColor = "#CCCCCC" -- Light gray for regular players
     local CustomTags = {
-        ["YourRealUsername"] = {Tag = "Owner", Color = "#FF0000"}, -- Owner (Red)
+        ["1The_Invictus"] = {Tag = "Owner", Color = "#FF0000"}, -- Owner (Red)
         ["AdminUsername123"] = {Tag = "Admin", Color = "#00FF00"}, -- Admin (Green)
-        ["VipPlayer456"]     = {Tag = "VIP",   Color = "#FFD700"}  -- VIP (Gold)
-    }
+        ["AstroboyEarth"]     = {Tag = "VIP",   Color = "#FFD700"}  -- VIP (Gold)
+        ["shi_zhenn"]     = {Tag = "VIP",   Color = "#FFD700"}  -- VIP (Gold)
+}
 
     local ChatDisplay = ChatTab:CreateParagraph({
         Title = "💬 Global Chat (Invictus)",
