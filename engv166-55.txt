@@ -340,12 +340,13 @@ local function setupAntiGrab(char)
        end
        
        local name = child.Name:lower()
-       if name:find("grab") or name:find("stun") or name:find("hold") or name:find("carry") then
+              if name:find("grab") or name:find("stun") or name:find("hold") or name:find("carry") then
            if hum and (hum:GetState() == Enum.HumanoidStateType.PlatformStanding or hum.WalkSpeed < 5) then
+               triggerAutoAuraOnGrab() -- تفعيل الأورا عند كشف تأثير الإمساك
                executeAutoReset("Grab effect: " .. child.Name)
            end
        end
-   end)
+
    
    if hum then
        hum.StateChanged:Connect(function(_, newState)
