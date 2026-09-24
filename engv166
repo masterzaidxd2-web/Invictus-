@@ -254,7 +254,14 @@ local AutoAuraOnGrabEnabled = false
 local function triggerAutoAuraOnGrab()
     if AutoAuraOnGrabEnabled then
         AuraTargetSelected = "All"
-        AuraEnabled = true
+        
+        -- تحديث زر الواجهة برمجياً ليعمل بشكل متزامن
+        if AuraToggleElement then
+            pcall(function() AuraToggleElement:Set(true) end)
+        else
+            AuraEnabled = true
+        end
+
         pcall(function()
             Rayfield:Notify({
                 Title = "Auto Aura Kill 🔥",
