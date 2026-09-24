@@ -224,6 +224,7 @@ findHitRemote()
 local GrabRF = ReplicatedStorage:FindFirstChild("OldPackages") and ReplicatedStorage.OldPackages.Knit.Services.CombatService.RF.Grab
 
 local AuraEnabled = false
+local AuraToggleElement = nil -- [تم إضافة هذا المتغير للتحكم بالواجهة]
 local rangeVal = 50
 local apsVal = 15
 local AuraTargetSelected = "All"
