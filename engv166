@@ -2035,8 +2035,10 @@ if http_req then
     local CustomTags = {
         ["1The_Invictus"] = {Tag = "Owner", Color = "#FF0000"}, -- Owner (Red)
         ["AdminUsername123"] = {Tag = "Admin", Color = "#00FF00"}, -- Admin (Green)
-        ["AstroboyEarth"]     = {Tag = "VIP",   Color = "#FFD700"}  -- VIP (Gold)
-        }
+        ["AstroboyEarth"] = {Tag = "VIP", Color = "#FFD700"}, -- المشكلة كانت هنا (أضفنا الفاصلة في النهاية)
+        ["shi_zhenn"] = {Tag = "VIP", Color = "#FFD700"} -- السطر الأخير لا يحتاج لفاصلة
+    }
+
 
     local ChatDisplay = ChatTab:CreateParagraph({
         Title = "💬 Global Chat (Invictus)",
