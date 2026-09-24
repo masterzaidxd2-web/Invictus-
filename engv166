@@ -2020,6 +2020,45 @@ OthersTab:CreateButton({
     end
 })
 -- ===============================================
+-- [ Anti-AFK System ]
+-- ===============================================
+local VirtualUser = game:GetService("VirtualUser")
+local antiAfkConnection = nil
+
+OthersTab:CreateToggle({
+    Name = "Anti-AFK (منع الطرد)",
+    CurrentValue = false,
+    Flag = "AntiAFK", 
+    Callback = function(Value)
+        if Value then
+            -- تفعيل النظام
+            if not antiAfkConnection then
+                antiAfkConnection = lp.Idled:Connect(function()
+                    VirtualUser:CaptureController()
+                    VirtualUser:ClickButton2(Vector2.zero)
+                end)
+            end
+            Rayfield:Notify({
+                Title = "Anti-AFK",
+                Content = "تم تفعيل منع الطرد من السيرفر بنجاح.",
+                Duration = 2
+            })
+        else
+            -- إيقاف النظام
+            if antiAfkConnection then
+                antiAfkConnection:Disconnect()
+                antiAfkConnection = nil
+            end
+            Rayfield:Notify({
+                Title = "Anti-AFK",
+                Content = "تم إيقاف منع الطرد.",
+                Duration = 2
+            })
+        end
+    end,
+})
+
+-- ===============================================
 -- [ 4.5 ] Global Chat System (Enhanced)
 -- ===============================================
 local DATABASE_URL = "https://invictus-chat-default-rtdb.firebaseio.com/chat.json"
