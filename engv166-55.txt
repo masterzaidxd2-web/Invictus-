@@ -250,6 +250,19 @@ local AutoMagnetEnabled = false
 local AntiGrabEnabled = false
 local AntiFallEnabled = false
 local AutoAuraOnGrabEnabled = false
+local function triggerAutoAuraOnGrab()
+    if AutoAuraOnGrabEnabled then
+        AuraTargetSelected = "All"
+        AuraEnabled = true
+        pcall(function()
+            Rayfield:Notify({
+                Title = "Auto Aura Kill 🔥",
+                Content = "تم الامساك بك! تم تفعيل Aura Kill للجميع.",
+                Duration = 3
+            })
+        end)
+    end
+end
 
 local function executeAutoReset(reason)
    if not AntiGrabEnabled then return end
