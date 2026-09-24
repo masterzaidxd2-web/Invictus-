@@ -249,6 +249,7 @@ local AutoMagnetEnabled = false
 -- منطق حماية الإمساك والانتقام التلقائي (Anti-Grab Auto Reset & Revenge)
 local AntiGrabEnabled = false
 local AntiFallEnabled = false
+local AutoAuraOnGrabEnabled = false
 
 local function executeAutoReset(reason)
    if not AntiGrabEnabled then return end
