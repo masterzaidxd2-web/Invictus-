@@ -2019,6 +2019,124 @@ OthersTab:CreateButton({
         end)
     end
 })
+-- ===============================================
+-- [ 4.5 ] نظام الدردشة العامة - Global Chat
+-- ===============================================
+local DATABASE_URL = "https://invictus-chat-default-rtdb.firebaseio.com/chat.json"
+local http_req = (syn and syn.request) or (http and http.request) or http_request or request
+
+if http_req then
+    local lastMessageTime = 0
+    local cooldownTime = 2
+    local currentInputText = ""
+
+    local ChatDisplay = ChatTab:CreateParagraph({
+        Title = "💬 الدردشة العامة (Invictus)",
+        Content = "جاري الاتصال بالخادم وجلب الرسائل..."
+    })
+
+    ChatTab:CreateInput({
+        Name = "اكتب رسالتك",
+        PlaceholderText = "رسالتك هنا...",
+        RemoveTextAfterFocusLost = true,
+        Callback = function(Text)
+            currentInputText = Text
+        end
+    })
+
+    local function SendChatMessage()
+        if currentInputText == "" or string.gsub(currentInputText, "%s+", "") == "" then return end
+        
+        if tick() - lastMessageTime < cooldownTime then
+            Rayfield:Notify({
+                Title = "تحذير ⚠️",
+                Content = "يرجى الانتظار قليلاً قبل إرسال رسالة أخرى (Cooldown).",
+                Duration = 2
+            })
+            return
+        end
+        
+        lastMessageTime = tick()
+        local messageToSend = currentInputText
+        currentInputText = ""
+
+        task.spawn(function()
+            pcall(function()
+                local payload = HttpService:JSONEncode({
+                    sender = lp.DisplayName .. " (@" .. lp.Name .. ")",
+                    message = messageToSend,
+                    timestamp = os.time()
+                })
+
+                http_req({
+                    Url = DATABASE_URL,
+                    Method = "POST",
+                    Headers = { ["Content-Type"] = "application/json" },
+                    Body = payload
+                })
+            end)
+        end)
+    end
+
+    ChatTab:CreateButton({
+        Name = "📤 إرسال الرسالة",
+        Callback = function()
+            SendChatMessage()
+        end
+    })
+
+    local function FetchMessages()
+        local fetchUrl = DATABASE_URL .. '?orderBy="$key"&limitToLast=10'
+        
+        pcall(function()
+            local response = http_req({
+                Url = fetchUrl,
+                Method = "GET"
+            })
+
+            if response and response.StatusCode == 200 then
+                local data = HttpService:JSONDecode(response.Body)
+                if data and type(data) == "table" then
+                    local messagesList = {}
+                    for key, val in pairs(data) do
+                        table.insert(messagesList, val)
+                    end
+                    
+                    table.sort(messagesList, function(a, b)
+                        return (a.timestamp or 0) < (b.timestamp or 0)
+                    end)
+
+                    local formattedChat = ""
+                    for _, msg in ipairs(messagesList) do
+                        local timeStr = os.date("%X", msg.timestamp or os.time())
+                        formattedChat = formattedChat .. "[" .. timeStr .. "] " .. tostring(msg.sender) .. ":\n> " .. tostring(msg.message) .. "\n\n"
+                    end
+
+                    if formattedChat == "" then
+                        formattedChat = "لا توجد رسائل حالياً."
+                    end
+
+                    ChatDisplay:Set({
+                        Title = "💬 الدردشة العامة (Invictus)",
+                        Content = formattedChat
+                    })
+                end
+            end
+        end)
+    end
+
+    task.spawn(function()
+        FetchMessages() -- جلب الرسائل فوراً عند التشغيل
+        while task.wait(3) do
+            FetchMessages()
+        end
+    end)
+else
+    ChatTab:CreateParagraph({
+        Title = "❌ خطأ في النظام",
+        Content = "المشغل (Executor) الخاص بك لا يدعم طلبات الإنترنت الخارجية (HTTP Requests)، لذلك لن تعمل الدردشة."
+    })
+end
 
 -- ===============================================
 -- [ 5 ] المحرك الأساسي العام (RunService.Heartbeat)
