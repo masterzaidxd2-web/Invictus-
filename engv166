@@ -842,6 +842,7 @@ local SafeTab = Window:CreateTab("SAFE", 4483345998)
 local EnemyTab = Window:CreateTab("Enemies", 4483345998)
 local SettingsTab = Window:CreateTab("Settings", 4483345998)
 local OthersTab = Window:CreateTab("Others", 4483345998)
+local ChatTab = Window:CreateTab("🌐 Global Chat", 4483345998)
 
 -- Aura Tab
 -- Aura Tab
