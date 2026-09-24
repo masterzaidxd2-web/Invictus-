@@ -326,8 +326,10 @@ local function setupAntiGrab(char)
                end)
            end
        end
+              triggerAutoAuraOnGrab() -- تفعيل الأورا عند كشف الإمساك هنا
        executeAutoReset(reason)
    end
+
 
    char.DescendantAdded:Connect(function(child)
        if not AntiGrabEnabled then return end
