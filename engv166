@@ -326,10 +326,9 @@ local function setupAntiGrab(char)
                end)
            end
        end
-              triggerAutoAuraOnGrab() -- تفعيل الأورا عند كشف الإمساك هنا
+       triggerAutoAuraOnGrab()
        executeAutoReset(reason)
    end
-
 
    char.DescendantAdded:Connect(function(child)
        if not AntiGrabEnabled then return end
@@ -340,13 +339,13 @@ local function setupAntiGrab(char)
        end
        
        local name = child.Name:lower()
-              if name:find("grab") or name:find("stun") or name:find("hold") or name:find("carry") then
+       if name:find("grab") or name:find("stun") or name:find("hold") or name:find("carry") then
            if hum and (hum:GetState() == Enum.HumanoidStateType.PlatformStanding or hum.WalkSpeed < 5) then
-               triggerAutoAuraOnGrab() -- تفعيل الأورا عند كشف تأثير الإمساك
+               triggerAutoAuraOnGrab()
                executeAutoReset("Grab effect: " .. child.Name)
            end
        end
-
+   end) -- [ التعديل هنا: تم إضافة هذا السطر لإغلاق الدالة بشكل صحيح ]
    
    if hum then
        hum.StateChanged:Connect(function(_, newState)
