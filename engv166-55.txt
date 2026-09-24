@@ -846,6 +846,14 @@ MainTab:CreateButton({ Name = "Refresh Targets", Callback = function() AuraTarge
 -- Grab Tab
 GrabTab:CreateSection("Anti-Grab & Revenge")
 GrabTab:CreateToggle({ Name = "Auto-Escape & Target Attacker", CurrentValue = false, Flag = "AntiGrabToggle", Callback = function(Value) AntiGrabEnabled = Value end })
+GrabTab:CreateToggle({ 
+    Name = "Auto Aura Kill (If you are grabbed)", 
+    CurrentValue = false, 
+    Flag = "AutoAuraOnGrabToggle", 
+    Callback = function(Value) 
+        AutoAuraOnGrabEnabled = Value 
+    end 
+})
 
 GrabTab:CreateSection("General Grab Settings")
 GrabTab:CreateToggle({ Name = "Continuous Grab (All)", CurrentValue = false, Flag = "AutoGrabToggle", Callback = function(Value) AutoGrab = Value end })
