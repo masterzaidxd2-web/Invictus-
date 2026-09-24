@@ -2020,15 +2020,25 @@ OthersTab:CreateButton({
     end
 })
 -- ===============================================
--- [ 4.5 ] نظام الدردشة العامة - Global Chat
+-- [ 4.5 ] نظام الدردشة العامة - Global Chat (مُحسّن)
 -- ===============================================
 local DATABASE_URL = "https://invictus-chat-default-rtdb.firebaseio.com/chat.json"
 local http_req = (syn and syn.request) or (http and http.request) or http_request or request
 
 if http_req then
     local lastMessageTime = 0
-    local cooldownTime = 2
+    local cooldownTime = 1.5 -- وقت انتظار أقل للسرعة
     local currentInputText = ""
+    local latestTimestamp = 0
+    local firstFetch = true
+
+    -- [ إعدادات الألقاب والألوان ]
+    local DefaultNameColor = "#CCCCCC" -- لون رمادي فاتح للاعبين العاديين
+    local CustomTags = {
+        ["1The_Invictus"] = {Tag = "Owner", Color = "#FF0000"}, -- مالك (أحمر)
+        ["AdminUsername123"] = {Tag = "Admin", Color = "#00FF00"},   -- أدمن (أخضر)
+        ["VipPlayer456"]     = {Tag = "VIP",   Color = "#FFD700"}    -- في آي بي (ذهبي)
+    }
 
     local ChatDisplay = ChatTab:CreateParagraph({
         Title = "💬 الدردشة العامة (Invictus)",
@@ -2036,7 +2046,7 @@ if http_req then
     })
 
     ChatTab:CreateInput({
-        Name = "اكتب رسالتك",
+        Name = "Write",
         PlaceholderText = "رسالتك هنا...",
         RemoveTextAfterFocusLost = true,
         Callback = function(Text)
@@ -2044,26 +2054,28 @@ if http_req then
         end
     })
 
+    -- دالة تشغيل صوت الإشعار
+    local function PlayNotificationSound()
+        local sound = Instance.new("Sound")
+        sound.SoundId = "rbxassetid://4562203769" -- صوت تنبيه مميز
+        sound.Volume = 2
+        sound.Parent = game:GetService("CoreGui")
+        sound:Play()
+        game:GetService("Debris"):AddItem(sound, 3)
+    end
+
+    -- دالة إرسال الرسائل (فورية بدون مهلة انتظار)
     local function SendChatMessage()
         if currentInputText == "" or string.gsub(currentInputText, "%s+", "") == "" then return end
         
-        if tick() - lastMessageTime < cooldownTime then
-            Rayfield:Notify({
-                Title = "تحذير ⚠️",
-                Content = "يرجى الانتظار قليلاً قبل إرسال رسالة أخرى (Cooldown).",
-                Duration = 2
-            })
-            return
-        end
-        
-        lastMessageTime = tick()
         local messageToSend = currentInputText
         currentInputText = ""
 
         task.spawn(function()
             pcall(function()
                 local payload = HttpService:JSONEncode({
-                    sender = lp.DisplayName .. " (@" .. lp.Name .. ")",
+                    sender = lp.DisplayName,
+                    username = lp.Name,
                     message = messageToSend,
                     timestamp = os.time()
                 })
@@ -2078,8 +2090,9 @@ if http_req then
         end)
     end
 
+
     ChatTab:CreateButton({
-        Name = "📤 إرسال الرسالة",
+        Name = "📤 Send the message",
         Callback = function()
             SendChatMessage()
         end
@@ -2107,13 +2120,50 @@ if http_req then
                     end)
 
                     local formattedChat = ""
+                    local newLatestTimestamp = latestTimestamp
+
                     for _, msg in ipairs(messagesList) do
-                        local timeStr = os.date("%X", msg.timestamp or os.time())
-                        formattedChat = formattedChat .. "[" .. timeStr .. "] " .. tostring(msg.sender) .. ":\n> " .. tostring(msg.message) .. "\n\n"
+                        local msgTime = msg.timestamp or 0
+                        local timeStr = os.date("%X", msgTime)
+                        local username = msg.username or "Unknown"
+                        local displayName = msg.sender or username
+                        local textMsg = tostring(msg.message)
+                        
+                        -- معالجة الألقاب والألوان (RichText)
+                        local tagInfo = CustomTags[username]
+                        local nameColor = DefaultNameColor
+                        local tagStr = ""
+                        
+                        if tagInfo then
+                            tagStr = "<b>[<font color='" .. tagInfo.Color .. "'>" .. tagInfo.Tag .. "</font>]</b> "
+                            nameColor = tagInfo.Color
+                        end
+                        
+                        local formattedSender = tagStr .. "<b><font color='" .. nameColor .. "'>" .. displayName .. "</font></b>"
+                        
+                        formattedChat = formattedChat .. "[" .. timeStr .. "] " .. formattedSender .. ":\n> " .. textMsg .. "\n\n"
+
+                        -- نظام الإشعارات والصوت للرسائل الجديدة
+                        if msgTime > newLatestTimestamp then
+                            newLatestTimestamp = msgTime
+                            
+                            -- تأكد أن الرسالة جديدة، وليست من اللاعب نفسه، وليست عند فتح السكربت لأول مرة
+                            if not firstFetch and username ~= lp.Name then
+                                PlayNotificationSound()
+                                Rayfield:Notify({
+                                    Title = "💬 message from " .. displayName,
+                                    Content = textMsg,
+                                    Duration = 4
+                                })
+                            end
+                        end
                     end
 
+                    latestTimestamp = newLatestTimestamp
+                    firstFetch = false
+
                     if formattedChat == "" then
-                        formattedChat = "لا توجد رسائل حالياً."
+                        formattedChat = "No messages found ."
                     end
 
                     ChatDisplay:Set({
@@ -2126,15 +2176,15 @@ if http_req then
     end
 
     task.spawn(function()
-        FetchMessages() -- جلب الرسائل فوراً عند التشغيل
-        while task.wait(3) do
+        FetchMessages()
+        while task.wait(1) do -- أسرع سرعة تحديث آمنة (كل ثانية)
             FetchMessages()
         end
     end)
 else
     ChatTab:CreateParagraph({
         Title = "❌ خطأ في النظام",
-        Content = "المشغل (Executor) الخاص بك لا يدعم طلبات الإنترنت الخارجية (HTTP Requests)، لذلك لن تعمل الدردشة."
+        Content = "المشغل (Executor) الخاص بك لا يدعم طلبات الإنترنت الخارجية، لذلك لن تعمل الدردشة."
     })
 end
 
