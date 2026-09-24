@@ -2020,51 +2020,48 @@ OthersTab:CreateButton({
     end
 })
 -- ===============================================
--- [ 4.5 ] نظام الدردشة العامة - Global Chat (مُحسّن)
+-- [ 4.5 ] Global Chat System (Enhanced)
 -- ===============================================
 local DATABASE_URL = "https://invictus-chat-default-rtdb.firebaseio.com/chat.json"
 local http_req = (syn and syn.request) or (http and http.request) or http_request or request
 
 if http_req then
-    local lastMessageTime = 0
-    local cooldownTime = 1.5 -- وقت انتظار أقل للسرعة
     local currentInputText = ""
     local latestTimestamp = 0
     local firstFetch = true
 
-    -- [ إعدادات الألقاب والألوان ]
-    local DefaultNameColor = "#CCCCCC" -- لون رمادي فاتح للاعبين العاديين
+    -- [ Tags & Colors Configuration ]
+    local DefaultNameColor = "#CCCCCC" -- Light gray for regular players
     local CustomTags = {
-        ["1The_Invictus"] = {Tag = "Owner", Color = "#FF0000"}, -- مالك (أحمر)
-        ["AdminUsername123"] = {Tag = "Admin", Color = "#00FF00"},   -- أدمن (أخضر)
-        ["VipPlayer456"]     = {Tag = "VIP",   Color = "#FFD700"}    -- في آي بي (ذهبي)
+        ["YourRealUsername"] = {Tag = "Owner", Color = "#FF0000"}, -- Owner (Red)
+        ["AdminUsername123"] = {Tag = "Admin", Color = "#00FF00"}, -- Admin (Green)
+        ["VipPlayer456"]     = {Tag = "VIP",   Color = "#FFD700"}  -- VIP (Gold)
     }
 
     local ChatDisplay = ChatTab:CreateParagraph({
-        Title = "💬 الدردشة العامة (Invictus)",
-        Content = "جاري الاتصال بالخادم وجلب الرسائل..."
+        Title = "💬 Global Chat (Invictus)",
+        Content = "Connecting to server and fetching messages..."
     })
 
     ChatTab:CreateInput({
-        Name = "Write",
-        PlaceholderText = "رسالتك هنا...",
+        Name = "Type your message",
+        PlaceholderText = "Your message here...",
         RemoveTextAfterFocusLost = true,
         Callback = function(Text)
             currentInputText = Text
         end
     })
 
-    -- دالة تشغيل صوت الإشعار
+    -- Play notification sound function
     local function PlayNotificationSound()
         local sound = Instance.new("Sound")
-        sound.SoundId = "rbxassetid://4562203769" -- صوت تنبيه مميز
+        sound.SoundId = "rbxassetid://4562203769" -- Distinct notification sound
         sound.Volume = 2
         sound.Parent = game:GetService("CoreGui")
         sound:Play()
         game:GetService("Debris"):AddItem(sound, 3)
     end
 
-    -- دالة إرسال الرسائل (فورية بدون مهلة انتظار)
     local function SendChatMessage()
         if currentInputText == "" or string.gsub(currentInputText, "%s+", "") == "" then return end
         
@@ -2090,9 +2087,8 @@ if http_req then
         end)
     end
 
-
     ChatTab:CreateButton({
-        Name = "📤 Send the message",
+        Name = "📤 Send Message",
         Callback = function()
             SendChatMessage()
         end
@@ -2129,7 +2125,7 @@ if http_req then
                         local displayName = msg.sender or username
                         local textMsg = tostring(msg.message)
                         
-                        -- معالجة الألقاب والألوان (RichText)
+                        -- Tags & Colors Processing (RichText)
                         local tagInfo = CustomTags[username]
                         local nameColor = DefaultNameColor
                         local tagStr = ""
@@ -2143,15 +2139,15 @@ if http_req then
                         
                         formattedChat = formattedChat .. "[" .. timeStr .. "] " .. formattedSender .. ":\n> " .. textMsg .. "\n\n"
 
-                        -- نظام الإشعارات والصوت للرسائل الجديدة
+                        -- Notifications and sound for new messages
                         if msgTime > newLatestTimestamp then
                             newLatestTimestamp = msgTime
                             
-                            -- تأكد أن الرسالة جديدة، وليست من اللاعب نفسه، وليست عند فتح السكربت لأول مرة
+                            -- Make sure the message is new, not from the player themselves, and not on the first fetch
                             if not firstFetch and username ~= lp.Name then
                                 PlayNotificationSound()
                                 Rayfield:Notify({
-                                    Title = "💬 message from " .. displayName,
+                                    Title = "💬 Message from " .. displayName,
                                     Content = textMsg,
                                     Duration = 4
                                 })
@@ -2163,11 +2159,11 @@ if http_req then
                     firstFetch = false
 
                     if formattedChat == "" then
-                        formattedChat = "No messages found ."
+                        formattedChat = "No messages available at the moment."
                     end
 
                     ChatDisplay:Set({
-                        Title = "💬 الدردشة العامة (Invictus)",
+                        Title = "💬 Global Chat (Invictus)",
                         Content = formattedChat
                     })
                 end
@@ -2177,14 +2173,14 @@ if http_req then
 
     task.spawn(function()
         FetchMessages()
-        while task.wait(1) do -- أسرع سرعة تحديث آمنة (كل ثانية)
+        while task.wait(1) do -- Fastest safe fetch rate (1 second)
             FetchMessages()
         end
     end)
 else
     ChatTab:CreateParagraph({
-        Title = "❌ خطأ في النظام",
-        Content = "المشغل (Executor) الخاص بك لا يدعم طلبات الإنترنت الخارجية، لذلك لن تعمل الدردشة."
+        Title = "❌ System Error",
+        Content = "Your Executor does not support external HTTP requests, so the chat will not work."
     })
 end
 
