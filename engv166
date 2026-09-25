@@ -1163,6 +1163,7 @@ PlayerTab:CreateToggle({ Name = "Show Floating Fling Button", CurrentValue = fal
 PlayerTab:CreateToggle({ Name = "🧱 Noclip", CurrentValue = false, Flag = "NoclipToggle", Callback = function(Value) if Value then noclip() else clip() end end })
 PlayerTab:CreateToggle({ Name = "👥 Stand on Players' Heads", CurrentValue = false, Flag = "PlayerCollisionToggle", Callback = function(Value) PlayerCollisionEnabled = Value; if Value then enablePlayerCollisions() else disablePlayerCollisions() end end })
 
+OthersTab:CreateSection("Security & Anti")
 local AntiRagdollConnection
 local CharAddedConnection
 
