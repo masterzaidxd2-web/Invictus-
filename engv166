@@ -1155,15 +1155,18 @@ end
 PlayerTab:CreateSection("Custom Fly System")
 PlayerTab:CreateToggle({ Name = "🕊️ Enable Fly", CurrentValue = false, Flag = "FlyToggle", Callback = function(Value) toggleFly(Value) end })
 PlayerTab:CreateSlider({ Name = "Fly Speed", Range = {10, 150}, Increment = 1, Suffix = "Speed", CurrentValue = 60, Flag = "FlySpeedSlider", Callback = function(Value) flySpeed = Value end })
-PlayerTab:CreateToggle({ Name = "Show Floating Invis Button", CurrentValue = false, Flag = "InvisSystemToggle", Callback = function(Value) InvisGui.Enabled = Value; if not Value and IsInvisible then IsInvisible = false; FloatBtn.BackgroundColor3 = Color3.fromRGB(220, 60, 60); FloatBtn.Text = "Invis: ❌"; for _, item in pairs(invisParts) do if item.obj and item.obj.Parent then item.obj.Transparency = item.origTrans end end end end })
+PlayerTab:CreateSection("SPEED WALK")
 PlayerTab:CreateToggle({ Name = "Lock WalkSpeed", CurrentValue = false, Flag = "SpeedToggle", Callback = function(Value) isSpeedEnabled = Value; if not Value and lp.Character then local hum = lp.Character:FindFirstChildOfClass("Humanoid") if hum then hum.WalkSpeed = 16 end end end })
 PlayerTab:CreateSlider({ Name = "WalkSpeed Value", Range = {16, 150}, Increment = 1, Suffix = "WS", CurrentValue = 35, Flag = "SpeedSlider", Callback = function(Value) currentWalkSpeed = Value end })
+PlayerTab:CreateSection("Ghost Mode button 👻")
+PlayerTab:CreateToggle({ Name = "Show Floating Invis Button", CurrentValue = false, Flag = "InvisSystemToggle", Callback = function(Value) InvisGui.Enabled = Value; if not Value and IsInvisible then IsInvisible = false; FloatBtn.BackgroundColor3 = Color3.fromRGB(220, 60, 60); FloatBtn.Text = "Invis: ❌"; for _, item in pairs(invisParts) do if item.obj and item.obj.Parent then item.obj.Transparency = item.origTrans end end end end })
+PlayerTab:CreateSection("Character Abilities")
 PlayerTab:CreateToggle({ Name = "Infinite Jump", CurrentValue = false, Flag = "InfJumpToggle", Callback = function(Value) isInfJump = Value end })
 PlayerTab:CreateToggle({ Name = "Show Floating Fling Button", CurrentValue = false, Flag = "FlingBtnToggle", Callback = function(Value) FlingGui.Enabled = Value end })
 PlayerTab:CreateToggle({ Name = "🧱 Noclip", CurrentValue = false, Flag = "NoclipToggle", Callback = function(Value) if Value then noclip() else clip() end end })
 PlayerTab:CreateToggle({ Name = "👥 Stand on Players' Heads", CurrentValue = false, Flag = "PlayerCollisionToggle", Callback = function(Value) PlayerCollisionEnabled = Value; if Value then enablePlayerCollisions() else disablePlayerCollisions() end end })
 
-OthersTab:CreateSection("Security & Anti")
+PlayerTab:CreateSection("Security & Anti")
 local AntiRagdollConnection
 local CharAddedConnection
 
