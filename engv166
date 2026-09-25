@@ -1,3 +1,9 @@
+-- ===============================================
+-- [ حماية من التشغيل المتكرر لمنع الكراش ]
+if getgenv().InvictusV22_Loaded == true then return end
+getgenv().InvictusV22_Loaded = true
+-- ===============================================
+
 repeat task.wait() until game:IsLoaded()
 task.wait(0.5)
 
