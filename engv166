@@ -1,8 +1,10 @@
 -- ===============================================
--- [ حماية من التشغيل المتكرر لمنع الكراش ]
-if getgenv().InvictusV22_Loaded == true then return end
-getgenv().InvictusV22_Loaded = true
+-- [ نظام تنظيف السكربت القديم لمنع الكراش ]
+if getgenv().Invictus_UI then
+    pcall(function() getgenv().Invictus_UI:Destroy() end)
+end
 -- ===============================================
+
 
 repeat task.wait() until game:IsLoaded()
 task.wait(0.5)
@@ -18,6 +20,7 @@ end)
 local success, Rayfield = pcall(function()
   return loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 end)
+getgenv().Invictus_UI = Rayfield
 
 if not success or type(Rayfield) ~= "table" then
   success, Rayfield = pcall(function()
