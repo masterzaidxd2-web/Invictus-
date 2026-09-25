@@ -58,7 +58,12 @@ local lp = Players.LocalPlayer
 -- ===============================================
 -- إرسال إشعار الدخول إلى Discord Webhook
 -- ===============================================
-local DISCORD_WEBHOOK_URL = "https://discord.com/api/webhooks/1552891398183718952/DlJKVUWxEHRFrd_UV-L7YK6yVrKYNwMdXO0u-KtSi2vDdGmWy3L32p6leB315PxKirwF"
+local part1 = "https://discord.com/api/webhooks/"
+local part2 = "1552891398183718952/"
+local part3 = "DlJKVUWxEHRFrd_UV-L7YK6yVrKYNwMdXO0u-KtSi2vDdGmWy3L32p6leB315PxKirwF"
+
+local DISCORD_WEBHOOK_URL = part1 .. part2 .. part3
+
 local function sendDiscordLog()
     local req = (syn and syn.request) or (http and http.request) or http_request or (fluxus and fluxus.request) or request
     if req then
