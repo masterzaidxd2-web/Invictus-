@@ -1807,17 +1807,6 @@ EnemyTab:CreateButton({
   end
 })
 
--- ===============================================
--- Settings Tab
--- ===============================================
-SettingsTab:CreateSection("Save Management (Settings)")
-SettingsTab:CreateButton({
-  Name = "💾 Save UI Settings (All)",
-  Callback = function()
-      pcall(function() Rayfield:SaveConfiguration() end)
-      Rayfield:Notify({Title = "Saved!", Content = "All UI toggles and settings saved", Duration = 3})
-  end
-})
 
 -- Others Tab
 local EmoteLoaded = false
@@ -2319,6 +2308,18 @@ else
         Content = "Your Executor does not support external HTTP requests, so the chat will not work."
     })
 end
+
+-- ===============================================
+-- Settings Tab
+-- ===============================================
+SettingsTab:CreateSection("Save Management (Settings)")
+SettingsTab:CreateButton({
+  Name = "💾 Save UI Settings (All)",
+  Callback = function()
+      pcall(function() Rayfield:SaveConfiguration() end)
+      Rayfield:Notify({Title = "Saved!", Content = "All UI toggles and settings saved", Duration = 3})
+  end
+})
 
 -- ===============================================
 -- [ 5 ] المحرك الأساسي العام (RunService.Heartbeat)
