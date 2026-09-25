@@ -1,41 +1,16 @@
 -- ===============================================
--- [ 1. Anti-Duplication & Safe Restart System ]
+-- ===============================================
+-- [ Simple Anti-Duplication System ]
 -- ===============================================
 if getgenv().InvictusScript_Active then
-    local Bindable = Instance.new("BindableFunction")
-    Bindable.OnInvoke = function(button)
-        if button == "Yes" then
-            -- تنظيف الواجهة القديمة
-            if getgenv().Invictus_UI then
-                pcall(function() getgenv().Invictus_UI:Destroy() end)
-            end
-            getgenv().InvictusScript_Active = false
-            getgenv().Invictus_UI = nil
-            
-            -- إشعار يطلب منك التشغيل مرة أخيرة
-            pcall(function()
-                game:GetService("StarterGui"):SetCore("SendNotification", {
-                    Title = "System Ready",
-                    Text = "Old script cleaned! Click Execute again to start.",
-                    Duration = 5
-                })
-            end)
-        end
-    end
-    
-    -- إظهار إشعار الرفض مع خيارات
     pcall(function()
         game:GetService("StarterGui"):SetCore("SendNotification", {
-            Title = "Warning / Alert",
-            Text = "Script is already running or key system closed! Restart?",
-            Duration = 10,
-            Button1 = "Yes",
-            Button2 = "No",
-            Callback = Bindable
+            Title = "System Alert",
+            Text = "Script is already running!",
+            Duration = 5
         })
     end)
-    
-    return -- توقف تام هنا ومنع التكرار
+    return
 end
 
 getgenv().InvictusScript_Active = true
