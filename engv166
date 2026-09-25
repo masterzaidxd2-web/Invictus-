@@ -1936,7 +1936,7 @@ OthersTab:CreateButton({
         end
     end
 })
- 
+ OthersTab:CreateSection("Anti-disconnected 📴")
 -- ===============================================
 -- [ Anti-AFK System ]
 -- ===============================================
