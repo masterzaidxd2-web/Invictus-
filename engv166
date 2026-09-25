@@ -846,7 +846,7 @@ local Window = Rayfield:CreateWindow({
  KeySettings = {
     Title = "Key System",
     Subtitle = "أدخل المفتاح لتشغيل السكربت",
-    Note = "anti-ragdoll fixed .new auto aura kill .new global chat new. troll bang system. new anti-Double-run script",
+    Note = "new update anti-afk .new chat. bangs.And a lot of bug fixes",
     SaveKey = false,
     GrabKeyFromSite = true,
     Key = {"https://gist.githubusercontent.com/masterzaidxd2-web/e32fcc7d50306605945fc7e909c6fefc/raw/Password"}
@@ -1936,110 +1936,7 @@ OthersTab:CreateButton({
         end
     end
 })
-
-OthersTab:CreateSection("🔍 Player Server Tracker")
-local TargetUsername = ""
-
-OthersTab:CreateInput({
-    Name = "Username to Track",
-    PlaceholderText = "Enter exact username...",
-    RemoveTextAfterFocusLost = false,
-    Callback = function(Text)
-        TargetUsername = Text
-    end
-})
-
-OthersTab:CreateButton({
-    Name = "🚀 Find & Join Server",
-    Callback = function()
-        if TargetUsername == "" then
-            Rayfield:Notify({Title = "Error", Content = "الرجاء إدخال اسم اللاعب أولاً!", Duration = 3})
-            return
-        end
-
-        Rayfield:Notify({Title = "Searching...", Content = "جاري البحث عن سيرفر " .. TargetUsername .. "، قد يستغرق الأمر بعض الوقت.", Duration = 5})
-
-        task.spawn(function()
-            local success, targetId = pcall(function()
-                return Players:GetUserIdFromNameAsync(TargetUsername)
-            end)
-
-            if not success then
-                Rayfield:Notify({Title = "Error", Content = "اسم اللاعب غير صحيح!", Duration = 3})
-                return
-            end
-
-            local req = (syn and syn.request) or (http and http.request) or http_request or (fluxus and fluxus.request) or request
-            if not req then
-                Rayfield:Notify({Title = "Error", Content = "المشغل الخاص بك لا يدعم طلبات HTTP.", Duration = 3})
-                return
-            end
-
-            local thumbUrl = "https://thumbnails.roblox.com/v1/users/avatar-headshot?userIds=" .. targetId .. "&size=150x150&format=Png&isCircular=false"
-            local thumbRes = pcall(function() return req({Url = thumbUrl, Method = "GET"}) end)
-            if type(thumbRes) ~= "table" then return end
-            
-            local thumbData = HttpService:JSONDecode(thumbRes.Body)
-            local targetImageUrl = thumbData.data[1].imageUrl
-
-            local cursor = ""
-            local found = false
-
-            while cursor ~= nil and not found do
-                local serverUrl = "https://games.roblox.com/v1/games/" .. game.PlaceId .. "/servers/Public?sortOrder=Asc&limit=100"
-                if cursor ~= "" then
-                    serverUrl = serverUrl .. "&cursor=" .. cursor
-                end
-
-                local serverRes = req({Url = serverUrl, Method = "GET"})
-                if serverRes.StatusCode == 200 then
-                    local serverData = HttpService:JSONDecode(serverRes.Body)
-                    cursor = serverData.nextPageCursor
-
-                    for _, server in ipairs(serverData.data) do
-                        if server.playing > 0 and server.id ~= game.JobId then
-                            local tokens = {}
-                            for _, playerToken in ipairs(server.playerTokens) do
-                                table.insert(tokens, {
-                                    token = playerToken,
-                                    type = "AvatarHeadshot",
-                                    size = "150x150",
-                                    requestId = server.id .. ":" .. playerToken
-                                })
-                            end
-
-                            local batchReq = req({
-                                Url = "https://thumbnails.roblox.com/v1/batch",
-                                Method = "POST",
-                                Headers = {["Content-Type"] = "application/json"},
-                                Body = HttpService:JSONEncode(tokens)
-                            })
-
-                            if batchReq.StatusCode == 200 then
-                                local batchData = HttpService:JSONDecode(batchReq.Body)
-                                for _, tokenData in ipairs(batchData.data) do
-                                    if tokenData.imageUrl == targetImageUrl then
-                                        found = true
-                                        Rayfield:Notify({Title = "Found!", Content = "تم العثور على اللاعب! جاري الانضمام...", Duration = 3})
-                                        game:GetService("TeleportService"):TeleportToPlaceInstance(game.PlaceId, server.id, Players.LocalPlayer)
-                                        return
-                                    end
-                                end
-                            end
-                        end
-                    end
-                else
-                    cursor = nil
-                end
-                task.wait(0.2)
-            end
-
-            if not found then
-                Rayfield:Notify({Title = "Not Found", Content = TargetUsername .. " غير موجود في سيرفر عام أو لا يلعب هذه اللعبة حالياً.", Duration = 4})
-            end
-        end)
-    end
-})
+ 
 -- ===============================================
 -- [ Anti-AFK System ]
 -- ===============================================
