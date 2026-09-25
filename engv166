@@ -1,35 +1,33 @@
 -- ===============================================
--- [ 1. Anti-Duplication & Restart System ]
+-- [ 1. Anti-Duplication & Safe Restart System ]
 -- ===============================================
-local CoreGui = game:GetService("CoreGui")
-
 if getgenv().InvictusScript_Active then
-    -- إنشاء وظيفة للأزرار (نعم / لا)
     local Bindable = Instance.new("BindableFunction")
     Bindable.OnInvoke = function(button)
         if button == "Yes" then
-            -- إذا ضغط "نعم"، قم بتدمير السكربت القديم
+            -- تنظيف الواجهة القديمة
             if getgenv().Invictus_UI then
                 pcall(function() getgenv().Invictus_UI:Destroy() end)
             end
             getgenv().InvictusScript_Active = false
+            getgenv().Invictus_UI = nil
             
-            -- إشعار يخبرك أن تضغط Execute مرة أخرى
+            -- إشعار يطلب منك التشغيل مرة أخيرة
             pcall(function()
                 game:GetService("StarterGui"):SetCore("SendNotification", {
                     Title = "System Ready",
-                    Text = "Old script closed! Click Execute again.",
+                    Text = "Old script cleaned! Click Execute again to start.",
                     Duration = 5
                 })
             end)
         end
     end
     
-    -- إظهار إشعار الرفض مع خيارات Yes / No
+    -- إظهار إشعار الرفض مع خيارات
     pcall(function()
         game:GetService("StarterGui"):SetCore("SendNotification", {
-            Title = "Warning",
-            Text = "Script is already running! Restart?",
+            Title = "Warning / Alert",
+            Text = "Script is already running or key system closed! Restart?",
             Duration = 10,
             Button1 = "Yes",
             Button2 = "No",
@@ -37,7 +35,7 @@ if getgenv().InvictusScript_Active then
         })
     end)
     
-    return -- منع التشغيل المزدوج هنا
+    return -- توقف تام هنا ومنع التكرار
 end
 
 getgenv().InvictusScript_Active = true
@@ -57,22 +55,8 @@ end)
 local success, Rayfield = pcall(function()
   return loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 end)
--- ===============================================
--- [ 2. Auto-Close Detector (Key System & UI) ]
--- ===============================================
 getgenv().Invictus_UI = Rayfield
 
-task.spawn(function()
-    task.wait(3) -- ننتظر حتى تحمل واجهة Rayfield
-    while getgenv().InvictusScript_Active do
-        task.wait(1)
-        -- إذا تم إغلاق الواجهة (بسبب إغلاقك لخانة الرمز أو إغلاق السكربت)
-        if not CoreGui:FindFirstChild("Rayfield") then
-            getgenv().InvictusScript_Active = false -- تصفير السكربت بالكامل
-            break
-        end
-    end
-end)
 -- ===============================================
 
 if not success or type(Rayfield) ~= "table" then
