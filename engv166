@@ -912,6 +912,8 @@ GrabTab:CreateSlider({ Name = "Grab Repeat Count", Range = {1, 15}, Increment = 
 
 GrabTab:CreateSection("Magnet & Aiming")
 GrabTab:CreateToggle({ Name = "🎯 Auto Aim (Look at Target)", CurrentValue = false, Flag = "AutoLookToggle", Callback = function(Value) AutoLookEnabled = Value; if not Value then removeLookGyro() end end })
+GrabTab:CreateSection("This option is linked to Invisibility. When enabled, whenever an enemy approaches you while you are invisible, you will automatically position behind their back.")
+GrabTab:CreateToggle({ Name = "🧲 Auto Magnet (Disabled in combat)", CurrentValue = false, Flag = "AutoMagnetToggle", Callback = function(Value) AutoMagnetEnabled = Value end })
 GrabTab:CreateSection("When this option is enabled, a 'Hold' button will appear on the screen. It activates once your grab points reach 100. Holding it down keeps you positioned behind the enemy to grab them")
 GrabTab:CreateToggle({ Name = "Show Floating Magnet Button (For Combat)", CurrentValue = false, Flag = "HoldMagnetToggle", Callback = function(Value) MagnetGui.Enabled = Value; if not Value then IsHoldingMagnet = false end end })
 
