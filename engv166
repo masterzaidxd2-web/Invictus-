@@ -834,7 +834,7 @@ pcall(function()
     end
 end)
 
-Local Window = Rayfield:CreateWindow({
+local Window = Rayfield:CreateWindow({
  Name = "Invictus v22",
  LoadingTitle = "Aura, Grab, ESP, avatar, animation & More",
  LoadingSubtitle = "by Invictus",
@@ -846,6 +846,7 @@ Local Window = Rayfield:CreateWindow({
     FolderName = "KHURAFI_Data",
     FileName = "AuraDeltaSettings"
  },
+
  KeySystem = true,
  KeySettings = {
     Title = "Key System",
