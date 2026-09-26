@@ -836,7 +836,7 @@ end)
 local Window = Rayfield:CreateWindow({
  Name = "Invictus v22",
  LoadingTitle = "Aura, Grab, ESP, avatar, animation & More",
- Theme = "Green",
+ Theme = "DarkBlue",
  DisableRayfieldPrompts = false,
  DisableBuildWarnings = true,
  ConfigurationSaving = {
