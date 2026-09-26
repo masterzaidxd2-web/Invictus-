@@ -270,7 +270,7 @@ local grabRepeatVal = 3
 local TpSelectedPlayer = ""
 
 local AutoLookEnabled = false
-local AutoMagnetEnabled = false
+
 
 -- منطق حماية الإمساك والانتقام التلقائي (Anti-Grab Auto Reset & Revenge)
 local AntiGrabEnabled = false
@@ -912,8 +912,6 @@ GrabTab:CreateSlider({ Name = "Grab Repeat Count", Range = {1, 15}, Increment = 
 
 GrabTab:CreateSection("Magnet & Aiming")
 GrabTab:CreateToggle({ Name = "🎯 Auto Aim (Look at Target)", CurrentValue = false, Flag = "AutoLookToggle", Callback = function(Value) AutoLookEnabled = Value; if not Value then removeLookGyro() end end })
-GrabTab:CreateSection("This option is linked to Invisibility. When enabled, whenever an enemy approaches you while you are invisible, you will automatically position behind their back.")
-GrabTab:CreateToggle({ Name = "🧲 Auto Magnet (Disabled in combat)", CurrentValue = false, Flag = "AutoMagnetToggle", Callback = function(Value) AutoMagnetEnabled = Value end })
 GrabTab:CreateSection("When this option is enabled, a 'Hold' button will appear on the screen. It activates once your grab points reach 100. Holding it down keeps you positioned behind the enemy to grab them")
 GrabTab:CreateToggle({ Name = "Show Floating Magnet Button (For Combat)", CurrentValue = false, Flag = "HoldMagnetToggle", Callback = function(Value) MagnetGui.Enabled = Value; if not Value then IsHoldingMagnet = false end end })
 
@@ -2558,26 +2556,30 @@ RunService.Heartbeat:Connect(function(dt)
       end
       
       if activeTargetHRP then
-          if not isFighting then
-              if AutoLookEnabled then
-                  local targetPos = Vector3.new(activeTargetHRP.Position.X, myRoot.Position.Y, activeTargetHRP.Position.Z)
-                  if (targetPos - myRoot.Position).Magnitude > 0.5 then
-                      local bg = myRoot:FindFirstChild("AutoLookGyro")
-                      if not bg then
-                          bg = Instance.new("BodyGyro")
-                          bg.Name = "AutoLookGyro"
-                          bg.MaxTorque = Vector3.new(0, 400000, 0)
-                          bg.P = 30000
-                          bg.D = 100
-                          bg.Parent = myRoot
-                      end
-                      bg.CFrame = CFrame.lookAt(myRoot.Position, targetPos)
-                  else
-                      removeLookGyro()
-                  end
-              else
-                  removeLookGyro()
-              end
+    if not isFighting then
+        if AutoLookEnabled then
+            local targetPos = Vector3.new(activeTargetHRP.Position.X, myRoot.Position.Y, activeTargetHRP.Position.Z)
+            if (targetPos - myRoot.Position).Magnitude > 0.5 then
+                local bg = myRoot:FindFirstChild("AutoLookGyro")
+                if not bg then
+                    bg = Instance.new("BodyGyro")
+                    bg.Name = "AutoLookGyro"
+                    bg.MaxTorque = Vector3.new(0, 400000, 0)
+                    bg.P = 30000
+                    bg.D = 100
+                    bg.Parent = myRoot
+                end
+                bg.CFrame = CFrame.lookAt(myRoot.Position, targetPos)
+            else
+                removeLookGyro()
+            end
+        else
+            removeLookGyro()
+        end
+    else
+        removeLookGyro()
+    end
+
               
               if AutoMagnetEnabled and currentGrabPower >= 100 then
                   local targetVelocity = activeTargetHRP.AssemblyLinearVelocity
