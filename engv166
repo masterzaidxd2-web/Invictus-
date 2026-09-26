@@ -838,7 +838,7 @@ local Window = Rayfield:CreateWindow({
  Name = "Invictus v22",
  LoadingTitle = "Aura, Grab, ESP, avatar, animation & More",
  LoadingSubtitle = "by Invictus",
- Theme = "Default",
+ Theme = "AmberGlow",
  DisableRayfieldPrompts = false,
  DisableBuildWarnings = true,
  ConfigurationSaving = {
@@ -846,7 +846,7 @@ local Window = Rayfield:CreateWindow({
     FolderName = "KHURAFI_Data",
     FileName = "AuraDeltaSettings"
  },
- KeySystem = true,
+ KeySystem = false,
  KeySettings = {
     Title = "Key System",
     Subtitle = "أدخل المفتاح لتشغيل السكربت",
