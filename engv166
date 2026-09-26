@@ -835,17 +835,42 @@ pcall(function()
 end)
 
 local Window = Rayfield:CreateWindow({
- Name = "Invictus v22",
- LoadingTitle = "Aura, Grab, ESP, avatar, animation & More",
- LoadingSubtitle = "by Invictus",
- Theme = "Amethyst",
- DisableRayfieldPrompts = false,
- DisableBuildWarnings = true,
- ConfigurationSaving = {
-    Enabled = true,
-    FolderName = "KHURAFI_Data",
-    FileName = "AuraDeltaSettings"
- },
+   Name = "Invictus v22",
+   LoadingTitle = "Aura, Grab, ESP, avatar, animation & More",
+   LoadingSubtitle = "by Invictus",
+   Theme = {
+      TextColor = Color3.fromRGB(255, 255, 255), -- لون النص أبيض
+      Background = Color3.fromRGB(15, 15, 15), -- لون الواجهة أسود داكن
+      Topbar = Color3.fromRGB(20, 20, 20), -- الشريط العلوي أسود
+      Shadow = Color3.fromRGB(0, 0, 0), -- ظل الواجهة
+      Dialog = Color3.fromRGB(25, 25, 25),
+      TabBackground = Color3.fromRGB(25, 25, 25),
+      TabStroke = Color3.fromRGB(45, 45, 45),
+      TabBackgroundSelected = Color3.fromRGB(220, 20, 20), -- لون التبويب عند تحديده (أحمر)
+      TabTextColor = Color3.fromRGB(255, 255, 255),
+      SelectedTabTextColor = Color3.fromRGB(255, 255, 255),
+      ElementBackground = Color3.fromRGB(35, 35, 35), -- لون الزر وهو مطفأ (أسود فاتح)
+      ElementBackgroundHover = Color3.fromRGB(45, 45, 45), -- لون الزر عند لمسه
+      SecondaryElementBackground = Color3.fromRGB(35, 35, 35), 
+      ElementStroke = Color3.fromRGB(45, 45, 45), 
+      SecondaryElementStroke = Color3.fromRGB(45, 45, 45),
+      SliderBackground = Color3.fromRGB(35, 35, 35),
+      SliderProgress = Color3.fromRGB(220, 20, 20), -- شريط السحب (أحمر)
+      SliderStroke = Color3.fromRGB(45, 45, 45),
+      ToggleBackground = Color3.fromRGB(35, 35, 35), -- زر التفعيل مطفأ (أسود فاتح)
+      ToggleEnabled = Color3.fromRGB(220, 20, 20), -- زر التفعيل شغال (أحمر)
+      Text = Color3.fromRGB(255, 255, 255), -- النصوص بيضاء
+      PlaceholderText = Color3.fromRGB(150, 150, 150)
+   },
+   DisableRayfieldPrompts = false,
+   DisableBuildWarnings = true,
+   ConfigurationSaving = {
+      Enabled = true,
+      FolderName = "KHURAFI_Data",
+      FileName = "AuraDeltaSettings"
+   }
+})
+
  KeySystem = true,
  KeySettings = {
     Title = "Key System",
