@@ -2337,6 +2337,186 @@ SettingsTab:CreateToggle({
         AntiExplodeNotif = Value
     end
 })
+-- ====================================================
+-- [ PERFORMANCE & GRAPHICS ENGINE (Integrated) ]
+-- ====================================================
+
+local UltraLoop = nil
+local Lighting = game:GetService("Lighting")
+
+local function ClearAllShaders()
+    if UltraLoop then UltraLoop:Disconnect(); UltraLoop = nil end
+    for _, shader in pairs(Lighting:GetChildren()) do
+        if shader:IsA("PostEffect") or shader:IsA("BlurEffect") or shader:IsA("SunRaysEffect") or shader:IsA("ColorCorrectionEffect") or shader:IsA("BloomEffect") or shader:IsA("DepthOfFieldEffect") or shader:IsA("Atmosphere") then
+            shader:Destroy()
+        end
+    end
+end
+
+-- 1: ANTI-LAG PROFILE CODE
+local function NormalAntiLag()
+    ClearAllShaders()
+    Lighting.GlobalShadows = false
+    pcall(function() settings().Rendering.QualityLevel = Enum.QualityLevel.Level05 end)
+    for _, obj in pairs(game:GetDescendants()) do
+        if obj:IsA("ParticleEmitter") or obj:IsA("Sparkles") then obj.Enabled = false end
+    end
+end
+
+local function MediumAntiLag()
+    ClearAllShaders()
+    pcall(function() settings().Rendering.QualityLevel = Enum.QualityLevel.Level03 end)
+    Lighting.GlobalShadows = false
+    local Terrain = workspace:FindFirstChildOfClass("Terrain")
+    if Terrain then Terrain.WaterWaveSize = 0; Terrain.WaterWaveSpeed = 0 end
+    for _, obj in pairs(game:GetDescendants()) do
+        if obj:IsA("ParticleEmitter") or obj:IsA("Trail") or obj:IsA("Smoke") or obj:IsA("Sparkles") then obj.Enabled = false end
+    end
+end
+
+local function SuperAntiLag()
+    ClearAllShaders()
+    pcall(function() settings().Rendering.QualityLevel = Enum.QualityLevel.Level01 end)
+    Lighting.GlobalShadows = false
+    local Terrain = workspace:FindFirstChildOfClass("Terrain")
+    if Terrain then
+        Terrain.WaterWaveSize = 0; Terrain.WaterWaveSpeed = 0
+        Terrain.WaterReflectance = 0; Terrain.WaterDetailSize = 0
+    end
+    for _, obj in pairs(game:GetDescendants()) do
+        if obj:IsA("BasePart") or obj:IsA("MeshPart") then
+            obj.Material = Enum.Material.SmoothPlastic
+            obj.Reflectance = 0; obj.CastShadow = false
+        elseif obj:IsA("Texture") or obj:IsA("Decal") then
+            obj:Destroy()
+        elseif obj:IsA("ParticleEmitter") or obj:IsA("Trail") or obj:IsA("Smoke") or obj:IsA("Sparkles") or obj:IsA("Fire") then
+            obj.Enabled = false
+        end
+    end
+end
+
+local function UltraAntiLag()
+    SuperAntiLag()
+    local function AbsolutePotato(obj)
+        if obj:IsA("BasePart") or obj:IsA("MeshPart") then
+            obj.Material = Enum.Material.SmoothPlastic
+            obj.CastShadow = false
+        elseif obj:IsA("Texture") or obj:IsA("Decal") or obj:IsA("Clothing") then
+            obj:Destroy()
+        elseif obj:IsA("ParticleEmitter") or obj:IsA("Trail") or obj:IsA("Smoke") or obj:IsA("Sparkles") or obj:IsA("Fire") then
+            obj.Enabled = false
+        end
+    end
+    UltraLoop = game.DescendantAdded:Connect(function(newObj)
+        pcall(function() AbsolutePotato(newObj) end)
+    end)
+end
+
+-- 2: REALISTIC SHADERS CODE
+local function ApplyRealistic()
+    ClearAllShaders()
+    Lighting.GlobalShadows = true
+    Lighting.Brightness = 2
+    Lighting.Ambient = Color3.fromRGB(40, 40, 50)
+    local Bloom = Instance.new("BloomEffect", Lighting)
+    Bloom.Intensity = 0.4; Bloom.Size = 12; Bloom.Threshold = 0.9
+    local ColorCorr = Instance.new("ColorCorrectionEffect", Lighting)
+    ColorCorr.Contrast = 0.1; ColorCorr.Saturation = 0.15
+end
+
+local function ApplySuperRealistic()
+    ClearAllShaders()
+    Lighting.GlobalShadows = true
+    Lighting.Brightness = 2.5
+    local Bloom = Instance.new("BloomEffect", Lighting)
+    Bloom.Intensity = 0.6; Bloom.Size = 24; Bloom.Threshold = 0.85
+    local SunRays = Instance.new("SunRaysEffect", Lighting)
+    SunRays.Intensity = 0.25; SunRays.Spread = 0.6
+    local ColorCorr = Instance.new("ColorCorrectionEffect", Lighting)
+    ColorCorr.Contrast = 0.2; ColorCorr.Saturation = 0.3
+    ColorCorr.TintColor = Color3.fromRGB(255, 245, 230)
+end
+
+local function ApplyUltraRealistic()
+    ClearAllShaders()
+    Lighting.GlobalShadows = true
+    Lighting.Brightness = 3
+    local Bloom = Instance.new("BloomEffect", Lighting)
+    Bloom.Intensity = 0.8; Bloom.Size = 30; Bloom.Threshold = 0.8
+    local SunRays = Instance.new("SunRaysEffect", Lighting)
+    SunRays.Intensity = 0.4; SunRays.Spread = 0.75
+    local ColorCorr = Instance.new("ColorCorrectionEffect", Lighting)
+    ColorCorr.Contrast = 0.25; ColorCorr.Saturation = 0.4
+    local Atmos = Instance.new("Atmosphere", Lighting)
+    Atmos.Density = 0.2; Atmos.Glare = 0.4; Atmos.Haze = 1.5
+    Atmos.Color = Color3.fromRGB(180, 200, 220); Atmos.Decay = Color3.fromRGB(120, 140, 160)
+    local DOF = Instance.new("DepthOfFieldEffect", Lighting)
+    DOF.FarIntensity = 0.2; DOF.FocusDistance = 20; DOF.InFocusRadius = 40; DOF.NearIntensity = 0.05
+end
+
+-- ====================================================
+-- BUTTONS CONNECTION (Inside SettingsTab)
+-- ====================================================
+
+SettingsTab:CreateSection("Lag Optimizer")
+
+SettingsTab:CreateButton({
+    Name = "🟢 Normal Anti-Lag",
+    Callback = function() 
+        NormalAntiLag() 
+        Rayfield:Notify({Title = "Invictus v22", Content = "Basic performance tweaks applied.", Duration = 3}) 
+    end
+})
+
+SettingsTab:CreateButton({
+    Name = "🟡 Medium Anti-Lag",
+    Callback = function() 
+        MediumAntiLag() 
+        Rayfield:Notify({Title = "Invictus v22", Content = "Standard shaders disabled.", Duration = 3}) 
+    end
+})
+
+SettingsTab:CreateButton({
+    Name = "🟠 Super Anti-Lag",
+    Callback = function() 
+        SuperAntiLag() 
+        Rayfield:Notify({Title = "Invictus v22", Content = "Textures replaced with smooth plastic.", Duration = 3}) 
+    end
+})
+
+SettingsTab:CreateButton({
+    Name = "🔴 Ultra Anti-Lag (Potato Mode)",
+    Callback = function() 
+        UltraAntiLag() 
+        Rayfield:Notify({Title = "Invictus v22", Content = "Engine forced to minimum + live object wiper active!", Duration = 4}) 
+    end
+})
+
+SettingsTab:CreateSection("Beautiful Shaders")
+
+SettingsTab:CreateButton({
+    Name = "✨ Realistic Shader",
+    Callback = function() 
+        ApplyRealistic() 
+        Rayfield:Notify({Title = "Invictus v22", Content = "Ambient colors and light contrast boosted.", Duration = 3}) 
+    end
+})
+
+SettingsTab:CreateButton({
+    Name = "🔥 Super Realistic Shader",
+    Callback = function() 
+        ApplySuperRealistic() 
+        Rayfield:Notify({Title = "Invictus v22", Content = "Cinematic Sunrays and warm profile loaded!", Duration = 3}) 
+    end
+})
+
+SettingsTab:CreateButton({
+    Name = "👑 Ultra Realistic Shader (Next-Gen)",
+    Callback = function() 
+        ApplyUltraRealistic() 
+        Rayfield:Notify({Title = "Invictus v22", Content = "Next-gen Depth of Field and atmosphere activated!", Duration = 4}) 
+    end
+})
 
 -- ===============================================
 -- [ Independent Explosion Tracker ]
