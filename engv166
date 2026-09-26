@@ -2592,6 +2592,21 @@ RunService.Heartbeat:Connect(function(dt)
               removeLookGyro()
           end
 
+          if IsHoldingMagnet and currentGrabPower >= 100 then
+              local targetVelocity = activeTargetHRP.AssemblyLinearVelocity
+              local pingPrediction = targetVelocity * 0.05
+              myRoot.CFrame = (activeTargetHRP.CFrame + pingPrediction) * CFrame.new(0, 0, 2.5)
+              
+              if firetouchinterest then
+                  firetouchinterest(myRoot, activeTargetHRP, 0)
+                  task.wait()
+                  firetouchinterest(myRoot, activeTargetHRP, 1)
+              end
+          end
+      else
+          removeLookGyro()
+      end
+  end
   if shouldGrab and GrabRF then
       for i = 1, grabRepeatVal do 
           task.spawn(function() 
