@@ -833,11 +833,9 @@ pcall(function()
         pcall(function() delfolder("Rayfield") end)
     end
 end)
-
 local Window = Rayfield:CreateWindow({
  Name = "Invictus v22",
  LoadingTitle = "Aura, Grab, ESP, avatar, animation & More",
- LoadingSubtitle = "by Invictus",
  Theme = "Green",
  DisableRayfieldPrompts = false,
  DisableBuildWarnings = true,
