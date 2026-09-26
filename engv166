@@ -270,7 +270,7 @@ local grabRepeatVal = 3
 local TpSelectedPlayer = ""
 
 local AutoLookEnabled = false
-
+local AutoMagnetEnabled = false
 
 -- منطق حماية الإمساك والانتقام التلقائي (Anti-Grab Auto Reset & Revenge)
 local AntiGrabEnabled = false
