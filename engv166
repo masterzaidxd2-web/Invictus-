@@ -846,7 +846,7 @@ local Window = Rayfield:CreateWindow({
     FolderName = "KHURAFI_Data",
     FileName = "AuraDeltaSettings"
  },
- KeySystem = false,
+ KeySystem = true,
  KeySettings = {
     Title = "Key System",
     Subtitle = "أدخل المفتاح لتشغيل السكربت",
@@ -906,7 +906,7 @@ TargetDropdown2 = GrabTab:CreateDropdown({ Name = "Select Player (2)", Options =
 TargetDropdown3 = GrabTab:CreateDropdown({ Name = "Select Player (3)", Options = getPlayerNamesForTargets(), CurrentOption = {"None"}, MultipleOptions = false, Flag = "SpecificTargetDropdown3", Callback = function(Options) if Options[1] then ChosenTargetName3 = (Options[1] == "None") and "" or Options[1]; refreshAllEsp() end end })
 
 GrabTab:CreateToggle({ Name = "Enable Specific Grab", CurrentValue = false, Flag = "SpecificTargetToggle", Callback = function(Value) SpecificTargetEnabled = Value; refreshAllEsp() end })
-
+GrabTab:CreateSection("Best option Grab Repeat 5~8/ grab Activation 15 Studs maximum")
 GrabTab:CreateSlider({ Name = "Grab Activation Range (Distance)", Range = {5, 100}, Increment = 1, Suffix = "Studs", CurrentValue = 15, Flag = "TriggerDistanceSlider", Callback = function(Value) TriggerDistance = Value end })
 GrabTab:CreateSlider({ Name = "Grab Repeat Count", Range = {1, 15}, Increment = 1, Suffix = "Times", CurrentValue = 3, Flag = "GrabRepeatSlider", Callback = function(Value) grabRepeatVal = Value end })
 
