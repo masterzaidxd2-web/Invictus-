@@ -1312,13 +1312,16 @@ local function stopWalkFling()
         walkFlingConnection = nil
     end
     if lp.Character then
-        for _, part in ipairs(lp.Character:GetChildren()) do
-            if part:IsA("BasePart") then
-                pcall(function()
-                    part.AssemblyLinearVelocity = Vector3.zero
-                    part.AssemblyAngularVelocity = Vector3.zero
-                end)
-            end
+        local root = lp.Character:FindFirstChild("HumanoidRootPart") or lp.Character:FindFirstChild("Torso")
+        if root then
+            -- حذف القوة الفيزيائية عند إيقاف الفلينق
+            local oldForce = root:FindFirstChild("WalkFlingForce")
+            if oldForce then oldForce:Destroy() end
+            
+            pcall(function()
+                root.AssemblyLinearVelocity = Vector3.zero
+                root.AssemblyAngularVelocity = Vector3.zero
+            end)
         end
     end
 end
@@ -1333,45 +1336,36 @@ local function startWalkFling()
     local root = char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso")
     if not hum or hum.Health <= 0 or not root then return end
 
-    local angularPower = 50000 -- قوة الدوران فقط (تكفي لرمي أي لاعب يلمسك)
+    local flingPower = 50000 
 
+    -- إضافة محرك دوران فيزيائي نظيف داخل اللاعب لا يسبب تداخلات أو طيران خارج الحلبة
+    local bav = Instance.new("BodyAngularVelocity")
+    bav.Name = "WalkFlingForce"
+    bav.MaxTorque = Vector3.new(math.huge, math.huge, math.huge)
+    bav.AngularVelocity = Vector3.new(0, flingPower, 0)
+    bav.Parent = root
+
+    -- حلقة رصد نظيفة بدون أي أوامر Wait() لمنع خروج الشخصية من مساحة الحلبة
     walkFlingConnection = RunService.Heartbeat:Connect(function()
-        if isHugging or isGrabPause or not antiWalkFlingToggleState then return end
-        local currentChar = lp.Character
-        local currentRoot = currentChar and (currentChar:FindFirstChild("HumanoidRootPart") or currentChar:FindFirstChild("Torso"))
-        local currentHum = currentChar and currentChar:FindFirstChildOfClass("Humanoid")
-        if not currentRoot or not currentHum then return end
-
-        -- إيقاف الفلينق إذا كنت تمشي لتجنب الأخطاء
-        if currentHum.MoveDirection.Magnitude > 0 then
-            return
+        if isHugging or isGrabPause or not antiWalkFlingToggleState then 
+            bav.AngularVelocity = Vector3.zero
+            return 
         end
+        
+        local currentHum = char:FindFirstChildOfClass("Humanoid")
+        if not currentHum or currentHum.Health <= 0 then return end
 
-        pcall(function()
-            local oldAngVel = currentRoot.AssemblyAngularVelocity
-
-            -- تطبيق الدوران العنيف فقط دون العبث بالاندفاع الخطي
-            -- هذا يخدع اللعبة ويجعلها تعتقد أنك تقف ساكناً على الأرض
-            currentRoot.AssemblyAngularVelocity = Vector3.new(angularPower, angularPower, angularPower)
-            
-            RunService.RenderStepped:Wait()
-            
-            if isHugging or isGrabPause or not antiWalkFlingToggleState or currentHum.MoveDirection.Magnitude > 0 then
-                currentRoot.AssemblyAngularVelocity = Vector3.zero
-                return
-            end
-            
-            currentRoot.AssemblyAngularVelocity = oldAngVel
-            
-            RunService.Stepped:Wait()
-            
-            if isHugging or isGrabPause or not antiWalkFlingToggleState or currentHum.MoveDirection.Magnitude > 0 then
-                currentRoot.AssemblyAngularVelocity = Vector3.zero
-                return
-            end
-        end)
+        -- إيقاف الفلينق أثناء المشي، وتشغيله أثناء الوقوف
+        if currentHum.MoveDirection.Magnitude > 0 then
+            bav.AngularVelocity = Vector3.zero
+            -- ضمان استقرار اللاعب عند التوقف عن الدوران
+            root.AssemblyAngularVelocity = Vector3.zero 
+        else
+            bav.AngularVelocity = Vector3.new(0, flingPower, 0)
+        end
     end)
 end
+
 
 pcall(function()
     if not hookmetamethod then return end
