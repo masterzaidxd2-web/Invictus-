@@ -1338,25 +1338,41 @@ local function startWalkFling()
         local currentHum = currentChar and currentChar:FindFirstChildOfClass("Humanoid")
         if not currentRoot or not currentHum then return end
 
+        -- لا تقم بتشغيل الفلينق إذا كان اللاعب يتحرك
         if currentHum.MoveDirection.Magnitude > 0 then
             return
         end
 
         pcall(function()
             local oldVel = currentRoot.AssemblyLinearVelocity
+            local currentPos = currentRoot.CFrame -- 🔴 حفظ الموقع الحالي للشخصية
+
+            -- تطبيق القوة الهائلة
             currentRoot.AssemblyLinearVelocity = Vector3.new(walkFlingPower, walkFlingPower, walkFlingPower)
+            
             RunService.RenderStepped:Wait()
+            
+            -- 🔴 استعادة الموقع فوراً لمنع اللعبة من الاعتقاد أنك غادرت الحلبة
+            currentRoot.CFrame = currentPos 
+            
             if isHugging or isGrabPause or not antiWalkFlingToggleState or currentHum.MoveDirection.Magnitude > 0 then
                 currentRoot.AssemblyLinearVelocity = Vector3.zero
                 return
             end
+            
             currentRoot.AssemblyLinearVelocity = oldVel
             RunService.Stepped:Wait()
+            
+            -- 🔴 استعادة الموقع مرة أخرى لضمان الاستقرار
+            currentRoot.CFrame = currentPos 
+
             if isHugging or isGrabPause or not antiWalkFlingToggleState or currentHum.MoveDirection.Magnitude > 0 then
                 currentRoot.AssemblyLinearVelocity = Vector3.zero
                 return
             end
+            
             currentRoot.AssemblyLinearVelocity = oldVel + Vector3.new(0, movel, 0)
+            currentRoot.CFrame = currentPos -- 🔴 تثبيت نهائي للموقع
             movel = movel * -1
         end)
     end)
