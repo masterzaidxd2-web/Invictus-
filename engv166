@@ -1289,7 +1289,11 @@ PlayerTab:CreateToggle({
     end 
 })
 
- -- Walk Fling System
+-- Walk Fling System (Zone-Safe Edition)
+local RunService = game:GetService("RunService")
+local Players = game:GetService("Players")
+local lp = Players.LocalPlayer
+
 local walkFlingConnection = nil
 local antiWalkFlingToggleState = false
 local walkFlingPower = 50000 
@@ -1342,20 +1346,34 @@ local function startWalkFling()
         end
 
         pcall(function()
-            local oldVel = currentRoot.AssemblyLinearVelocity
-            currentRoot.AssemblyLinearVelocity = Vector3.new(walkFlingPower, walkFlingPower, walkFlingPower)
+            local oldLinVel = currentRoot.AssemblyLinearVelocity
+            local oldAngVel = currentRoot.AssemblyAngularVelocity
+
+            -- التعديل هنا: منع الشخصية من الطيران لأعلى (Y=0) لتجنب الخروج من منطقة الحلبة
+            -- والاعتماد على الدوران القاتل (AngularVelocity) لرمي اللاعبين
+            currentRoot.AssemblyLinearVelocity = Vector3.new(walkFlingPower, 0, walkFlingPower)
+            currentRoot.AssemblyAngularVelocity = Vector3.new(walkFlingPower, walkFlingPower, walkFlingPower)
+            
             RunService.RenderStepped:Wait()
+            
             if isHugging or isGrabPause or not antiWalkFlingToggleState or currentHum.MoveDirection.Magnitude > 0 then
                 currentRoot.AssemblyLinearVelocity = Vector3.zero
+                currentRoot.AssemblyAngularVelocity = Vector3.zero
                 return
             end
-            currentRoot.AssemblyLinearVelocity = oldVel
+            
+            currentRoot.AssemblyLinearVelocity = oldLinVel
+            currentRoot.AssemblyAngularVelocity = oldAngVel
+            
             RunService.Stepped:Wait()
+            
             if isHugging or isGrabPause or not antiWalkFlingToggleState or currentHum.MoveDirection.Magnitude > 0 then
                 currentRoot.AssemblyLinearVelocity = Vector3.zero
+                currentRoot.AssemblyAngularVelocity = Vector3.zero
                 return
             end
-            currentRoot.AssemblyLinearVelocity = oldVel + Vector3.new(0, movel, 0)
+            
+            currentRoot.AssemblyLinearVelocity = oldLinVel + Vector3.new(0, movel, 0)
             movel = movel * -1
         end)
     end)
@@ -1422,7 +1440,6 @@ local function setupCharacter(char)
             end)
         end
 
-        -- كشف عندما تقوم أنت بإمساك لاعب آخر (ربط جزء من شخصيتك بجزء من شخصيته أثناء وقوفك الطبيعي)
         char.DescendantAdded:Connect(function(child)
             task.wait(0.05)
             if child:IsA("Weld") or child:IsA("WeldConstraint") or child:IsA("Motor6D") then
@@ -1431,7 +1448,6 @@ local function setupCharacter(char)
                     local char0 = p0:FindFirstAncestorOfClass("Model")
                     local char1 = p1:FindFirstAncestorOfClass("Model")
                     
-                    -- التأكد أنك أنت الساحب وليس المسحوب (حالتك ليست PlatformStanding أو Physics)
                     if (char0 == char and char1 ~= char and char1:FindFirstChildOfClass("Humanoid")) or
                        (char1 == char and char0 ~= char and char0:FindFirstChildOfClass("Humanoid")) then
                         local state = hum:GetState()
@@ -1453,8 +1469,9 @@ end
 lp.CharacterAdded:Connect(setupCharacter)
 if lp.Character then setupCharacter(lp.Character) end
 
+-- إضافة الزر للواجهة (تأكد من أن PlayerTab معرّف لديك مسبقاً)
 PlayerTab:CreateToggle({
-    Name = "Auto-Safe Walk Fling (Perfect Edition)",
+    Name = "Auto-Safe Walk Fling (Zone-Safe)",
     CurrentValue = false,
     Flag = "AntiWalkFlingToggle", 
     Callback = function(Value)
@@ -1462,6 +1479,7 @@ PlayerTab:CreateToggle({
         if Value then startWalkFling() else stopWalkFling() end
     end,
 })
+
 -- ===============================================
 -- [ Anti-AFK System ]
 -- ===============================================
