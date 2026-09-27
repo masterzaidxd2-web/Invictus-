@@ -1333,9 +1333,7 @@ local function startWalkFling()
     local root = char:FindFirstChild("HumanoidRootPart") or char:FindFirstChild("Torso")
     if not hum or hum.Health <= 0 or not root then return end
 
-    local movel = 0.1
-    local angularPower = 50000 -- قوة الطرد (الدوران) تبقى قصوى
-    local safeLinearPower = 1000 -- قوة الاندفاع الخطي آمنة لحلبة 100x50
+    local angularPower = 50000 -- قوة الدوران فقط (تكفي لرمي أي لاعب يلمسك)
 
     walkFlingConnection = RunService.Heartbeat:Connect(function()
         if isHugging or isGrabPause or not antiWalkFlingToggleState then return end
@@ -1344,39 +1342,33 @@ local function startWalkFling()
         local currentHum = currentChar and currentChar:FindFirstChildOfClass("Humanoid")
         if not currentRoot or not currentHum then return end
 
+        -- إيقاف الفلينق إذا كنت تمشي لتجنب الأخطاء
         if currentHum.MoveDirection.Magnitude > 0 then
             return
         end
 
         pcall(function()
-            local oldLinVel = currentRoot.AssemblyLinearVelocity
             local oldAngVel = currentRoot.AssemblyAngularVelocity
 
-            -- تطبيق سرعة خطية آمنة لا تتجاوز حدود الحلبة، وسرعة دوران مدمرة
-            currentRoot.AssemblyLinearVelocity = Vector3.new(safeLinearPower, 0, safeLinearPower)
+            -- تطبيق الدوران العنيف فقط دون العبث بالاندفاع الخطي
+            -- هذا يخدع اللعبة ويجعلها تعتقد أنك تقف ساكناً على الأرض
             currentRoot.AssemblyAngularVelocity = Vector3.new(angularPower, angularPower, angularPower)
             
             RunService.RenderStepped:Wait()
             
             if isHugging or isGrabPause or not antiWalkFlingToggleState or currentHum.MoveDirection.Magnitude > 0 then
-                currentRoot.AssemblyLinearVelocity = Vector3.zero
                 currentRoot.AssemblyAngularVelocity = Vector3.zero
                 return
             end
             
-            currentRoot.AssemblyLinearVelocity = oldLinVel
             currentRoot.AssemblyAngularVelocity = oldAngVel
             
             RunService.Stepped:Wait()
             
             if isHugging or isGrabPause or not antiWalkFlingToggleState or currentHum.MoveDirection.Magnitude > 0 then
-                currentRoot.AssemblyLinearVelocity = Vector3.zero
                 currentRoot.AssemblyAngularVelocity = Vector3.zero
                 return
             end
-            
-            currentRoot.AssemblyLinearVelocity = oldLinVel + Vector3.new(0, movel, 0)
-            movel = movel * -1
         end)
     end)
 end
