@@ -1288,7 +1288,7 @@ PlayerTab:CreateToggle({
         end
     end 
 })
--- Walk Fling System
+
  -- Walk Fling System
 local walkFlingConnection = nil
 local antiWalkFlingToggleState = false
