@@ -1334,6 +1334,9 @@ local function startWalkFling()
     if not hum or hum.Health <= 0 or not root then return end
 
     local movel = 0.1
+    local angularPower = 50000 -- قوة الطرد (الدوران) تبقى قصوى
+    local safeLinearPower = 1000 -- قوة الاندفاع الخطي آمنة لحلبة 100x50
+
     walkFlingConnection = RunService.Heartbeat:Connect(function()
         if isHugging or isGrabPause or not antiWalkFlingToggleState then return end
         local currentChar = lp.Character
@@ -1349,10 +1352,9 @@ local function startWalkFling()
             local oldLinVel = currentRoot.AssemblyLinearVelocity
             local oldAngVel = currentRoot.AssemblyAngularVelocity
 
-            -- التعديل هنا: منع الشخصية من الطيران لأعلى (Y=0) لتجنب الخروج من منطقة الحلبة
-            -- والاعتماد على الدوران القاتل (AngularVelocity) لرمي اللاعبين
-            currentRoot.AssemblyLinearVelocity = Vector3.new(walkFlingPower, 0, walkFlingPower)
-            currentRoot.AssemblyAngularVelocity = Vector3.new(walkFlingPower, walkFlingPower, walkFlingPower)
+            -- تطبيق سرعة خطية آمنة لا تتجاوز حدود الحلبة، وسرعة دوران مدمرة
+            currentRoot.AssemblyLinearVelocity = Vector3.new(safeLinearPower, 0, safeLinearPower)
+            currentRoot.AssemblyAngularVelocity = Vector3.new(angularPower, angularPower, angularPower)
             
             RunService.RenderStepped:Wait()
             
