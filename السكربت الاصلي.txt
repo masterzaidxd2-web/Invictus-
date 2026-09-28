@@ -2821,6 +2821,89 @@ if activeTargetHRP then
       end
   end
 end)
+-- ===============================================
+-- [ نظام اختصارات الكيبورد - Keybinds System ]
+-- (يعمل بجوار اللمس الأصلي دون تعديله)
+-- ===============================================
+local UIKeys = {
+    Invis = Enum.KeyCode.Z,
+    Magnet = Enum.KeyCode.X,
+    Fling = Enum.KeyCode.C
+}
+
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if gameProcessed then return end
+    
+    if input.KeyCode == UIKeys.Invis and InvisGui.Enabled then
+        -- تفعيل الاختفاء
+        IsInvisible = not IsInvisible
+        if lp.Character and lp.Character:FindFirstChild("HumanoidRootPart") then
+            local root = lp.Character.HumanoidRootPart
+            root.CFrame = root.CFrame + Vector3.new(0, 0.05, 0)
+            root.AssemblyLinearVelocity = Vector3.new(0, 0.1, 0)
+        end
+        if IsInvisible then
+            FloatBtn.BackgroundColor3 = Color3.fromRGB(60, 220, 60); FloatBtn.Text = "Invis: ✅"
+            updateInvisParts()
+            for _, item in pairs(invisParts) do if item.obj and item.obj.Parent then item.obj.Transparency = 0.5 end end
+        else
+            FloatBtn.BackgroundColor3 = Color3.fromRGB(220, 60, 60); FloatBtn.Text = "Invis: ❌"
+            for _, item in pairs(invisParts) do if item.obj and item.obj.Parent then item.obj.Transparency = item.origTrans end end
+        end
+        
+    elseif input.KeyCode == UIKeys.Magnet and MagnetGui.Enabled then
+        -- تفعيل المغناطيس بالكيبورد (ضغط مستمر افتراضي أو تبديل)
+        IsHoldingMagnet = true
+        HoldMagBtn.BackgroundColor3 = Color3.fromRGB(60, 220, 60)
+        
+    elseif input.KeyCode == UIKeys.Fling and FlingGui.Enabled then
+        -- تشغيل الفلنق إذا كان موجوداً لديك
+        if type(toggleFling) == "function" then
+            toggleFling()
+        end
+    end
+end)
+
+UserInputService.InputEnded:Connect(function(input, gameProcessed)
+    if gameProcessed then return end
+    if input.KeyCode == UIKeys.Magnet and MagnetGui.Enabled then
+        IsHoldingMagnet = false
+        HoldMagBtn.BackgroundColor3 = Color3.fromRGB(60, 100, 220)
+    end
+end)
+
+-- قسم تعديل الاختصارات من الواجهة
+PlayerTab:CreateSection("⌨️ تعديل أزرار الكيبورد (Keybinds)")
+
+PlayerTab:CreateInput({
+    Name = "زر الاختفاء (Invis)",
+    PlaceholderText = "Z",
+    RemoveTextAfterFocusLost = true,
+    Callback = function(Text)
+        local success, key = pcall(function() return Enum.KeyCode[string.upper(Text)] end)
+        if success and key then UIKeys.Invis = key end
+    end
+})
+
+PlayerTab:CreateInput({
+    Name = "زر المغناطيس (Magnet)",
+    PlaceholderText = "X",
+    RemoveTextAfterFocusLost = true,
+    Callback = function(Text)
+        local success, key = pcall(function() return Enum.KeyCode[string.upper(Text)] end)
+        if success and key then UIKeys.Magnet = key end
+    end
+})
+
+PlayerTab:CreateInput({
+    Name = "زر الفلنق (Fling)",
+    PlaceholderText = "C",
+    RemoveTextAfterFocusLost = true,
+    Callback = function(Text)
+        local success, key = pcall(function() return Enum.KeyCode[string.upper(Text)] end)
+        if success and key then UIKeys.Fling = key end
+    end
+})
 
 pcall(function()
   Rayfield:LoadConfiguration()
