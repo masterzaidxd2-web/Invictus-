@@ -845,16 +845,30 @@ local Window = Rayfield:CreateWindow({
     FileName = "AuraDeltaSettings"
  },
 
- KeySystem = true,
- KeySettings = {
-    Title = "Key System",
-    Subtitle = "To get the key, contact me on discord @1st5 ",
-    Note = " new update..anti-walk fling fixed ",
-    SaveKey = false,
-    GrabKeyFromSite = true,
-    Key = {"https://gist.githubusercontent.com/masterzaidxd2-web/e32fcc7d50306605945fc7e909c6fefc/raw/d7cea93baa4f36ac1dce4ed439e136b434a4a391/Kahj731"}
- }
+
+local p1 = "https://gist.githubusercontent.com/"
+local p2 = "masterzaidxd2-web/e32fcc7d50306605945fc7e909c6fefc/raw/"
+local p3 = "d7cea93baa4f36ac1dce4ed439e136b434a4a391/Kahj731"
+local keyUrl = p1 .. p2 .. p3
+
+-- إنشاء نافذة Rayfield مع إعدادات نظام المفتاح
+local Window = Rayfield:CreateWindow({
+   Name = "Invictus Mobile",
+   LoadingTitle = "Mobile Edition",
+   LoadingSubtitle = "by KHURAFI",
+   Theme = "Amethyst",
+   ConfigurationSaving = { Enabled = false },
+   KeySystem = true,
+   KeySettings = {
+      Title = "Key System",
+      Subtitle = "To get the key, contact me on discord @1st5",
+      Note = "new update..anti-walk fling fixed",
+      SaveKey = false,
+      GrabKeyFromSite = true,
+      Key = { keyUrl } -- جلب المفتاح مباشرة من الرابط المجمع
+   }
 })
+
 
 local MainTab = Window:CreateTab("Aura", 4483345998)
 local GrabTab = Window:CreateTab("Grab", 4483345998)
