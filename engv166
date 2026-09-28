@@ -852,7 +852,7 @@ local Window = Rayfield:CreateWindow({
     Note = " new update..anti-walk fling fixed ",
     SaveKey = false,
     GrabKeyFromSite = true,
-    Key = {"https://gist.githubusercontent.com/masterzaidxd2-web/e32fcc7d50306605945fc7e909c6fefc/raw/Password"}
+    Key = {"https://gist.githubusercontent.com/masterzaidxd2-web/e32fcc7d50306605945fc7e909c6fefc/raw/d7cea93baa4f36ac1dce4ed439e136b434a4a391/Kahj731"}
  }
 })
 
