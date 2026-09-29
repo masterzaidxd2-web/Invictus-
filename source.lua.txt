@@ -2359,15 +2359,22 @@ if VERTICAL_TABS then
 	TabPage.Position = UDim2.new(0, 0, 0, 0)
 	TabPage.Size = UDim2.new(1, 0, 1, 0)
 
+	-- ═══ [شريط تمرير أسمك لسهولة السحب] ═══
+	TabPage.ScrollBarThickness = 12
+	TabPage.ScrollBarImageColor3 = Color3.fromRGB(80, 140, 220)
+	TabPage.ScrollBarImageTransparency = 0.3
+	TabPage.VerticalScrollBarInset = Enum.ScrollBarInset.ScrollBar
+	TabPage.ElasticBehavior = Enum.ElasticBehavior.WhenScrollable
+
 	local pad = TabPage:FindFirstChildOfClass("UIPadding")
 	if not pad then
 		pad = Instance.new("UIPadding")
 		pad.Parent = TabPage
 	end
 	pad.PaddingLeft = UDim.new(0, 8)
-pad.PaddingRight = UDim.new(0, 8)
-pad.PaddingTop = UDim.new(0, 4)
-pad.PaddingBottom = UDim.new(0, 60)
+	pad.PaddingRight = UDim.new(0, 14)   -- مساحة إضافية من اليمين لشريط التمرير
+	pad.PaddingTop = UDim.new(0, 4)
+	pad.PaddingBottom = UDim.new(0, 60)
 end
 
 if not FirstTab and not Ext then
