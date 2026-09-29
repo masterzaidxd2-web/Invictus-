@@ -1955,6 +1955,26 @@ OthersTab:CreateButton({
         Rayfield:Notify({Title = "Inventory", Content = "✅ Teleport Tool added to your backpack!", Duration = 3})
     end
 })
+-- حفظ العمق الأصلي للعبة عند التشغيل
+local originalFallenHeight = workspace.FallenPartsDestroyHeight
+
+OthersTab:CreateToggle({
+    Name = "Bypass Death Wall (-500k)",
+    CurrentValue = false,
+    Flag = "DeathWallBypass",
+    Callback = function(Value)
+        if Value then
+            -- حفظ القيمة الأصلية قبل التعديل إذا لم تكن قد تعدلت بالفعل
+            if workspace.FallenPartsDestroyHeight ~= -500000 then
+                originalFallenHeight = workspace.FallenPartsDestroyHeight
+            end
+            workspace.FallenPartsDestroyHeight = -500000
+        else
+            -- إرجاع الجدار إلى الوضع الطبيعي
+            workspace.FallenPartsDestroyHeight = originalFallenHeight
+        end
+    end,
+})
 
 OthersTab:CreateSection("🛡️ Sky Safezone")
 local savedCFrame = nil
