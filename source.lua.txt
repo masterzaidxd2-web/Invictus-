@@ -2925,9 +2925,17 @@ end
 			TweenService:Create(Paragraph.Content, TweenInfo.new(0.7, Enum.EasingStyle.Exponential), {TextTransparency = 0}):Play()	
 
 			function ParagraphValue:Set(NewParagraphSettings)
-				Paragraph.Title.Text = NewParagraphSettings.Title
-				Paragraph.Content.Text = NewParagraphSettings.Content
-			end
+	Paragraph.Title.Text = NewParagraphSettings.Title
+	Paragraph.Content.Text = NewParagraphSettings.Content
+
+	if VERTICAL_TABS then
+		Paragraph.Content.AnchorPoint = Vector2.new(0, 0)
+		Paragraph.Content.Position = UDim2.new(0, 10, 0, 26)
+		Paragraph.Content.Size = UDim2.new(1, -20, 1, -30)
+		Paragraph.Content.TextXAlignment = Enum.TextXAlignment.Left
+		Paragraph.Content.TextWrapped = true
+	end
+end
 
 			Rayfield.Main:GetPropertyChangedSignal('BackgroundColor3'):Connect(function()
 				Paragraph.BackgroundColor3 = SelectedTheme.SecondaryElementBackground
