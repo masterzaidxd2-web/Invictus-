@@ -837,7 +837,7 @@ end)
 -- 🔴 الخطوة الصحيحة: تعريف الرابط وجمعه "قبل" إنشاء النافذة
 local part1 = "https://gist.githubusercontent.com/"
 local part2 = "masterzaidxd2-web/e32fcc7d50306605945fc7e909c6fefc/raw/"
-local part3 = "d7cea93baa4f36ac1dce4ed439e136b434a4a391/Kahj731"
+local part3 = "7d81be289a06ce5f6fbaaf7b94e5b17c3ecf96f5/Ldry54"
 
 local keyUrl = part1 .. part2 .. part3
 
