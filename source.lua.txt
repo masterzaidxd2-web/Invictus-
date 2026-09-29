@@ -1030,32 +1030,48 @@ local Topbar = Main.Topbar
 local Elements = Main.Elements
 local LoadingFrame = Main.LoadingFrame
 local TabList = Main.TabList
+local dragBar = Rayfield:FindFirstChild('Drag')
+
 -- ══════════════════════════════════════════════
 -- [تحويل التبويبات من أفقي إلى عمودي]
 -- ══════════════════════════════════════════════
-local VERTICAL_TABS = true -- اجعلها false للعودة للوضع الأصلي
-local SIDEBAR_WIDTH = 130 -- عرض عمود التبويبات
+local VERTICAL_TABS = true
+local SIDEBAR_WIDTH = 130
 
 local function applyVerticalTabs()
     if not VERTICAL_TABS then return end
 
-    local tabLayout = TabList:FindFirstChildOfClass("UIListLayout")
-    if tabLayout then
-        tabLayout.FillDirection = Enum.FillDirection.Vertical
-        tabLayout.HorizontalAlignment = Enum.HorizontalAlignment.Left
-        tabLayout.VerticalAlignment = Enum.VerticalAlignment.Top
-        tabLayout.Padding = UDim.new(0, 4)
-        tabLayout.SortOrder = Enum.SortOrder.LayoutOrder
+    TabList.AnchorPoint = Vector2.new(0, 0)
+    TabList.Position = UDim2.new(0, 8, 0, 50)
+    TabList.Size = UDim2.new(0, SIDEBAR_WIDTH, 1, -58)
+    TabList.BackgroundTransparency = 1
+    TabList.BorderSizePixel = 0
+    TabList.ClipsDescendants = true
+
+    TabList.ScrollingDirection = Enum.ScrollingDirection.Y
+    TabList.CanvasSize = UDim2.new(0, 0, 0, 0)
+    TabList.AutomaticCanvasSize = Enum.AutomaticSize.Y
+    TabList.ScrollBarThickness = 3
+
+    local oldPad = TabList:FindFirstChildOfClass("UIPadding")
+    if oldPad then oldPad:Destroy() end
+
+    local layout = TabList:FindFirstChildOfClass("UIListLayout")
+    if not layout then
+        layout = Instance.new("UIListLayout")
+        layout.Parent = TabList
     end
+    layout.FillDirection = Enum.FillDirection.Vertical
+    layout.HorizontalAlignment = Enum.HorizontalAlignment.Left
+    layout.VerticalAlignment = Enum.VerticalAlignment.Top
+    layout.Padding = UDim.new(0, 4)
+    layout.SortOrder = Enum.SortOrder.LayoutOrder
 
-    -- اجعل TabList عمودًا على اليسار
-    TabList.Size = UDim2.new(0, SIDEBAR_WIDTH, 1, -50)
-    TabList.Position = UDim2.new(0, 5, 0, 48)
-
-    -- أزرار التبويبات تأخذ العرض الكامل للعمود
     for _, btn in ipairs(TabList:GetChildren()) do
         if btn:IsA("Frame") and btn.Name ~= "Template" and btn.Name ~= "Placeholder" then
-            btn.Size = UDim2.new(1, -5, 0, 30)
+            btn.AnchorPoint = Vector2.new(0, 0)
+            btn.Position = UDim2.new(0, 0, 0, 0)
+            btn.Size = UDim2.new(1, -4, 0, 30)
             if btn:FindFirstChild("Title") then
                 btn.Title.AnchorPoint = Vector2.new(0, 0.5)
                 btn.Title.Position = UDim2.new(0, 10, 0.5, 0)
@@ -1064,9 +1080,9 @@ local function applyVerticalTabs()
         end
     end
 
-    -- أزح منطقة المحتوى لليمين
-    Elements.Size = UDim2.new(1, -(SIDEBAR_WIDTH + 15), 1, -50)
-    Elements.Position = UDim2.new(0, SIDEBAR_WIDTH + 10, 0, 48)
+    Elements.AnchorPoint = Vector2.new(0, 0)
+    Elements.Position = UDim2.new(0, SIDEBAR_WIDTH + 14, 0, 50)
+    Elements.Size = UDim2.new(1, -(SIDEBAR_WIDTH + 22), 1, -58)
 end
 local dragBar = Rayfield:FindFirstChild('Drag')
 local dragInteract = dragBar and dragBar.Interact or nil
