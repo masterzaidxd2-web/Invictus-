@@ -1947,7 +1947,7 @@ function RayfieldLibrary:CreateWindow(Settings)
 			print(result)
 		end
 	end
-
+applyVerticalTabs()
 	Topbar.Visible = false
 	Elements.Visible = false
 	LoadingFrame.Visible = true
