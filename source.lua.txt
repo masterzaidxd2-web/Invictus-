@@ -2888,11 +2888,29 @@ end
 			local ParagraphValue = {}
 
 			local Paragraph = Elements.Template.Paragraph:Clone()
-			Paragraph.Title.Text = ParagraphSettings.Title
-			Paragraph.Content.Text = ParagraphSettings.Content
-			Paragraph.Visible = true
-			Paragraph.Parent = TabPage
+Paragraph.Title.Text = ParagraphSettings.Title
+Paragraph.Content.Text = ParagraphSettings.Content
+Paragraph.Visible = true
+Paragraph.Parent = TabPage
 
+-- [إصلاح قص النص من اليسار في الوضع العمودي]
+if VERTICAL_TABS then
+	Paragraph.AnchorPoint = Vector2.new(0, 0)
+	Paragraph.Position = UDim2.new(0, 0, 0, 0)
+	Paragraph.Size = UDim2.new(1, -10, 0, Paragraph.Size.Y.Offset)
+
+	Paragraph.Title.AnchorPoint = Vector2.new(0, 0)
+	Paragraph.Title.Position = UDim2.new(0, 10, 0, 8)
+	Paragraph.Title.Size = UDim2.new(1, -20, 0, 14)
+	Paragraph.Title.TextXAlignment = Enum.TextXAlignment.Left
+
+	Paragraph.Content.AnchorPoint = Vector2.new(0, 0)
+	Paragraph.Content.Position = UDim2.new(0, 10, 0, 26)
+	Paragraph.Content.Size = UDim2.new(1, -20, 1, -30)
+	Paragraph.Content.TextXAlignment = Enum.TextXAlignment.Left
+	Paragraph.Content.TextYAlignment = Enum.TextYAlignment.Top
+	Paragraph.Content.TextWrapped = true
+end
 			Paragraph.BackgroundTransparency = 1
 			Paragraph.UIStroke.Transparency = 1
 			Paragraph.Title.TextTransparency = 1
