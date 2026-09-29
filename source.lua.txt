@@ -1104,9 +1104,9 @@ local function applyVerticalTabs()
                     pad.Parent = page
                 end
                 pad.PaddingLeft = UDim.new(0, 8)
-                pad.PaddingRight = UDim.new(0, 8)
-                pad.PaddingTop = UDim.new(0, 4)
-
+pad.PaddingRight = UDim.new(0, 8)
+pad.PaddingTop = UDim.new(0, 4)
+pad.PaddingBottom = UDim.new(0, 60)
                 -- ═══ إصلاح إضافي: محاذاة الفقرات والنصوص داخل الصفحة ═══
                 for _, el in ipairs(page:GetChildren()) do
                     if el:IsA("Frame") then
