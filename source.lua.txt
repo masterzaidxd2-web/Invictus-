@@ -2364,7 +2364,9 @@ if VERTICAL_TABS then
 		pad.Parent = TabPage
 	end
 	pad.PaddingLeft = UDim.new(0, 8)
-	pad.PaddingRight = UDim.new(0, 8)
+pad.PaddingRight = UDim.new(0, 8)
+pad.PaddingTop = UDim.new(0, 4)
+pad.PaddingBottom = UDim.new(0, 60)
 end
 
 if not FirstTab and not Ext then
