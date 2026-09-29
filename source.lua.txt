@@ -2352,11 +2352,26 @@ end
 		end
 
 		TabPage.Parent = Elements
-		if not FirstTab and not Ext then
-			Elements.UIPageLayout.Animated = false
-			Elements.UIPageLayout:JumpTo(TabPage)
-			Elements.UIPageLayout.Animated = true
-		end
+
+if VERTICAL_TABS then
+	TabPage.AnchorPoint = Vector2.new(0, 0)
+	TabPage.Position = UDim2.new(0, 0, 0, 0)
+	TabPage.Size = UDim2.new(1, 0, 1, 0)
+
+	local pad = TabPage:FindFirstChildOfClass("UIPadding")
+	if not pad then
+		pad = Instance.new("UIPadding")
+		pad.Parent = TabPage
+	end
+	pad.PaddingLeft = UDim.new(0, 8)
+	pad.PaddingRight = UDim.new(0, 8)
+end
+
+if not FirstTab and not Ext then
+	Elements.UIPageLayout.Animated = false
+	Elements.UIPageLayout:JumpTo(TabPage)
+	Elements.UIPageLayout.Animated = true
+end
 
 		TabButton.UIStroke.Color = SelectedTheme.TabStroke
 
