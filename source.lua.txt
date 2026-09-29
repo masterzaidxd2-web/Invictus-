@@ -2232,7 +2232,7 @@ applyVerticalTabs()
 	Elements.UIPageLayout.GamepadInputEnabled = false
 	Elements.UIPageLayout.TouchInputEnabled = false
 	TabList.Template.Visible = false
-
+applyVerticalTabs()
 	-- Tab
 	local FirstTab = false
 	local Window = {}
