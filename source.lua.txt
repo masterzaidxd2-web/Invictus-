@@ -3697,10 +3697,30 @@ end
 		function Tab:CreateSlider(SliderSettings)
 			local SLDragging = false
 			local Slider = Elements.Template.Slider:Clone()
-			Slider.Name = SliderSettings.Name
-			Slider.Title.Text = SliderSettings.Name
-			Slider.Visible = true
-			Slider.Parent = TabPage
+Slider.Name = SliderSettings.Name
+Slider.Title.Text = SliderSettings.Name
+Slider.Visible = true
+Slider.Parent = TabPage
+
+-- ═══ [إصلاح Slider في الوضع العمودي] ═══
+if VERTICAL_TABS then
+	Slider.Size = UDim2.new(1, -10, 0, 60)
+	Slider.ClipsDescendants = false
+
+	-- 1) العنوان في الأعلى بعرض كامل
+	Slider.Title.AnchorPoint = Vector2.new(0, 0)
+	Slider.Title.Position = UDim2.new(0, 15, 0, 6)
+	Slider.Title.Size = UDim2.new(1, -30, 0, 18)
+	Slider.Title.TextXAlignment = Enum.TextXAlignment.Left
+	Slider.Title.TextYAlignment = Enum.TextYAlignment.Center
+	Slider.Title.TextWrapped = false
+	Slider.Title.TextTruncate = Enum.TextTruncate.AtEnd
+
+	-- 2) الشريط في الأسفل بعرض كامل
+	Slider.Main.AnchorPoint = Vector2.new(0, 0)
+	Slider.Main.Position = UDim2.new(0, 15, 0, 30)
+	Slider.Main.Size = UDim2.new(1, -30, 0, 22)
+end
 
 			Slider.BackgroundTransparency = 1
 			Slider.UIStroke.Transparency = 1
