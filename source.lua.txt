@@ -1080,10 +1080,55 @@ local function applyVerticalTabs()
         end
     end
 
-    Elements.AnchorPoint = Vector2.new(0, 0)
+        Elements.AnchorPoint = Vector2.new(0, 0)
     Elements.Position = UDim2.new(0, SIDEBAR_WIDTH + 14, 0, 50)
     Elements.Size = UDim2.new(1, -(SIDEBAR_WIDTH + 22), 1, -58)
+
+    -- ═══ 7) أصلح حجم كل صفحة داخل Elements (يحل مشكلة الدردشة) ═══
+    task.spawn(function()
+        task.wait(0.1) -- ننتظر حتى تُنشأ الصفحات
+
+        for _, page in ipairs(Elements:GetChildren()) do
+            if page:IsA("ScrollingFrame") and page.Name ~= "Template" and page.Name ~= "Placeholder" then
+                page.AnchorPoint = Vector2.new(0, 0)
+                page.Position = UDim2.new(0, 0, 0, 0)
+                page.Size = UDim2.new(1, 0, 1, 0)
+                page.CanvasSize = UDim2.new(0, 0, 0, 0)
+                page.AutomaticCanvasSize = Enum.AutomaticSize.Y
+                page.ScrollBarThickness = 4
+
+                -- تأكد من وجود UIPadding مناسب من اليسار
+                local pad = page:FindFirstChildOfClass("UIPadding")
+                if not pad then
+                    pad = Instance.new("UIPadding")
+                    pad.Parent = page
+                end
+                pad.PaddingLeft = UDim.new(0, 8)
+                pad.PaddingRight = UDim.new(0, 8)
+                pad.PaddingTop = UDim.new(0, 4)
+
+                -- ═══ إصلاح إضافي: محاذاة الفقرات والنصوص داخل الصفحة ═══
+                for _, el in ipairs(page:GetChildren()) do
+                    if el:IsA("Frame") then
+                        el.AnchorPoint = Vector2.new(0, 0)
+                        el.Position = UDim2.new(0, el.Position.X.Offset, 0, el.Position.Y.Offset)
+                        el.Size = UDim2.new(1, -10, el.Size.Y.Scale, el.Size.Y.Offset)
+
+                        -- إصلاح Paragraph (الدردشة)
+                        if el:FindFirstChild("Content") and el.Content:IsA("TextLabel") then
+                            el.Content.TextXAlignment = Enum.TextXAlignment.Left
+                            el.Content.TextYAlignment = Enum.TextYAlignment.Top
+                            el.Content.TextWrapped = true
+                            el.Content.Position = UDim2.new(0, 10, 0, 20)
+                            el.Content.Size = UDim2.new(1, -20, 1, -25)
+                        end
+                    end
+                end
+            end
+        end
+    end)
 end
+
 local dragBar = Rayfield:FindFirstChild('Drag')
 local dragInteract = dragBar and dragBar.Interact or nil
 local dragBarCosmetic = dragBar and dragBar.Drag or nil
