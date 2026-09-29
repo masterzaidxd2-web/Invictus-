@@ -1095,8 +1095,9 @@ local function applyVerticalTabs()
                 page.Size = UDim2.new(1, 0, 1, 0)
                 page.CanvasSize = UDim2.new(0, 0, 0, 0)
                 page.AutomaticCanvasSize = Enum.AutomaticSize.Y
-                page.ScrollBarThickness = 4
-
+                page.ScrollBarThickness = 12
+page.ScrollBarImageColor3 = Color3.fromRGB(80, 140, 220)
+page.ScrollBarImageTransparency = 0.3
                 -- تأكد من وجود UIPadding مناسب من اليسار
                 local pad = page:FindFirstChildOfClass("UIPadding")
                 if not pad then
