@@ -2241,7 +2241,9 @@ applyVerticalTabs()
 
 
 	Elements.Template.LayoutOrder = 100000
-	Elements.Template.Visible = false
+Elements.Template.Visible = false
+
+applyVerticalTabs()
 
 	Elements.UIPageLayout.FillDirection = Enum.FillDirection.Horizontal
 	Elements.UIPageLayout.ScrollWheelInputEnabled = false
