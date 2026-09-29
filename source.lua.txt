@@ -2265,7 +2265,9 @@ applyVerticalTabs()
     TabButton.Title.Position = UDim2.new(0, 37, 0.5, 0)
     TabButton.Title.TextXAlignment = Enum.TextXAlignment.Left
 else
-    TabButton.Size = UDim2.new(0, TabButton.Title.TextBounds.X + 30, 0, 30)
+    TabButton.AnchorPoint = Vector2.new(0, 0)
+TabButton.Position = UDim2.new(0, 0, 0, 0)
+TabButton.Size = VERTICAL_TABS and UDim2.new(1, -4, 0, 30) or UDim2.new(0, TabButton.Title.TextBounds.X + 30, 0, 30)
 end
 		if Image and Image ~= 0 then
 			local img, rectOffset, rectSize = resolveIcon(Image)
