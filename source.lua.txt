@@ -3722,10 +3722,29 @@ end
 			Slider.Main.Progress.Size =	UDim2.new(0, Slider.Main.AbsoluteSize.X * ((SliderSettings.CurrentValue - SliderSettings.Range[1]) / (SliderSettings.Range[2] - SliderSettings.Range[1])) > 5 and Slider.Main.AbsoluteSize.X * ((SliderSettings.CurrentValue - SliderSettings.Range[1]) / (SliderSettings.Range[2] - SliderSettings.Range[1])) or 5, 1, 0)
 
 			if not SliderSettings.Suffix then
-				Slider.Main.Information.Text = tostring(SliderSettings.CurrentValue)
-			else
-				Slider.Main.Information.Text = tostring(SliderSettings.CurrentValue) .. " " .. SliderSettings.Suffix
-			end
+	Slider.Main.Information.Text = tostring(SliderSettings.CurrentValue)
+else
+	Slider.Main.Information.Text = tostring(SliderSettings.CurrentValue) .. " " .. SliderSettings.Suffix
+end
+
+-- ═══ [تصغير حجم Bubble السلايدر ومنع خروجها] ═══
+task.defer(function()
+	task.wait(0.05)
+
+	local info = Slider.Main.Information
+	info.AnchorPoint = Vector2.new(0.5, 0.5)
+	info.TextSize = 11
+	info.Font = Enum.Font.SourceSansSemibold
+
+	-- ضبط حجم الخلفية الزرقاء (إذا كانت موجودة)
+	if info:FindFirstChildOfClass("UICorner") then
+		info:FindFirstChildOfClass("UICorner").CornerRadius = UDim.new(1, 0)
+	end
+
+	-- نصغر الخلفية
+	info.BackgroundColor3 = SelectedTheme.SliderProgress
+	info.Size = UDim2.new(0, math.max(#info.Text * 6 + 14, 32), 0, 18)
+end)
 
 			Slider.MouseEnter:Connect(function()
 				TweenService:Create(Slider, TweenInfo.new(0.6, Enum.EasingStyle.Exponential), {BackgroundColor3 = SelectedTheme.ElementBackgroundHover}):Play()
