@@ -1007,6 +1007,12 @@ do
 	Rayfield.Main.Search.Shadow.Image = customAssets[tostring(5587865193)]
 	Rayfield.Notifications.Template.Icon.Image = customAssets[tostring(77891951053543)]
 	Rayfield.Loading.Banner.Image = customAssets["MyBanner"]
+task.defer(function()
+	task.wait(0.05)
+	local banner = Rayfield.Loading.Banner
+	banner.ScaleType = Enum.ScaleType.Fit
+	banner.Size = UDim2.new(0, 200, 0, 200)
+end)
 
 end -- custom asset block
 
