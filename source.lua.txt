@@ -1004,47 +1004,8 @@ do
 	Rayfield.Main.Search.Search.Image = customAssets[tostring(18458939117)]
 	Rayfield.Main.Search.Shadow.Image = customAssets[tostring(5587865193)]
 	Rayfield.Notifications.Template.Icon.Image = customAssets[tostring(77891951053543)]
-	Rayfie-- [تحميل صورة البانر من GitHub]
-task.spawn(function()
-	local IMAGE_URL = "https://raw.githubusercontent.com/masterzaidxd2-web/Invictus-/refs/heads/main/file_00000000449c8246803591cf4bee0beb.png"
-	local IMAGE_PATH = "Rayfield/Assets/custom_banner.png"
-	local req = (syn and syn.request) or (http and http.request) or http_request or request
+	Rayfield.Loading.Banner.Image = customAssets[tostring(111263549366178)]
 
-	if not req then return end
-	if not writefile or not getcustomasset then return end
-
-	if makefolder and isfolder then
-		if not isfolder("Rayfield") then makefolder("Rayfield") end
-		if not isfolder("Rayfield/Assets") then makefolder("Rayfield/Assets") end
-	end
-
-	if isfile and isfile(IMAGE_PATH) then
-		local ok, asset = pcall(getcustomasset, IMAGE_PATH)
-		if ok and asset then
-			Rayfield.Loading.Banner.Image = asset
-			Rayfield.Loading.Banner.ImageTransparency = 0
-			return
-		end
-	end
-
-	local ok, response = pcall(req, {Url = IMAGE_URL, Method = "GET"})
-
-	if ok and response and response.Body and #response.Body > 100 then
-		local writeOk = pcall(writefile, IMAGE_PATH, response.Body)
-		if writeOk then
-			local assetOk, asset = pcall(getcustomasset, IMAGE_PATH)
-			if assetOk and asset then
-				Rayfield.Loading.Banner.Image = asset
-				Rayfield.Loading.Banner.ImageTransparency = 0
-				return
-			end
-		end
-	end
-
-	Rayfield.Loading.Banner.Image = ""
-	Rayfield.Loading.Banner.ImageTransparency = 1
-end)ld.Notifications.Template.Shadow.Image = customAssets[tostring(3523728077)]
-	
 end -- custom asset block
 
 local minSize = Vector2.new(1024, 768)
