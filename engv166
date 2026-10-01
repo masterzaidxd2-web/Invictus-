@@ -1387,6 +1387,10 @@ local function stopWalkFling()
     end
 end
 
+-- ✅ متغير لحفظ الموقع السابق لكشف الانتقال
+local lastFlingPos = nil
+local teleportPauseUntil = 0
+
 local function startWalkFling()
     stopWalkFling()
     if not antiWalkFlingToggleState or isHugging or isGrabPause then return end
@@ -1400,11 +1404,36 @@ local function startWalkFling()
     local movel = 0.1
     walkFlingConnection = RunService.Heartbeat:Connect(function()
     if isHugging or isGrabPause or not antiWalkFlingToggleState then return end
-    if getgenv().IsFlinging then return end   -- ✅ أضف هذا السطر
+    if getgenv().IsFlinging then return end
     local currentChar = lp.Character
     local currentRoot = currentChar and (currentChar:FindFirstChild("HumanoidRootPart") or currentChar:FindFirstChild("Torso"))
         local currentHum = currentChar and currentChar:FindFirstChildOfClass("Humanoid")
         if not currentRoot or not currentHum then return end
+
+        -- ✅ إذا مررنا في وضع "توقف مؤقت للانتقال" → تجاهل
+        if tick() < teleportPauseUntil then
+            lastFlingPos = currentRoot.Position
+            return
+        end
+
+        -- ✅ كشف الانتقال التلقائي: إذا تغير الموقع بشكل كبير خلال إطار واحد
+        if lastFlingPos then
+            local posChange = (currentRoot.Position - lastFlingPos).Magnitude
+            if posChange > 30 then  -- أكثر من 30 studs = انتقال
+                -- إيقاف مؤقت لمدة 1.5 ثانية للسماح للانتقال بإكمال عمله
+                teleportPauseUntil = tick() + 1.5
+                lastFlingPos = currentRoot.Position
+                pcall(function()
+                    game:GetService("StarterGui"):SetCore("SendNotification", {
+                        Title = "Walk Fling",
+                        Text = "🔄 Teleport detected - Paused 1.5s",
+                        Duration = 2
+                    })
+                end)
+                return
+            end
+        end
+        lastFlingPos = currentRoot.Position
 
         -- لا تقم بتشغيل الفلينق إذا كان اللاعب يتحرك
         if currentHum.MoveDirection.Magnitude > 0 then
