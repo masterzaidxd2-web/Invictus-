@@ -732,24 +732,62 @@ local function toggleFling()
     if not hrp then return end
 
     if flingToggle then
-        flingToggle = false
-        getgenv().IsFlinging = false 
-        
-        FlingBtn.Text = "🚀 Fling: OFF"
-        FlingBtn.BackgroundColor3 = Color3.fromRGB(150, 50, 255)
-        stopVelLoop()
-        
-        if lastPos then
-            local tweenBack = createTween(hrp, CFrame.new(lastPos))
-            tweenBack:Play()
-            tweenBack.Completed:Wait()
+    flingToggle = false
+    getgenv().IsFlinging = false 
+    
+    FlingBtn.Text = "🚀 Fling: OFF"
+    FlingBtn.BackgroundColor3 = Color3.fromRGB(150, 50, 255)
+    stopVelLoop()
+    
+    -- ✅ إعادة الشخصية أولاً (بدون Tween لتفادي القلقتش)
+    if lastPos then
+        hrp.CFrame = CFrame.new(lastPos)
+    end
+    
+    -- ✅ إعادة الجدار لطبيعته ومسح Gaze
+    workspace.FallenPartsDestroyHeight = -500
+    if workspace:FindFirstChild("Gaze") then
+        workspace.Gaze:Destroy()
+    end
+    
+    -- ✅ تصفير كل السرعات وإعادة القوى للطبيعي
+    hrp.AssemblyLinearVelocity = Vector3.zero
+    hrp.AssemblyAngularVelocity = Vector3.zero
+    
+    for _, v in ipairs(char:GetDescendants()) do
+        if v:IsA("BodyVelocity") or v:IsA("BodyGyro") or v:IsA("BodyAngularVelocity") or v:IsA("BodyForce") then
+            v:Destroy()
         end
-        
-        workspace.FallenPartsDestroyHeight = -500
-        resetCameraSubject()
-        if workspace:FindFirstChild("Gaze") then
-            workspace.Gaze:Destroy()
-        end
+    end
+    
+    -- ✅ إعادة الكاميرا للشخصية
+    resetCameraSubject()
+    
+    -- ✅ انتظار استقرار الفيزياء والشبكة
+    task.wait(0.15)
+    
+    -- ✅ فرض إعادة المزامنة (Sync) مع السيرفر
+    local finalPos = hrp.Position
+    hrp.CFrame = CFrame.new(finalPos + Vector3.new(0, 0.1, 0))
+    task.wait()
+    hrp.CFrame = CFrame.new(finalPos)
+    
+    -- ✅ إصلاح حالة Humanoid
+    local hum = char:FindFirstChildOfClass("Humanoid")
+    if hum then
+        hum.PlatformStand = false
+        hum:ChangeState(Enum.HumanoidStateType.GettingUp)
+        task.wait(0.05)
+        hum:ChangeState(Enum.HumanoidStateType.Running)
+    end
+    
+    -- ✅ إعادة تفعيل حركات الأنيميشن
+    if char:FindFirstChild("Animate") then
+        char.Animate.Disabled = false
+    end
+    
+    -- ✅ إخفاء Gaze وانتظار أخير
+    task.wait(0.1)
     else
         flingToggle = true
         getgenv().IsFlinging = true 
