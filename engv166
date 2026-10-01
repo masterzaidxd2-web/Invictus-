@@ -1360,7 +1360,7 @@ PlayerTab:CreateToggle({
  -- Walk Fling System
 local walkFlingConnection = nil
 local antiWalkFlingToggleState = false
-local walkFlingPower = 15000   -- ✅ كافٍ للفلنق بدون كسر Zone Check
+local walkFlingPower = 15000   
 local isHugging = false
 local isGrabPause = false
 
@@ -1413,37 +1413,53 @@ local currentChar = lp.Character
 
         pcall(function()
     local oldVel = currentRoot.AssemblyLinearVelocity
-    local currentPos = currentRoot.CFrame -- 🔴 حفظ الموقع الحالي للشخصية
+    local oldAngVel = currentRoot.AssemblyAngularVelocity
+    local currentPos = currentRoot.Position
+    local currentCF = currentRoot.CFrame
 
-    -- تطبيق القوة الهائلة
+    -- ✅ إنشاء BodyPosition يثبت الموقع فيزيائياً
+    local holder = currentRoot:FindFirstChild("FlingPositionHolder")
+    if not holder then
+        holder = Instance.new("BodyPosition")
+        holder.Name = "FlingPositionHolder"
+        holder.MaxForce = Vector3.new(math.huge, math.huge, math.huge)
+        holder.P = 500000
+        holder.D = 10000
+        holder.Parent = currentRoot
+    end
+    holder.Position = currentPos
+
+    -- ✅ تطبيق القوة (نصف القوة لتقليل التأثير على Zone Check)
     currentRoot.AssemblyLinearVelocity = Vector3.new(walkFlingPower, walkFlingPower, walkFlingPower)
-    
-    RunService.RenderStepped:Wait()
-    
-    -- 🔴 استعادة الموقع فوراً لمنع اللعبة من الاعتقاد أنك غادرت الحلبة
-    currentRoot.CFrame = currentPos 
-    
-    if isHugging or isGrabPause or not antiWalkFlingToggleState or currentHum.MoveDirection.Magnitude > 0 then
-        currentRoot.AssemblyLinearVelocity = Vector3.zero
-        return
-    end
-    
-    currentRoot.AssemblyLinearVelocity = oldVel
+    currentRoot.AssemblyAngularVelocity = Vector3.zero
+
+    -- ✅ انتظار إطار الفيزياء الدقيق
     RunService.Stepped:Wait()
-    
-    -- 🔴 استعادة الموقع مرة أخرى لضمان الاستقرار
-    currentRoot.CFrame = currentPos 
+
+    -- ✅ استعادة فورية لكل شيء
+    currentRoot.CFrame = currentCF
+    currentRoot.AssemblyLinearVelocity = oldVel
+    currentRoot.AssemblyAngularVelocity = oldAngVel
+    holder.Position = currentPos
 
     if isHugging or isGrabPause or not antiWalkFlingToggleState or currentHum.MoveDirection.Magnitude > 0 then
+        holder:Destroy()
         currentRoot.AssemblyLinearVelocity = Vector3.zero
         return
     end
-    
-                currentRoot.AssemblyLinearVelocity = oldVel + Vector3.new(0, movel, 0)
-            currentRoot.CFrame = currentPos -- 🔴 تثبيت نهائي للموقع
-            movel = movel * -1
-        end)
-    end)   
+
+    -- ✅ إبقاء BodyPosition لفرملة الحركة
+    task.defer(function()
+        task.wait(0.05)
+        if holder and holder.Parent then
+            holder:Destroy()
+        end
+    end)
+
+    currentRoot.AssemblyLinearVelocity = oldVel + Vector3.new(0, movel, 0)
+    currentRoot.CFrame = currentCF
+    movel = movel * -1
+end)
 
 pcall(function()
     if not hookmetamethod then return end
