@@ -3015,13 +3015,20 @@ end
 	Paragraph.Content.Text = NewParagraphSettings.Content
 
 	if VERTICAL_TABS then
-		Paragraph.Content.AnchorPoint = Vector2.new(0, 0)
-		Paragraph.Content.Position = UDim2.new(0, 10, 0, 26)
-		Paragraph.Content.Size = UDim2.new(1, -20, 1, -30)
-		Paragraph.Content.TextXAlignment = Enum.TextXAlignment.Left
-		Paragraph.Content.TextWrapped = true
-Paragraph.AutomaticSize = Enum.AutomaticSize.Y
-Paragraph.Content.AutomaticSize = Enum.AutomaticSize.Y
+	Paragraph.Content.TextWrapped = true
+
+	local text = NewParagraphSettings.Content or ""
+	local lineCount = 1
+	for _ in string.gmatch(text, "\n") do
+		lineCount = lineCount + 1
+	end
+
+	local estimatedHeight = math.clamp(lineCount * 22 + 50, 100, 260)
+
+	Paragraph.Size = UDim2.new(1, -10, 0, estimatedHeight)
+	Paragraph.Content.Size = UDim2.new(1, -20, 1, -30)
+end
+
 		-- ═══ إجبار تحديث CanvasSize بعد كل رسالة جديدة ═══
 		task.defer(function()
 			task.wait()
