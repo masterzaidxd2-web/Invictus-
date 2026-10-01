@@ -1352,11 +1352,6 @@ TogglesUI.FreezeVisible = SettingsLib.AddToggle(ButtonsTab, "Freeze Button", "Sh
     SaveConfig()
 end)
 
-TogglesUI.SpeedVisible = SettingsLib.AddToggle(ButtonsTab, "Speed Button", "Show/Hide the speed controller", Config.SpeedVisible, function(v)
-    Config.SpeedVisible = v
-    ApplyUIVisibility()
-    SaveConfig()
-end)
 
 TogglesUI.NavVisible = SettingsLib.AddToggle(ButtonsTab, "Page Controls", "Show/Hide navigation buttons", Config.NavVisible, function(v)
     Config.NavVisible = v
