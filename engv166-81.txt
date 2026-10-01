@@ -2,7 +2,7 @@
 -- ===============================================
 -- [ Simple Anti-Duplication System ]
 -- ===============================================
-if getgenv().InvictusScript_Active then
+if getgenv().InvictusScript_Active == true then
     pcall(function()
         game:GetService("StarterGui"):SetCore("SendNotification", {
             Title = "System Alert",
@@ -13,7 +13,9 @@ if getgenv().InvictusScript_Active then
     return
 end
 
-getgenv().InvictusScript_Active = true
+-- لا نضع true هنا. سيتم وضعها فقط بعد إدخال الرمز بنجاح.
+getgenv().InvictusScript_Active = false
+getgenv().InvictusScript_Ready = false
 -- ===============================================
 
 repeat task.wait() until game:IsLoaded()
@@ -864,6 +866,7 @@ local Window = Rayfield:CreateWindow({
     }
 }) -- 🔴 إغلاق قوس النافذة الذي كان مفقوداً
 
+getgenv().InvictusScript_Active = true
 
 local MainTab = Window:CreateTab("Aura", "swords")
 local GrabTab = Window:CreateTab("Grab", "hand")
