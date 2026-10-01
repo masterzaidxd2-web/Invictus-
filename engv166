@@ -865,7 +865,24 @@ local Window = Rayfield:CreateWindow({
        Key = { keyUrl } -- وضع الرابط هنا
     }
 }) -- 🔴 إغلاق قوس النافذة الذي كان مفقوداً
+-- ===============================================
+-- ✅ فحص إذا أغلق المستخدم نافذة الرمز بـ X
+-- ===============================================
+if not Window then
+    getgenv().InvictusScript_Active = false
+    pcall(function()
+        game:GetService("StarterGui"):SetCore("SendNotification", {
+            Title = "System",
+            Text = "Key prompt closed. Script cancelled.",
+            Duration = 3
+        })
+    end)
+    return
+end
 
+-- ✅ النافذة موجودة، فعّل القفل الآن
+getgenv().InvictusScript_Active = false
+-- ===============================================
 getgenv().InvictusScript_Active = true
 
 local MainTab = Window:CreateTab("Aura", "swords")
