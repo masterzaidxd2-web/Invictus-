@@ -2995,8 +2995,8 @@ if VERTICAL_TABS then
 		constraint = Instance.new("UISizeConstraint")
 		constraint.Parent = Paragraph
 	end
-	constraint.MaxSize = Vector2.new(math.huge, 220)
-end                                    ← يبقى هذا فقط
+		constraint.MaxSize = Vector2.new(math.huge, 220)
+end
 			Paragraph.BackgroundTransparency = 1
 			Paragraph.UIStroke.Transparency = 1
 			Paragraph.Title.TextTransparency = 1
