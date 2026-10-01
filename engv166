@@ -1362,7 +1362,8 @@ local function startWalkFling()
     local movel = 0.1
     walkFlingConnection = RunService.Heartbeat:Connect(function()
         if isHugging or isGrabPause or not antiWalkFlingToggleState then return end
-        local currentChar = lp.Character
+        if getgenv().IsFlinging then return end
+local currentChar = lp.Character
         local currentRoot = currentChar and (currentChar:FindFirstChild("HumanoidRootPart") or currentChar:FindFirstChild("Torso"))
         local currentHum = currentChar and currentChar:FindFirstChildOfClass("Humanoid")
         if not currentRoot or not currentHum then return end
