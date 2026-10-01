@@ -1386,6 +1386,28 @@ local function stopWalkFling()
         end
     end
 end
+-- ✅ نظام الإيقاف المؤقت التلقائي عند الانتقال
+local teleportPauseActive = false
+local teleportPauseUntil = 0
+
+local function pauseWalkFlingForTeleport(duration)
+    duration = duration or 3
+    teleportPauseUntil = tick() + duration
+    
+    -- إيقاف فوري للحلقة
+    if walkFlingConnection then
+        walkFlingConnection:Disconnect()
+        walkFlingConnection = nil
+    end
+    
+    -- إعادة التشغيل بعد المدة
+    task.spawn(function()
+        task.wait(duration)
+        if antiWalkFlingToggleState and not isHugging and not isGrabPause then
+            startWalkFling()
+        end
+    end)
+end
 
 local function startWalkFling()
     stopWalkFling()
