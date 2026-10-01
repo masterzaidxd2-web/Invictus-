@@ -1539,7 +1539,7 @@ lp.CharacterAdded:Connect(setupCharacter)
 if lp.Character then setupCharacter(lp.Character) end
 
 PlayerTab:CreateToggle({
-    Name = "Auto-Safe Walk Fling (Perfect Edition)",
+    Name = "Auto-Safe Walk Fling (Not stable turn it OFF fix soon)",
     CurrentValue = false,
     Flag = "AntiWalkFlingToggle", 
     Callback = function(Value)
