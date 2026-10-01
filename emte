@@ -696,7 +696,7 @@ function SafeLoad(url, name)
 end
 
 SafeLoad("https://raw.githubusercontent.com/7yd7/Menu-7yd7/refs/heads/Script/GUIS/Off-site/Notify.lua", "Notify System")
-
+getgenv().Notify = function() end
 local function getAssetCustom(filePath)
     if not filePath or filePath == "" then return nil end
     local customFn = getcustomasset or getsynasset
