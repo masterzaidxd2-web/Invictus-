@@ -2065,6 +2065,8 @@ local safezonePart = nil
 OthersTab:CreateButton({
     Name = "☁️ Teleport to Sky Safezone",
     Callback = function()
+        pauseWalkFlingForTeleport(3)
+        task.wait(0.1)
         local char = lp.Character
         local root = char and char:FindFirstChild("HumanoidRootPart")
         if root then
