@@ -1439,10 +1439,11 @@ local currentChar = lp.Character
         return
     end
     
-    currentRoot.AssemblyLinearVelocity = oldVel + Vector3.new(0, movel, 0)
-    currentRoot.CFrame = currentPos -- 🔴 تثبيت نهائي للموقع
-    movel = movel * -1
-end)
+                currentRoot.AssemblyLinearVelocity = oldVel + Vector3.new(0, movel, 0)
+            currentRoot.CFrame = currentPos -- 🔴 تثبيت نهائي للموقع
+            movel = movel * -1
+        end)
+    end)   
 
 pcall(function()
     if not hookmetamethod then return end
