@@ -1119,11 +1119,29 @@ local function applyVerticalTabs()
         if btn:IsA("Frame") and btn.Name ~= "Template" and btn.Name ~= "Placeholder" then
             btn.AnchorPoint = Vector2.new(0, 0)
             btn.Position = UDim2.new(0, 0, 0, 0)
-            btn.Size = UDim2.new(1, -4, 0, 30)
+            btn.Size = UDim2.new(1, -4, 0, 38)
+            btn.BackgroundTransparency = 0.6
+
+            local corner = btn:FindFirstChildOfClass("UICorner")
+            if corner then corner.CornerRadius = UDim.new(1, 0) end
+
+            local stroke = btn:FindFirstChildOfClass("UIStroke")
+            if stroke then
+                stroke.Thickness = 1.5
+                stroke.Transparency = 0.5
+            end
+
             if btn:FindFirstChild("Title") then
                 btn.Title.AnchorPoint = Vector2.new(0, 0.5)
-                btn.Title.Position = UDim2.new(0, 10, 0.5, 0)
+                btn.Title.Position = UDim2.new(0, 42, 0.5, 0)
                 btn.Title.TextXAlignment = Enum.TextXAlignment.Left
+            end
+
+            if btn:FindFirstChild("Image") then
+                btn.Image.AnchorPoint = Vector2.new(0, 0.5)
+                btn.Image.Position = UDim2.new(0, 14, 0.5, 0)
+                btn.Image.Size = UDim2.new(0, 20, 0, 20)
+                btn.Image.Visible = true
             end
         end
     end
