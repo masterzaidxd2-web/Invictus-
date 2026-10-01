@@ -3006,14 +3006,12 @@ end
 	if VERTICAL_TABS then
 		Paragraph.Content.TextWrapped = true
 
+		-- ارتفاع ثابت طبيعي للدردشة
+		Paragraph.Size = UDim2.new(1, -10, 0, 140)
+		Paragraph.Content.Size = UDim2.new(1, -20, 1, -30)
+
 		task.defer(function()
 			task.wait()
-			local textHeight = Paragraph.Content.TextBounds.Y
-			local finalHeight = math.clamp(textHeight + 45, 70, 180)
-
-			Paragraph.Size = UDim2.new(1, -10, 0, finalHeight)
-			Paragraph.Content.Size = UDim2.new(1, -20, 1, -30)
-
 			if TabPage and TabPage.Parent then
 				local layout = TabPage:FindFirstChildOfClass("UIListLayout")
 				if layout then
