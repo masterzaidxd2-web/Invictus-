@@ -865,17 +865,17 @@ local Window = Rayfield:CreateWindow({
 }) -- 🔴 إغلاق قوس النافذة الذي كان مفقوداً
 
 
-local MainTab = Window:CreateTab("Aura", 4483345998)
-local GrabTab = Window:CreateTab("Grab", 4483345998)
-local PlayerTab = Window:CreateTab("Player", 4483345998)
-local WaypointsTab = Window:CreateTab("Waypoints", 4483345998)
-local EspTab = Window:CreateTab("ESP", 4483345998)
-local NameTab = Window:CreateTab("Name", 4483345998)
-local SafeTab = Window:CreateTab("SAFE", 4483345998)
-local EnemyTab = Window:CreateTab("Enemies", 4483345998)
-local SettingsTab = Window:CreateTab("Settings", 4483345998)
-local OthersTab = Window:CreateTab("Others", 4483345998)
-local ChatTab = Window:CreateTab("🌐 Global Chat", 4483345998)
+local MainTab = Window:CreateTab("Aura", "swords")
+local GrabTab = Window:CreateTab("Grab", "hand")
+local PlayerTab = Window:CreateTab("Player", "user")
+local WaypointsTab = Window:CreateTab("Waypoints", "map-pin")
+local EspTab = Window:CreateTab("ESP", "crosshair")
+local NameTab = Window:CreateTab("Name", "user-circle")
+local SafeTab = Window:CreateTab("SAFE", "shield")
+local EnemyTab = Window:CreateTab("Enemies", "skull")
+local SettingsTab = Window:CreateTab("Settings", "settings")
+local OthersTab = Window:CreateTab("Others", "more-horizontal")
+local ChatTab = Window:CreateTab("🌐 Global Chat", "globe")
 
 -- Aura Tab
 -- Aura Tab
