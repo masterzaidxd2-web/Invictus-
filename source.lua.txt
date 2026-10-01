@@ -2986,9 +2986,9 @@ if VERTICAL_TABS then
 	Paragraph.Content.TextYAlignment = Enum.TextYAlignment.Top
 	Paragraph.Content.TextWrapped = true
 
-	Paragraph.AutomaticSize = Enum.AutomaticSize.None
+		Paragraph.AutomaticSize = Enum.AutomaticSize.None
 	Paragraph.Content.AutomaticSize = Enum.AutomaticSize.None
-end
+
 	-- حد أعلى لمنع الصندوق من التمدد اللانهائي
 	local constraint = Paragraph:FindFirstChildOfClass("UISizeConstraint")
 	if not constraint then
@@ -2996,7 +2996,7 @@ end
 		constraint.Parent = Paragraph
 	end
 	constraint.MaxSize = Vector2.new(math.huge, 220)
-end
+end                                    ← يبقى هذا فقط
 			Paragraph.BackgroundTransparency = 1
 			Paragraph.UIStroke.Transparency = 1
 			Paragraph.Title.TextTransparency = 1
