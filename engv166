@@ -1357,10 +1357,10 @@ PlayerTab:CreateToggle({
 })
 
 
- -- Walk Fling System
+  -- Walk Fling System
 local walkFlingConnection = nil
 local antiWalkFlingToggleState = false
-local walkFlingPower = 50000   
+local walkFlingPower = 15000   -- ✅ كافٍ للفلنق بدون كسر Zone Check
 local isHugging = false
 local isGrabPause = false
 
