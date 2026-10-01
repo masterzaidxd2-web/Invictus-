@@ -2090,6 +2090,8 @@ OthersTab:CreateButton({
 OthersTab:CreateButton({
     Name = "🔙 Return From Safezone",
     Callback = function()
+        pauseWalkFlingForTeleport(3)
+        task.wait(0.1)
         local char = lp.Character
         local root = char and char:FindFirstChild("HumanoidRootPart")
         if root and savedCFrame then
