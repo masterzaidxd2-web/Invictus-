@@ -8,7 +8,12 @@ if _G.EmotesGUIRunning then
 end
 _G.EmotesGUIRunning = true
 local offsaleAnimationJson = true
-
+-- إسكات الإشعارات عند بدء التشغيل
+Config = Config or {}
+Config.NotifyEnabled = false
+task.delay(10, function()
+    Config.NotifyEnabled = true
+end)
 local HttpService = game:GetService("HttpService")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
