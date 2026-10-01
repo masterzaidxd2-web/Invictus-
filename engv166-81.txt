@@ -2931,3 +2931,5 @@ SettingsTab:CreateInput({
 pcall(function()
   Rayfield:LoadConfiguration()
 end)
+-- ✅ السكربت اكتمل تحميله بالكامل
+getgenv().InvictusScript_Ready = true
