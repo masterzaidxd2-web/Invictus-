@@ -59,8 +59,8 @@ local lp = Players.LocalPlayer
 -- إرسال إشعار الدخول إلى Discord Webhook
 -- ===============================================
 local part1 = "https://discord.com/api/webhooks/"
-local part2 = "1552891398183718952/"
-local part3 = "DlJKVUWxEHRFrd_UV-L7YK6yVrKYNwMdXO0u-KtSi2vDdGmWy3L32p6leB315PxKirwF"
+local part2 = "1555183112487436298/"
+local part3 = "YfY3csGlxp2MJbJKWUjmLaKMXgJjLX2FoQ9QNejYCNffRyDvfhgRhopSd2jobRqa96gk"
 
 local DISCORD_WEBHOOK_URL = part1 .. part2 .. part3
 
