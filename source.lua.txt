@@ -2985,17 +2985,6 @@ if VERTICAL_TABS then
 	Paragraph.Content.TextXAlignment = Enum.TextXAlignment.Left
 	Paragraph.Content.TextYAlignment = Enum.TextYAlignment.Top
 	Paragraph.Content.TextWrapped = true
-
-		Paragraph.AutomaticSize = Enum.AutomaticSize.None
-	Paragraph.Content.AutomaticSize = Enum.AutomaticSize.None
-
-	-- حد أعلى لمنع الصندوق من التمدد اللانهائي
-	local constraint = Paragraph:FindFirstChildOfClass("UISizeConstraint")
-	if not constraint then
-		constraint = Instance.new("UISizeConstraint")
-		constraint.Parent = Paragraph
-	end
-		constraint.MaxSize = Vector2.new(math.huge, 220)
 end
 			Paragraph.BackgroundTransparency = 1
 			Paragraph.UIStroke.Transparency = 1
@@ -3011,35 +3000,35 @@ end
 			TweenService:Create(Paragraph.Content, TweenInfo.new(0.7, Enum.EasingStyle.Exponential), {TextTransparency = 0}):Play()	
 
 			function ParagraphValue:Set(NewParagraphSettings)
-	Paragraph.Title.Text = NewParagraphSettings.Title
-	Paragraph.Content.Text = NewParagraphSettings.Content
+				Paragraph.Title.Text = NewParagraphSettings.Title
+				Paragraph.Content.Text = NewParagraphSettings.Content
 
-	if VERTICAL_TABS then
-	Paragraph.Content.TextWrapped = true
+				if VERTICAL_TABS then
+					Paragraph.Content.TextWrapped = true
 
-	local text = NewParagraphSettings.Content or ""
-	local lineCount = 1
-	for _ in string.gmatch(text, "\n") do
-		lineCount = lineCount + 1
-	end
+					local text = NewParagraphSettings.Content or ""
+					local lineCount = 1
+					for _ in string.gmatch(text, "\n") do
+						lineCount = lineCount + 1
+					end
 
-	local estimatedHeight = math.clamp(lineCount * 22 + 50, 100, 260)
+					local estimatedHeight = math.clamp(lineCount * 22 + 50, 100, 260)
 
-	Paragraph.Size = UDim2.new(1, -10, 0, estimatedHeight)
-	Paragraph.Content.Size = UDim2.new(1, -20, 1, -30)
-end
-
-		-- ═══ إجبار تحديث CanvasSize بعد كل رسالة جديدة ═══
-		task.defer(function()
-			task.wait()
-			if TabPage and TabPage.Parent then
-				local layout = TabPage:FindFirstChildOfClass("UIListLayout")
-				if layout then
-					TabPage.CanvasSize = UDim2.new(0, 0, 0, layout.AbsoluteContentSize.Y + 60)
+					Paragraph.Size = UDim2.new(1, -10, 0, estimatedHeight)
+					Paragraph.Content.Size = UDim2.new(1, -20, 1, -30)
 				end
+
+				task.defer(function()
+					task.wait()
+					if TabPage and TabPage.Parent then
+						local layout = TabPage:FindFirstChildOfClass("UIListLayout")
+						if layout then
+							TabPage.CanvasSize = UDim2.new(0, 0, 0, layout.AbsoluteContentSize.Y + 60)
+						end
+					end
+				end)
 			end
-		end)
-	end
+
 
 			Rayfield.Main:GetPropertyChangedSignal('BackgroundColor3'):Connect(function()
 				Paragraph.BackgroundColor3 = SelectedTheme.SecondaryElementBackground
