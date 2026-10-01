@@ -3012,8 +3012,7 @@ end
 						lineCount = lineCount + 1
 					end
 
-					local estimatedHeight = math.clamp(lineCount * 22 + 50, 100, 260)
-
+					local estimatedHeight = math.clamp(lineCount * 20 + 35, 60, 240)
 					Paragraph.Size = UDim2.new(1, -10, 0, estimatedHeight)
 					Paragraph.Content.Size = UDim2.new(1, -20, 1, -30)
 				end
