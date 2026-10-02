@@ -95,12 +95,41 @@ createPart("DoorFrame_R", Vector3.new(0.4,9,T+0.4), CFrame.new(doorW/2,5,D/2), C
 createPart("FrontDoor", Vector3.new(doorW-0.8,8.2,0.3), CFrame.new(0,5,D/2+0.15), C.Door, {material=Enum.Material.Wood})
 createPart("DoorHandle", Vector3.new(0.3,0.3,0.3), CFrame.new(doorW/2-0.8,4.5,D/2+0.35)*CFrame.Angles(0,0,math.rad(90)), C.CarChrome, {material=Enum.Material.Metal,reflectance=0.5})
 
--- ═══ السقف ═══
-createPart("Roof_Left", Vector3.new(W*0.6,0.5,D+6), CFrame.new(-W*0.27,H+3.5,0)*CFrame.Angles(0,0,math.rad(-30)), C.Roof, {material=Enum.Material.Slate,reflectance=0.1})
-createPart("Roof_Right", Vector3.new(W*0.6,0.5,D+6), CFrame.new(W*0.27,H+3.5,0)*CFrame.Angles(0,0,math.rad(30)), C.Roof, {material=Enum.Material.Slate,reflectance=0.1})
-createPart("RoofRidge", Vector3.new(0.8,0.8,D+6), CFrame.new(0,H+5.5,0), C.RoofTrim, {material=Enum.Material.Slate})
-createPart("Gable_Front", Vector3.new(W,H*0.3,0.4), CFrame.new(0,H+1.5,-D/2-0.1), C.Wall, {material=Enum.Material.Concrete})
-createPart("Gable_Back", Vector3.new(W,H*0.3,0.4), CFrame.new(0,H+1.5,D/2+0.1), C.Wall, {material=Enum.Material.Concrete}) 
+-- ═══ السقف المُصحّح (زوايا صحيحة + يلامس الجدران) ═══
+local RISE = 8  -- ارتفاع قمة السقف
+local slopeAngle = math.deg(math.atan2(RISE, W/2))
+local slopeLength = math.sqrt((W/2)^2 + RISE^2)
+local wallTop = H + 0.5
+
+-- السقف المائل الأيسر (من الحافة اليسرى لقمة السقف)
+createPart("Roof_Left",
+    Vector3.new(slopeLength, 0.5, D + 6),
+    CFrame.new(-W/4, wallTop + RISE/2, 0) * CFrame.Angles(0, 0, math.rad(slopeAngle)),
+    C.Roof, {material=Enum.Material.Slate, reflectance=0.1})
+
+-- السقف المائل الأيمن (من الحافة اليمنى لقمة السقف)
+createPart("Roof_Right",
+    Vector3.new(slopeLength, 0.5, D + 6),
+    CFrame.new(W/4, wallTop + RISE/2, 0) * CFrame.Angles(0, 0, math.rad(-slopeAngle)),
+    C.Roof, {material=Enum.Material.Slate, reflectance=0.1})
+
+-- قمة السقف (Ridge)
+createPart("RoofRidge",
+    Vector3.new(1.2, 0.8, D + 6),
+    CFrame.new(0, wallTop + RISE + 0.2, 0),
+    C.RoofTrim, {material=Enum.Material.Slate})
+
+-- مثلث الواجهة الأمامية (Gable)
+createPart("Gable_Front",
+    Vector3.new(W, RISE, 0.5),
+    CFrame.new(0, wallTop + RISE/2, -D/2 - 0.1),
+    C.Wall, {material=Enum.Material.Concrete, canCollide=true})
+
+-- مثلث الواجهة الخلفية (Gable)
+createPart("Gable_Back",
+    Vector3.new(W, RISE, 0.5),
+    CFrame.new(0, wallTop + RISE/2, D/2 + 0.1),
+    C.Wall, {material=Enum.Material.Concrete, canCollide=true})
 -- ═══ المدخنة ═══
 createPart("Chimney", Vector3.new(3,10,3), CFrame.new(W/3,H+5,-D/4), C.Chimney, {material=Enum.Material.Brick})
 createPart("ChimneyCap", Vector3.new(3.4,0.4,3.4), CFrame.new(W/3,H+10.2,-D/4), C.RoofTrim, {material=Enum.Material.Brick})
@@ -143,9 +172,9 @@ local porchLight = createPart("PorchLight", Vector3.new(0.6,0.6,0.6), CFrame.new
 local pl2 = Instance.new("PointLight"); pl2.Brightness=2; pl2.Range=20; pl2.Color=Color3.fromRGB(255,240,180); pl2.Parent=porchLight
 
 -- ═══════════════════════════════════════════════
--- 🏎️ الفيراري
+-- 🏎️ الفيراري (تصميم رياضي محسّن)
 -- ═══════════════════════════════════════════════
-local carCF = HOUSE_CF * CFrame.new(12,0,D/2+12) * CFrame.Angles(0,math.rad(90),0)
+local carCF = HOUSE_CF * CFrame.new(14, 0, D/2 + 10) * CFrame.Angles(0, math.rad(90), 0)
 local carFolder = Instance.new("Folder"); carFolder.Name="Ferrari"; carFolder.Parent=houseFolder
 
 local function createCarPart(name, size, offsetCF, color, opts)
@@ -165,38 +194,91 @@ local function createCarPart(name, size, offsetCF, color, opts)
     return part
 end
 
-createCarPart("Chassis", Vector3.new(9,1.5,20), CFrame.new(0,1.5,0), C.CarRed, {material=Enum.Material.Metal,reflectance=0.2})
-createCarPart("Hood", Vector3.new(8.5,1,6), CFrame.new(0,2.5,-7), C.CarRed, {material=Enum.Material.Metal,reflectance=0.2})
-createCarPart("FrontNose", Vector3.new(8,0.8,3), CFrame.new(0,1.8,-10), C.CarRed, {material=Enum.Material.Metal,reflectance=0.2})
-createCarPart("Cabin", Vector3.new(7,3.5,9), CFrame.new(0,4.5,1), C.CarRed, {material=Enum.Material.Metal,reflectance=0.2})
-createCarPart("Trunk", Vector3.new(8.5,1.5,4), CFrame.new(0,3,8), C.CarRed, {material=Enum.Material.Metal,reflectance=0.2})
+-- ═══ هيكل منخفض رياضي ═══
+-- القاعدة السفلية (منخفضة وطويلة)
+createCarPart("Base", Vector3.new(9, 0.8, 22), CFrame.new(0, 1.1, 0), C.CarRed, {material=Enum.Material.Metal,reflectance=0.4})
 
-createCarPart("Windshield", Vector3.new(6.5,3,0.3), CFrame.new(0,4.8,-3.5)*CFrame.Angles(math.rad(-20),0,0), C.CarGlass, {transparency=0.3,material=Enum.Material.Glass,reflectance=0.4})
-createCarPart("RearWindow", Vector3.new(6.5,2.5,0.3), CFrame.new(0,4.8,5.5)*CFrame.Angles(math.rad(20),0,0), C.CarGlass, {transparency=0.3,material=Enum.Material.Glass,reflectance=0.4})
-createCarPart("SideWindow_L", Vector3.new(0.3,2.2,6), CFrame.new(-3.6,4.8,1), C.CarGlass, {transparency=0.3,material=Enum.Material.Glass,reflectance=0.4})
-createCarPart("SideWindow_R", Vector3.new(0.3,2.2,6), CFrame.new(3.6,4.8,1), C.CarGlass, {transparency=0.3,material=Enum.Material.Glass,reflectance=0.4})
+-- الجانب السفلي (Skirt)
+createCarPart("Skirt_L", Vector3.new(0.3, 0.8, 20), CFrame.new(-4.6, 1.1, 0), C.CarBlack, {material=Enum.Material.Metal})
+createCarPart("Skirt_R", Vector3.new(0.3, 0.8, 20), CFrame.new(4.6, 1.1, 0), C.CarBlack, {material=Enum.Material.Metal})
 
-for _, w in ipairs({{"Wheel_FL",-4.5,-6},{"Wheel_FR",4.5,-6},{"Wheel_RL",-4.5,6},{"Wheel_RR",4.5,6}}) do
-    createCarPart(w[1].."_Tire", Vector3.new(1.5,3.2,3.2), CFrame.new(w[2],1.6,w[3])*CFrame.Angles(0,0,math.rad(90)), C.CarTire, {material=Enum.Material.Rubber,shape=Enum.PartType.Cylinder})
-    createCarPart(w[1].."_Rim", Vector3.new(1.6,2,2), CFrame.new(w[2],1.6,w[3])*CFrame.Angles(0,0,math.rad(90)), C.CarRim, {material=Enum.Material.Metal,reflectance=0.5,shape=Enum.PartType.Cylinder,canCollide=false})
-    createCarPart(w[1].."_Hub", Vector3.new(1.7,0.8,0.8), CFrame.new(w[2],1.6,w[3])*CFrame.Angles(0,0,math.rad(90)), C.CarBlack, {material=Enum.Material.Metal,shape=Enum.PartType.Cylinder,canCollide=false})
+-- غطاء المحرك الطويل المنخفض
+createCarPart("Hood", Vector3.new(8.5, 0.9, 8), CFrame.new(0, 1.8, -8), C.CarRed, {material=Enum.Material.Metal,reflectance=0.4})
+
+-- الأنف الأمامي (منخفض جداً)
+createCarPart("Nose", Vector3.new(7, 0.7, 3), CFrame.new(0, 1.5, -11.5), C.CarRed, {material=Enum.Material.Metal,reflectance=0.4})
+
+-- المقصورة (منخفضة، خلف المنتصف)
+createCarPart("Cabin", Vector3.new(6.5, 2.5, 7), CFrame.new(0, 3.4, 1.5), C.CarRed, {material=Enum.Material.Metal,reflectance=0.4})
+
+-- السقف المنحني (بانورامي)
+createCarPart("Roof", Vector3.new(6, 0.4, 5.5), CFrame.new(0, 4.8, 1.5), C.CarRed, {material=Enum.Material.Metal,reflectance=0.4})
+
+-- صندوق خلفي قصير
+createCarPart("Trunk", Vector3.new(8.5, 1.2, 4), CFrame.new(0, 2.2, 8), C.CarRed, {material=Enum.Material.Metal,reflectance=0.4})
+
+-- الأنف الأمامي السفلي (Splitter)
+createCarPart("FrontSplitter", Vector3.new(8, 0.2, 2), CFrame.new(0, 0.85, -12), C.CarBlack, {material=Enum.Material.Metal})
+
+-- ═══ الزجاج ═══
+createCarPart("Windshield", Vector3.new(6, 2.5, 0.3), CFrame.new(0, 3.5, -3)*CFrame.Angles(math.rad(-28),0,0), C.CarGlass, {transparency=0.2,material=Enum.Material.Glass,reflectance=0.5})
+createCarPart("RearGlass", Vector3.new(6, 2.2, 0.3), CFrame.new(0, 3.5, 5)*CFrame.Angles(math.rad(28),0,0), C.CarGlass, {transparency=0.2,material=Enum.Material.Glass,reflectance=0.5})
+createCarPart("SideGlass_L", Vector3.new(0.3, 1.6, 5), CFrame.new(-3.3, 3.8, 1), C.CarGlass, {transparency=0.2,material=Enum.Material.Glass,reflectance=0.5})
+createCarPart("SideGlass_R", Vector3.new(0.3, 1.6, 5), CFrame.new(3.3, 3.8, 1), C.CarGlass, {transparency=0.2,material=Enum.Material.Glass,reflectance=0.5})
+
+-- ═══ العجلات الرياضية ═══
+for _, w in ipairs({{"FL",-4.4,-7},{"FR",4.4,-7},{"RL",-4.4,7},{"RR",4.4,7}}) do
+    createCarPart("Tire_"..w[1], Vector3.new(1.2, 3, 3), CFrame.new(w[2],1.5,w[3])*CFrame.Angles(0,0,math.rad(90)), C.CarTire, {material=Enum.Material.Rubber,shape=Enum.PartType.Cylinder})
+    createCarPart("Rim_"..w[1], Vector3.new(1.3, 1.8, 1.8), CFrame.new(w[2],1.5,w[3])*CFrame.Angles(0,0,math.rad(90)), C.CarRim, {material=Enum.Material.Metal,reflectance=0.8,shape=Enum.PartType.Cylinder,canCollide=false})
+    -- 5 براغي رياضية
+    for i=1,5 do
+        local a = (i-1) * 72
+        createCarPart("Bolt_"..w[1].."_"..i, Vector3.new(1.35,0.3,0.3), 
+            CFrame.new(w[2],1.5,w[3])*CFrame.Angles(0,0,math.rad(90))*CFrame.Angles(0, math.rad(a), 0)*CFrame.new(0,0.55,0),
+            C.CarBlack, {material=Enum.Material.Metal, shape=Enum.PartType.Cylinder, canCollide=false})
+    end
 end
 
-createCarPart("Headlight_L", Vector3.new(1.5,0.8,0.4), CFrame.new(-2.5,2,-11.8), C.CarLightY, {material=Enum.Material.Neon})
-createCarPart("Headlight_R", Vector3.new(1.5,0.8,0.4), CFrame.new(2.5,2,-11.8), C.CarLightY, {material=Enum.Material.Neon})
-createCarPart("Taillight_L", Vector3.new(1.5,0.6,0.4), CFrame.new(-2.5,3,10.2), C.CarLightR, {material=Enum.Material.Neon})
-createCarPart("Taillight_R", Vector3.new(1.5,0.6,0.4), CFrame.new(2.5,3,10.2), C.CarLightR, {material=Enum.Material.Neon})
-createCarPart("Grille", Vector3.new(4,1,0.3), CFrame.new(0,1.7,-11.9), C.CarBlack, {material=Enum.Material.Metal})
-createCarPart("FerrariLogo", Vector3.new(0.8,0.8,0.3), CFrame.new(0,1.7,-12), Color3.fromRGB(255,220,0), {material=Enum.Material.Neon})
-createCarPart("Spoiler", Vector3.new(7,0.3,1), CFrame.new(0,4.2,10), C.CarBlack, {material=Enum.Material.Metal})
-createCarPart("SpoilerSupport_L", Vector3.new(0.3,1,0.3), CFrame.new(-3,3.7,10), C.CarBlack, {material=Enum.Material.Metal})
-createCarPart("SpoilerSupport_R", Vector3.new(0.3,1,0.3), CFrame.new(3,3.7,10), C.CarBlack, {material=Enum.Material.Metal})
-createCarPart("Mirror_L", Vector3.new(0.5,0.4,0.8), CFrame.new(-4,4.2,-3.5), C.CarRed, {material=Enum.Material.Metal})
-createCarPart("Mirror_R", Vector3.new(0.5,0.4,0.8), CFrame.new(4,4.2,-3.5), C.CarRed, {material=Enum.Material.Metal})
-createCarPart("Exhaust_L", Vector3.new(0.5,0.5,0.6), CFrame.new(-2,1.2,10.2), C.CarChrome, {material=Enum.Material.Metal,reflectance=0.5,shape=Enum.PartType.Cylinder})
-createCarPart("Exhaust_R", Vector3.new(0.5,0.5,0.6), CFrame.new(2,1.2,10.2), C.CarChrome, {material=Enum.Material.Metal,reflectance=0.5,shape=Enum.PartType.Cylinder})
-createCarPart("SideStripe_L", Vector3.new(0.1,0.3,12), CFrame.new(-4.6,2.5,1), C.CarBlack, {canCollide=false})
-createCarPart("SideStripe_R", Vector3.new(0.1,0.3,12), CFrame.new(4.6,2.5,1), C.CarBlack, {canCollide=false})
+-- ═══ الإضاءة الرياضية ═══
+-- كشافات أمامية ضيقة (LED)
+createCarPart("HeadlightL", Vector3.new(2,0.5,0.3), CFrame.new(-2.5,1.7,-12.8), C.CarLightY, {material=Enum.Material.Neon})
+createCarPart("HeadlightR", Vector3.new(2,0.5,0.3), CFrame.new(2.5,1.7,-12.8), C.CarLightY, {material=Enum.Material.Neon})
+
+-- فوانيس خلفية
+createCarPart("TailL", Vector3.new(1.8,0.6,0.3), CFrame.new(-2.8,2.2,10.2), C.CarLightR, {material=Enum.Material.Neon})
+createCarPart("TailR", Vector3.new(1.8,0.6,0.3), CFrame.new(2.8,2.2,10.2), C.CarLightR, {material=Enum.Material.Neon})
+
+-- ═══ التفاصيل الرياضية ═══
+-- الشبك الأمامي
+createCarPart("Grille", Vector3.new(5,1.2,0.3), CFrame.new(0,1.6,-12.9), C.CarBlack, {material=Enum.Material.Metal})
+
+-- شعار الفيراري (الحصان)
+createCarPart("FerrariBadge", Vector3.new(1,1,0.2), CFrame.new(0,2.3,-12.9), Color3.fromRGB(255,220,0), {material=Enum.Material.Neon})
+
+-- خط سباق أبيض مزدوج على الجانبين
+createCarPart("RacingStripeL1", Vector3.new(0.15,0.2,18), CFrame.new(-4.55,1.7,-1), Color3.fromRGB(255,255,255))
+createCarPart("RacingStripeL2", Vector3.new(0.15,0.2,18), CFrame.new(-4.55,1.9,-1), Color3.fromRGB(255,255,255))
+createCarPart("RacingStripeR1", Vector3.new(0.15,0.2,18), CFrame.new(4.55,1.7,-1), Color3.fromRGB(255,255,255))
+createCarPart("RacingStripeR2", Vector3.new(0.15,0.2,18), CFrame.new(4.55,1.9,-1), Color3.fromRGB(255,255,255))
+
+-- السبويلر الرياضي الكبير
+createCarPart("SpoilerWing", Vector3.new(7.5,0.3,1.2), CFrame.new(0,4.5,10), C.CarBlack, {material=Enum.Material.CarbonFiber})
+createCarPart("Spoiler_L", Vector3.new(0.3,1.3,0.3), CFrame.new(-3.5,3.8,10), C.CarBlack, {material=Enum.Material.CarbonFiber})
+createCarPart("Spoiler_R", Vector3.new(0.3,1.3,0.3), CFrame.new(3.5,3.8,10), C.CarBlack, {material=Enum.Material.CarbonFiber})
+
+-- المرايا الرياضية
+createCarPart("MirrorL", Vector3.new(0.4,0.35,0.7), CFrame.new(-3.8,3.3,-3), C.CarRed, {material=Enum.Material.Metal})
+createCarPart("MirrorR", Vector3.new(0.4,0.35,0.7), CFrame.new(3.8,3.3,-3), C.CarRed, {material=Enum.Material.Metal})
+
+-- الشكمان الرياضي (4 مخارج)
+createCarPart("Exhaust1", Vector3.new(0.4,0.4,0.7), CFrame.new(-2.2,1.2,11), C.CarChrome, {material=Enum.Material.Metal,reflectance=0.8,shape=Enum.PartType.Cylinder})
+createCarPart("Exhaust2", Vector3.new(0.4,0.4,0.7), CFrame.new(-1.4,1.2,11), C.CarChrome, {material=Enum.Material.Metal,reflectance=0.8,shape=Enum.PartType.Cylinder})
+createCarPart("Exhaust3", Vector3.new(0.4,0.4,0.7), CFrame.new(1.4,1.2,11), C.CarChrome, {material=Enum.Material.Metal,reflectance=0.8,shape=Enum.PartType.Cylinder})
+createCarPart("Exhaust4", Vector3.new(0.4,0.4,0.7), CFrame.new(2.2,1.2,11), C.CarChrome, {material=Enum.Material.Metal,reflectance=0.8,shape=Enum.PartType.Cylinder})
+
+-- فتحات جانبية للتهوية
+createCarPart("Vent_L", Vector3.new(0.1,0.6,2), CFrame.new(-4.65,2.2,-4), C.CarBlack)
+createCarPart("Vent_R", Vector3.new(0.1,0.6,2), CFrame.new(4.65,2.2,-4), C.CarBlack)
 -- ═══════════════════════════════════════════════
 -- 📱 واجهة التحكم
 -- ═══════════════════════════════════════════════
