@@ -3070,14 +3070,6 @@ end
 -- ✅ ربط أحداث دخول وخروج اللاعبين
 Players.PlayerAdded:Connect(function(plr)
     ScheduleAutoRefresh()
-    -- ✅ إشعار اختياري عند دخول لاعب
-    pcall(function()
-        Rayfield:Notify({
-            Title = "👤 لاعب جديد",
-            Content = plr.Name .. " انضم للسيرفر - تم تحديث القوائم",
-            Duration = 2
-        })
-    end)
 end)
 
 Players.PlayerRemoving:Connect(function(plr)
