@@ -2988,4 +2988,113 @@ pcall(function()
   Rayfield:LoadConfiguration()
 end)
 -- ✅ السكربت اكتمل تحميله بالكامل
+-- ===============================================
+-- ✅ نظام التحديث التلقائي لقوائم اللاعبين
+-- ===============================================
+local function AutoRefreshAllPlayerLists()
+    pcall(function()
+        -- ✅ قائمة الأورا (Target)
+        if AuraTargetDropdown then
+            local currentAura = AuraTargetSelected or "All"
+            local newAuraList = getPlayerNames(true)
+            AuraTargetDropdown:Refresh(newAuraList)
+            -- إعادة تحديد الاختيار الحالي إن أمكن
+            if table.find(newAuraList, currentAura) then
+                AuraTargetDropdown:Set({currentAura})
+            else
+                AuraTargetSelected = "All"
+                AuraTargetDropdown:Set({"All"})
+            end
+        end
+    end)
+    
+    pcall(function()
+        -- ✅ قوائم Grab (Select Player 1, 2, 3)
+        local newTargets = getPlayerNamesForTargets()
+        if TargetDropdown1 then TargetDropdown1:Refresh(newTargets) end
+        if TargetDropdown2 then TargetDropdown2:Refresh(newTargets) end
+        if TargetDropdown3 then TargetDropdown3:Refresh(newTargets) end
+    end)
+    
+    pcall(function()
+        -- ✅ قائمة Teleport
+        if TpDropdown then TpDropdown:Refresh(getPlayerNames(false)) end
+    end)
+    
+    pcall(function()
+        -- ✅ قوائم SAFE
+        if SafeDropdowns then
+            local names = getPlayerNamesWithNone()
+            for i = 1, 10 do
+                if SafeDropdowns[i] then SafeDropdowns[i]:Refresh(names) end
+            end
+        end
+    end)
+    
+    pcall(function()
+        -- ✅ قوائم ENEMY
+        if EnemyDropdowns then
+            local names = getPlayerNamesWithNone()
+            for i = 1, 10 do
+                if EnemyDropdowns[i] then EnemyDropdowns[i]:Refresh(names) end
+            end
+        end
+    end)
+    
+    pcall(function()
+        -- ✅ قائمة Outfit Copier
+        if OutfitPlayerDropdown then 
+            OutfitPlayerDropdown:Refresh(getOutfitPlayerNames()) 
+        end
+    end)
+    
+    pcall(function()
+        -- ✅ قائمة Troll System
+        if PlayerDropdown and GetPlayerNames then 
+            PlayerDropdown:Refresh(GetPlayerNames(), {"اختر لاعباً..."}) 
+        end
+    end)
+end
+
+-- ⏱️ تأخير بسيط لضمان تحديث البيانات قبل التحديث
+local refreshDebounce = false
+local function ScheduleAutoRefresh()
+    if refreshDebounce then return end
+    refreshDebounce = true
+    task.delay(0.5, function()
+        AutoRefreshAllPlayerLists()
+        refreshDebounce = false
+    end)
+end
+
+-- ✅ ربط أحداث دخول وخروج اللاعبين
+Players.PlayerAdded:Connect(function(plr)
+    ScheduleAutoRefresh()
+    -- ✅ إشعار اختياري عند دخول لاعب
+    pcall(function()
+        Rayfield:Notify({
+            Title = "👤 لاعب جديد",
+            Content = plr.Name .. " انضم للسيرفر - تم تحديث القوائم",
+            Duration = 2
+        })
+    end)
+end)
+
+Players.PlayerRemoving:Connect(function(plr)
+    ScheduleAutoRefresh()
+end)
+
+-- ✅ تحديث إضافي عند تغيّر حالة الشخصيات
+lp.CharacterAdded:Connect(function()
+    task.wait(1)
+    ScheduleAutoRefresh()
+end)
+
+-- ✅ فحص دوري كل 10 ثوان (أمان إضافي)
+task.spawn(function()
+    while task.wait(10) do
+        ScheduleAutoRefresh()
+    end
+end)
+
 getgenv().InvictusScript_Ready = true
