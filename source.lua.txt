@@ -4540,5 +4540,36 @@ task.delay(4, function()
 		Main.Notice.Visible = false
 	end
 end)
-
+-- ===============================================
+-- ✅ إصلاح ألوان وشفافية أزرار Topbar
+-- ===============================================
+task.spawn(function()
+    task.wait(2)
+    pcall(function()
+        local containers = {
+            game:GetService("CoreGui"),
+            game:GetService("Players").LocalPlayer:FindFirstChild("PlayerGui")
+        }
+        for _, container in ipairs(containers) do
+            if not container then continue end
+            for _, gui in ipairs(container:GetChildren()) do
+                if gui:IsA("ScreenGui") and gui.Name == "Rayfield" then
+                    local main = gui:FindFirstChild("Main")
+                    local topbar = main and main:FindFirstChild("Topbar")
+                    if topbar then
+                        -- ✅ اللون الجديد للأزرار (أبيض ساطع)
+                        local btnColor = Color3.fromRGB(255, 255, 255)
+                        
+                        for _, btn in ipairs(topbar:GetChildren()) do
+                            if btn:IsA("ImageButton") and btn.Name ~= "Icon" then
+                                btn.ImageColor3 = btnColor
+                                btn.ImageTransparency = 0.1   -- شبه معتم
+                            end
+                        end
+                    end
+                end
+            end
+        end
+    end)
+end)
 return RayfieldLibrary
