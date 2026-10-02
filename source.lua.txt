@@ -4540,8 +4540,9 @@ task.delay(4, function()
 		Main.Notice.Visible = false
 	end
 end)
+-- 
 -- ===============================================
--- ✅ إصلاح ألوان وشفافية أزرار Topbar
+-- ✅ إظهار الأزرار بخلفية ملونة (تجربة الألوان)
 -- ===============================================
 task.spawn(function()
     task.wait(2)
@@ -4557,13 +4558,36 @@ task.spawn(function()
                     local main = gui:FindFirstChild("Main")
                     local topbar = main and main:FindFirstChild("Topbar")
                     if topbar then
-                        -- ✅ اللون الجديد للأزرار (أبيض ساطع)
-                        local btnColor = Color3.fromRGB(255, 255, 255)
-                        
                         for _, btn in ipairs(topbar:GetChildren()) do
                             if btn:IsA("ImageButton") and btn.Name ~= "Icon" then
-                                btn.ImageColor3 = btnColor
-                                btn.ImageTransparency = 0.1   -- شبه معتم
+                                -- 🎨 غيّر اللون هنا
+                                local btnColor = Color3.fromRGB(160, 80, 240)  -- بنفسجي
+                                
+                                -- ✅ خلفية ملونة (تظهر حتى لو الصورة فارغة)
+                                btn.BackgroundColor3 = btnColor
+                                btn.BackgroundTransparency = 0
+                                
+                                -- ✅ الصورة شفافة تماماً
+                                btn.ImageColor3 = Color3.fromRGB(255, 255, 255)
+                                btn.ImageTransparency = 0
+                                
+                                -- ✅ حد مضيء
+                                local stroke = btn:FindFirstChildOfClass("UIStroke")
+                                if not stroke then
+                                    stroke = Instance.new("UIStroke")
+                                    stroke.Parent = btn
+                                end
+                                stroke.Color = Color3.fromRGB(255, 255, 255)
+                                stroke.Thickness = 1
+                                stroke.Transparency = 0.3
+                                
+                                -- ✅ زوايا دائرية
+                                local corner = btn:FindFirstChildOfClass("UICorner")
+                                if not corner then
+                                    corner = Instance.new("UICorner")
+                                    corner.Parent = btn
+                                end
+                                corner.CornerRadius = UDim.new(0, 6)
                             end
                         end
                     end
@@ -4572,4 +4596,5 @@ task.spawn(function()
         end
     end)
 end)
+
 return RayfieldLibrary
