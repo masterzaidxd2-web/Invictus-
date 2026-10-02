@@ -1,0 +1,375 @@
+-- ===============================================
+-- 🏠 Realistic House + Ferrari - PART 1/3
+-- ===============================================
+if getgenv().RealHouse_Active then
+    game:GetService("StarterGui"):SetCore("SendNotification", {
+        Title = "المنزل", Text = "موجود بالفعل!", Duration = 3
+    })
+    return
+end
+getgenv().RealHouse_Active = true
+
+local Players = game:GetService("Players")
+local CoreGui = game:GetService("CoreGui")
+local StarterGui = game:GetService("StarterGui")
+local lp = Players.LocalPlayer
+
+local HOUSE_CF = CFrame.new(-63.9, 0.0, 294.0) * CFrame.Angles(0, math.rad(-177.6), 0)
+
+local C = {
+    Wall=Color3.fromRGB(245,240,230), WallTrim=Color3.fromRGB(120,90,60),
+    Foundation=Color3.fromRGB(180,175,170), FloorWood=Color3.fromRGB(139,90,60),
+    Roof=Color3.fromRGB(70,60,55), RoofTrim=Color3.fromRGB(50,40,35),
+    Door=Color3.fromRGB(90,50,30), DoorTrim=Color3.fromRGB(60,35,20),
+    Window=Color3.fromRGB(180,220,255), WindowFrame=Color3.fromRGB(255,255,255),
+    Chimney=Color3.fromRGB(120,70,60), Fence=Color3.fromRGB(180,160,130),
+    Path=Color3.fromRGB(200,195,185), Light=Color3.fromRGB(255,245,200),
+    CarRed=Color3.fromRGB(200,15,25), CarBlack=Color3.fromRGB(15,15,18),
+    CarChrome=Color3.fromRGB(220,220,220), CarGlass=Color3.fromRGB(40,60,80),
+    CarTire=Color3.fromRGB(25,25,28), CarRim=Color3.fromRGB(200,200,205),
+    CarLightY=Color3.fromRGB(255,240,150), CarLightR=Color3.fromRGB(255,40,40),
+}
+
+local houseFolder = Instance.new("Folder")
+houseFolder.Name = "RealHouseSystem"
+houseFolder.Parent = workspace
+
+local function createPart(name, size, offsetCF, color, opts)
+    opts = opts or {}
+    local part = Instance.new("Part")
+    part.Name = name
+    part.Size = size
+    part.CFrame = HOUSE_CF * offsetCF
+    part.Anchored = true
+    part.CanCollide = opts.canCollide ~= false
+    part.Material = opts.material or Enum.Material.SmoothPlastic
+    part.Color = color
+    part.Transparency = opts.transparency or 0
+    part.Reflectance = opts.reflectance or 0
+    if opts.shape then part.Shape = opts.shape end
+    part.Parent = houseFolder
+    return part
+end
+
+local W, D, H, T = 42, 32, 18, 0.6
+
+-- ═══ الأرضيات ═══
+createPart("Foundation", Vector3.new(W+4,0.5,D+4), CFrame.new(0,0.25,0), C.Foundation, {material=Enum.Material.Concrete})
+createPart("WoodFloor", Vector3.new(W-1,0.3,D-1), CFrame.new(0,0.65,0), C.FloorWood, {material=Enum.Material.WoodPlanks})
+
+-- ═══ الجدران الخارجية ═══
+createPart("BackWall", Vector3.new(W,H,T), CFrame.new(0,H/2+0.5,-D/2), C.Wall, {material=Enum.Material.Concrete})
+local doorW = 5
+createPart("FrontWall_L", Vector3.new((W-doorW)/2,H,T), CFrame.new(-(W/2-(W-doorW)/4),H/2+0.5,D/2), C.Wall, {material=Enum.Material.Concrete})
+createPart("FrontWall_R", Vector3.new((W-doorW)/2,H,T), CFrame.new((W/2-(W-doorW)/4),H/2+0.5,D/2), C.Wall, {material=Enum.Material.Concrete})
+createPart("FrontWall_Top", Vector3.new(doorW,H-9,T), CFrame.new(0,9+(H-9)/2+0.5,D/2), C.Wall, {material=Enum.Material.Concrete})
+createPart("LeftWall", Vector3.new(T,H,D), CFrame.new(-W/2,H/2+0.5,0), C.Wall, {material=Enum.Material.Concrete})
+createPart("RightWall", Vector3.new(T,H,D), CFrame.new(W/2,H/2+0.5,0), C.Wall, {material=Enum.Material.Concrete})
+
+-- ═══ الجدران الداخلية ═══
+createPart("InteriorWall", Vector3.new(W/2-2,H,0.4), CFrame.new(-W/4,H/2+0.5,0), C.Wall, {material=Enum.Material.Concrete})
+createPart("InteriorWall2", Vector3.new(0.4,H,D/2), CFrame.new(W/4,H/2+0.5,-D/4), C.Wall, {material=Enum.Material.Concrete})
+
+-- ═══ النوافذ ═══
+local windowSize = Vector3.new(4,5,0.3)
+local windowPositions = {
+    {CFrame.new(-W/3,11,-D/2),"Window_Back_L"},
+    {CFrame.new(W/3,11,-D/2),"Window_Back_R"},
+    {CFrame.new(-W/2,11,-D/4)*CFrame.Angles(0,math.rad(90),0),"Window_Left_F"},
+    {CFrame.new(-W/2,11,D/4)*CFrame.Angles(0,math.rad(90),0),"Window_Left_B"},
+    {CFrame.new(W/2,11,-D/4)*CFrame.Angles(0,math.rad(90),0),"Window_Right_F"},
+    {CFrame.new(W/2,11,D/4)*CFrame.Angles(0,math.rad(90),0),"Window_Right_B"},
+}
+for _, data in ipairs(windowPositions) do
+    createPart(data[2].."_Glass", windowSize, data[1], C.Window, {transparency=0.6,material=Enum.Material.Glass,reflectance=0.3,canCollide=false})
+    createPart(data[2].."_FrameT", Vector3.new(windowSize.X+0.6,0.4,0.4), data[1]*CFrame.new(0,windowSize.Y/2,0), C.WindowFrame)
+    createPart(data[2].."_FrameB", Vector3.new(windowSize.X+0.6,0.4,0.4), data[1]*CFrame.new(0,-windowSize.Y/2,0), C.WindowFrame)
+    createPart(data[2].."_FrameL", Vector3.new(0.4,windowSize.Y,0.4), data[1]*CFrame.new(-windowSize.X/2,0,0), C.WindowFrame)
+    createPart(data[2].."_FrameR", Vector3.new(0.4,windowSize.Y,0.4), data[1]*CFrame.new(windowSize.X/2,0,0), C.WindowFrame)
+end
+
+-- ═══ الباب الأمامي ═══
+createPart("DoorFrame_Top", Vector3.new(doorW+0.6,0.4,T+0.4), CFrame.new(0,9,D/2), C.DoorTrim, {material=Enum.Material.Wood})
+createPart("DoorFrame_L", Vector3.new(0.4,9,T+0.4), CFrame.new(-doorW/2,5,D/2), C.DoorTrim, {material=Enum.Material.Wood})
+createPart("DoorFrame_R", Vector3.new(0.4,9,T+0.4), CFrame.new(doorW/2,5,D/2), C.DoorTrim, {material=Enum.Material.Wood})
+createPart("FrontDoor", Vector3.new(doorW-0.8,8.2,0.3), CFrame.new(0,5,D/2+0.15), C.Door, {material=Enum.Material.Wood})
+createPart("DoorHandle", Vector3.new(0.3,0.3,0.3), CFrame.new(doorW/2-0.8,4.5,D/2+0.35)*CFrame.Angles(0,0,math.rad(90)), C.CarChrome, {material=Enum.Material.Metal,reflectance=0.5})
+
+-- ═══ السقف ═══
+createPart("Roof_Left", Vector3.new(W*0.6,0.5,D+6), CFrame.new(-W*0.27,H+3.5,0)*CFrame.Angles(0,0,math.rad(-30)), C.Roof, {material=Enum.Material.Slate,reflectance=0.1})
+createPart("Roof_Right", Vector3.new(W*0.6,0.5,D+6), CFrame.new(W*0.27,H+3.5,0)*CFrame.Angles(0,0,math.rad(30)), C.Roof, {material=Enum.Material.Slate,reflectance=0.1})
+createPart("RoofRidge", Vector3.new(0.8,0.8,D+6), CFrame.new(0,H+5.5,0), C.RoofTrim, {material=Enum.Material.Slate})
+createPart("Gable_Front", Vector3.new(W,H*0.3,0.4), CFrame.new(0,H+1.5,-D/2-0.1), C.Wall, {material=Enum.Material.Concrete})
+createPart("Gable_Back", Vector3.new(W,H*0.3,0.4), CFrame.new(0,H+1.5,D/2+0.1), C.Wall, {material=Enum.Material.Concrete}) 
+-- ═══ المدخنة ═══
+createPart("Chimney", Vector3.new(3,10,3), CFrame.new(W/3,H+5,-D/4), C.Chimney, {material=Enum.Material.Brick})
+createPart("ChimneyCap", Vector3.new(3.4,0.4,3.4), CFrame.new(W/3,H+10.2,-D/4), C.RoofTrim, {material=Enum.Material.Brick})
+
+-- ═══ الرواق الأمامي ═══
+createPart("PorchRoof", Vector3.new(14,0.4,8), CFrame.new(0,11,D/2+4), C.Roof, {material=Enum.Material.Slate})
+createPart("PorchColumn_L", Vector3.new(0.8,10.5,0.8), CFrame.new(-6,5.75+0.5,D/2+7), C.Wall, {material=Enum.Material.Wood})
+createPart("PorchColumn_R", Vector3.new(0.8,10.5,0.8), CFrame.new(6,5.75+0.5,D/2+7), C.Wall, {material=Enum.Material.Wood})
+createPart("PorchStep1", Vector3.new(14,0.5,2), CFrame.new(0,0.75,D/2+8), C.Foundation, {material=Enum.Material.Concrete})
+createPart("PorchStep2", Vector3.new(14,0.5,1.5), CFrame.new(0,1.25,D/2+6.5), C.Foundation, {material=Enum.Material.Concrete})
+
+-- ═══ الممر ═══
+for i=1,6 do
+    createPart("Path_"..i, Vector3.new(6,0.3,3), CFrame.new(0,0.15,D/2+9+i*3.5), C.Path, {material=Enum.Material.Cobblestone})
+end
+
+-- ═══ السياج ═══
+local fencePositions = {
+    {CFrame.new(-25,1.5,-D/2-25)*CFrame.Angles(0,math.rad(90),0),30,"Fence_F_L"},
+    {CFrame.new(25,1.5,-D/2-25)*CFrame.Angles(0,math.rad(90),0),30,"Fence_F_R"},
+    {CFrame.new(0,1.5,D/2+25),60,"Fence_Back"},
+    {CFrame.new(-30,1.5,0)*CFrame.Angles(0,math.rad(90),0),80,"Fence_L"},
+    {CFrame.new(30,1.5,0)*CFrame.Angles(0,math.rad(90),0),80,"Fence_R"},
+}
+for _, data in ipairs(fencePositions) do
+    createPart(data[3].."_Rail", Vector3.new(0.3,0.3,data[2]), data[1]*CFrame.new(0,1,0), C.Fence, {material=Enum.Material.Wood})
+    createPart(data[3].."_Rail2", Vector3.new(0.3,0.3,data[2]), data[1]*CFrame.new(0,2,0), C.Fence, {material=Enum.Material.Wood})
+    local count = math.floor(data[2]/5)
+    for i=0,count do
+        local pos = -data[2]/2 + i*(data[2]/count)
+        createPart(data[3].."_Post"..i, Vector3.new(0.5,3,0.5), data[1]*CFrame.new(0,1,pos), C.Fence, {material=Enum.Material.Wood})
+    end
+end
+
+-- ═══ الإضاءة ═══
+local lightPart = createPart("InteriorLight", Vector3.new(0.5,0.5,0.5), CFrame.new(0,H-2,0), Color3.fromRGB(255,255,255), {material=Enum.Material.Neon,canCollide=false})
+local pl = Instance.new("PointLight"); pl.Brightness=3; pl.Range=40; pl.Color=C.Light; pl.Shadows=true; pl.Parent=lightPart
+
+local porchLight = createPart("PorchLight", Vector3.new(0.6,0.6,0.6), CFrame.new(0,10.5,D/2+4), Color3.fromRGB(255,255,200), {material=Enum.Material.Neon,canCollide=false})
+local pl2 = Instance.new("PointLight"); pl2.Brightness=2; pl2.Range=20; pl2.Color=Color3.fromRGB(255,240,180); pl2.Parent=porchLight
+
+-- ═══════════════════════════════════════════════
+-- 🏎️ الفيراري
+-- ═══════════════════════════════════════════════
+local carCF = HOUSE_CF * CFrame.new(12,0,D/2+12) * CFrame.Angles(0,math.rad(90),0)
+local carFolder = Instance.new("Folder"); carFolder.Name="Ferrari"; carFolder.Parent=houseFolder
+
+local function createCarPart(name, size, offsetCF, color, opts)
+    opts = opts or {}
+    local part = Instance.new("Part")
+    part.Name = name
+    part.Size = size
+    part.CFrame = carCF * offsetCF
+    part.Anchored = true
+    part.CanCollide = opts.canCollide ~= false
+    part.Material = opts.material or Enum.Material.SmoothPlastic
+    part.Color = color
+    part.Transparency = opts.transparency or 0
+    part.Reflectance = opts.reflectance or 0
+    if opts.shape then part.Shape = opts.shape end
+    part.Parent = carFolder
+    return part
+end
+
+createCarPart("Chassis", Vector3.new(9,1.5,20), CFrame.new(0,1.5,0), C.CarRed, {material=Enum.Material.Metal,reflectance=0.2})
+createCarPart("Hood", Vector3.new(8.5,1,6), CFrame.new(0,2.5,-7), C.CarRed, {material=Enum.Material.Metal,reflectance=0.2})
+createCarPart("FrontNose", Vector3.new(8,0.8,3), CFrame.new(0,1.8,-10), C.CarRed, {material=Enum.Material.Metal,reflectance=0.2})
+createCarPart("Cabin", Vector3.new(7,3.5,9), CFrame.new(0,4.5,1), C.CarRed, {material=Enum.Material.Metal,reflectance=0.2})
+createCarPart("Trunk", Vector3.new(8.5,1.5,4), CFrame.new(0,3,8), C.CarRed, {material=Enum.Material.Metal,reflectance=0.2})
+
+createCarPart("Windshield", Vector3.new(6.5,3,0.3), CFrame.new(0,4.8,-3.5)*CFrame.Angles(math.rad(-20),0,0), C.CarGlass, {transparency=0.3,material=Enum.Material.Glass,reflectance=0.4})
+createCarPart("RearWindow", Vector3.new(6.5,2.5,0.3), CFrame.new(0,4.8,5.5)*CFrame.Angles(math.rad(20),0,0), C.CarGlass, {transparency=0.3,material=Enum.Material.Glass,reflectance=0.4})
+createCarPart("SideWindow_L", Vector3.new(0.3,2.2,6), CFrame.new(-3.6,4.8,1), C.CarGlass, {transparency=0.3,material=Enum.Material.Glass,reflectance=0.4})
+createCarPart("SideWindow_R", Vector3.new(0.3,2.2,6), CFrame.new(3.6,4.8,1), C.CarGlass, {transparency=0.3,material=Enum.Material.Glass,reflectance=0.4})
+
+for _, w in ipairs({{"Wheel_FL",-4.5,-6},{"Wheel_FR",4.5,-6},{"Wheel_RL",-4.5,6},{"Wheel_RR",4.5,6}}) do
+    createCarPart(w[1].."_Tire", Vector3.new(1.5,3.2,3.2), CFrame.new(w[2],1.6,w[3])*CFrame.Angles(0,0,math.rad(90)), C.CarTire, {material=Enum.Material.Rubber,shape=Enum.PartType.Cylinder})
+    createCarPart(w[1].."_Rim", Vector3.new(1.6,2,2), CFrame.new(w[2],1.6,w[3])*CFrame.Angles(0,0,math.rad(90)), C.CarRim, {material=Enum.Material.Metal,reflectance=0.5,shape=Enum.PartType.Cylinder,canCollide=false})
+    createCarPart(w[1].."_Hub", Vector3.new(1.7,0.8,0.8), CFrame.new(w[2],1.6,w[3])*CFrame.Angles(0,0,math.rad(90)), C.CarBlack, {material=Enum.Material.Metal,shape=Enum.PartType.Cylinder,canCollide=false})
+end
+
+createCarPart("Headlight_L", Vector3.new(1.5,0.8,0.4), CFrame.new(-2.5,2,-11.8), C.CarLightY, {material=Enum.Material.Neon})
+createCarPart("Headlight_R", Vector3.new(1.5,0.8,0.4), CFrame.new(2.5,2,-11.8), C.CarLightY, {material=Enum.Material.Neon})
+createCarPart("Taillight_L", Vector3.new(1.5,0.6,0.4), CFrame.new(-2.5,3,10.2), C.CarLightR, {material=Enum.Material.Neon})
+createCarPart("Taillight_R", Vector3.new(1.5,0.6,0.4), CFrame.new(2.5,3,10.2), C.CarLightR, {material=Enum.Material.Neon})
+createCarPart("Grille", Vector3.new(4,1,0.3), CFrame.new(0,1.7,-11.9), C.CarBlack, {material=Enum.Material.Metal})
+createCarPart("FerrariLogo", Vector3.new(0.8,0.8,0.3), CFrame.new(0,1.7,-12), Color3.fromRGB(255,220,0), {material=Enum.Material.Neon})
+createCarPart("Spoiler", Vector3.new(7,0.3,1), CFrame.new(0,4.2,10), C.CarBlack, {material=Enum.Material.Metal})
+createCarPart("SpoilerSupport_L", Vector3.new(0.3,1,0.3), CFrame.new(-3,3.7,10), C.CarBlack, {material=Enum.Material.Metal})
+createCarPart("SpoilerSupport_R", Vector3.new(0.3,1,0.3), CFrame.new(3,3.7,10), C.CarBlack, {material=Enum.Material.Metal})
+createCarPart("Mirror_L", Vector3.new(0.5,0.4,0.8), CFrame.new(-4,4.2,-3.5), C.CarRed, {material=Enum.Material.Metal})
+createCarPart("Mirror_R", Vector3.new(0.5,0.4,0.8), CFrame.new(4,4.2,-3.5), C.CarRed, {material=Enum.Material.Metal})
+createCarPart("Exhaust_L", Vector3.new(0.5,0.5,0.6), CFrame.new(-2,1.2,10.2), C.CarChrome, {material=Enum.Material.Metal,reflectance=0.5,shape=Enum.PartType.Cylinder})
+createCarPart("Exhaust_R", Vector3.new(0.5,0.5,0.6), CFrame.new(2,1.2,10.2), C.CarChrome, {material=Enum.Material.Metal,reflectance=0.5,shape=Enum.PartType.Cylinder})
+createCarPart("SideStripe_L", Vector3.new(0.1,0.3,12), CFrame.new(-4.6,2.5,1), C.CarBlack, {canCollide=false})
+createCarPart("SideStripe_R", Vector3.new(0.1,0.3,12), CFrame.new(4.6,2.5,1), C.CarBlack, {canCollide=false})
+-- ═══════════════════════════════════════════════
+-- 📱 واجهة التحكم
+-- ═══════════════════════════════════════════════
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "RealHouseGUI"
+ScreenGui.ResetOnSpawn = false
+ScreenGui.IgnoreGuiInset = true
+pcall(function() ScreenGui.Parent = CoreGui end)
+if not ScreenGui.Parent then ScreenGui.Parent = lp:WaitForChild("PlayerGui") end
+
+local MainFrame = Instance.new("Frame")
+MainFrame.Size = UDim2.new(0,260,0,240)
+MainFrame.Position = UDim2.new(0.5,-130,0.5,-120)
+MainFrame.BackgroundColor3 = Color3.fromRGB(20,14,32)
+MainFrame.BorderSizePixel = 0
+MainFrame.Active = true
+MainFrame.Draggable = true
+MainFrame.Visible = false
+MainFrame.Parent = ScreenGui
+
+local MC = Instance.new("UICorner"); MC.CornerRadius=UDim.new(0,14); MC.Parent=MainFrame
+local MS = Instance.new("UIStroke"); MS.Color=Color3.fromRGB(200,15,25); MS.Thickness=2; MS.Transparency=0.3; MS.Parent=MainFrame
+
+local TopBar = Instance.new("Frame")
+TopBar.Size = UDim2.new(1,0,0,45)
+TopBar.BackgroundColor3 = Color3.fromRGB(200,15,25)
+TopBar.BorderSizePixel = 0
+TopBar.Parent = MainFrame
+local TC = Instance.new("UICorner"); TC.CornerRadius=UDim.new(0,14); TC.Parent=TopBar
+local TCV = Instance.new("Frame"); TCV.Size=UDim2.new(1,0,0,20); TCV.Position=UDim2.new(0,0,1,-20); TCV.BackgroundColor3=Color3.fromRGB(200,15,25); TCV.BorderSizePixel=0; TCV.Parent=TopBar
+
+local Title = Instance.new("TextLabel")
+Title.Size = UDim2.new(1,-50,1,0)
+Title.Position = UDim2.new(0,15,0,0)
+Title.BackgroundTransparency = 1
+Title.Text = "🏠 منزل + 🏎️ فيراري"
+Title.TextColor3 = Color3.fromRGB(255,255,255)
+Title.Font = Enum.Font.GothamBold
+Title.TextSize = 15
+Title.TextXAlignment = Enum.TextXAlignment.Left
+Title.Parent = TopBar
+
+local CloseBtn = Instance.new("TextButton")
+CloseBtn.Size = UDim2.new(0,30,0,30)
+CloseBtn.Position = UDim2.new(1,-38,0.5,-15)
+CloseBtn.BackgroundColor3 = Color3.fromRGB(30,20,20)
+CloseBtn.Text = "X"
+CloseBtn.TextColor3 = Color3.fromRGB(255,255,255)
+CloseBtn.Font = Enum.Font.GothamBold
+CloseBtn.TextSize = 16
+CloseBtn.BorderSizePixel = 0
+CloseBtn.Parent = TopBar
+local CC = Instance.new("UICorner"); CC.CornerRadius=UDim.new(1,0); CC.Parent=CloseBtn
+CloseBtn.MouseButton1Click:Connect(function() MainFrame.Visible=false end)
+
+local Content = Instance.new("Frame")
+Content.Size = UDim2.new(1,-20,1,-60)
+Content.Position = UDim2.new(0,10,0,55)
+Content.BackgroundTransparency = 1
+Content.Parent = MainFrame
+
+local InfoLabel = Instance.new("TextLabel")
+InfoLabel.Size = UDim2.new(1,0,0,50)
+InfoLabel.BackgroundColor3 = Color3.fromRGB(30,22,45)
+InfoLabel.BorderSizePixel = 0
+InfoLabel.Text = "📍 X=-63.9, Z=294.0\n🔒 كل شيء قابل للاصطدام"
+InfoLabel.TextColor3 = Color3.fromRGB(200,180,240)
+InfoLabel.Font = Enum.Font.Gotham
+InfoLabel.TextSize = 11
+InfoLabel.Parent = Content
+local ILC = Instance.new("UICorner"); ILC.CornerRadius=UDim.new(0,8); ILC.Parent=InfoLabel
+
+local GotoBtn = Instance.new("TextButton")
+GotoBtn.Size = UDim2.new(1,0,0,45)
+GotoBtn.Position = UDim2.new(0,0,0,60)
+GotoBtn.BackgroundColor3 = Color3.fromRGB(140,70,230)
+GotoBtn.Text = "🚀 اذهب للمنزل"
+GotoBtn.TextColor3 = Color3.fromRGB(255,255,255)
+GotoBtn.Font = Enum.Font.GothamBold
+GotoBtn.TextSize = 14
+GotoBtn.BorderSizePixel = 0
+GotoBtn.Parent = Content
+local GBC = Instance.new("UICorner"); GBC.CornerRadius=UDim.new(0,10); GBC.Parent=GotoBtn
+
+GotoBtn.MouseButton1Click:Connect(function()
+    local root = lp.Character and lp.Character:FindFirstChild("HumanoidRootPart")
+    if root then
+        root.CFrame = HOUSE_CF * CFrame.new(0,5,20)
+        StarterGui:SetCore("SendNotification",{Title="🏠",Text="تم النقل",Duration=2})
+    end
+end)
+
+local CarBtn = Instance.new("TextButton")
+CarBtn.Size = UDim2.new(1,0,0,45)
+CarBtn.Position = UDim2.new(0,0,0,110)
+CarBtn.BackgroundColor3 = Color3.fromRGB(200,15,25)
+CarBtn.Text = "🏎️ اذهب للفيراري"
+CarBtn.TextColor3 = Color3.fromRGB(255,255,255)
+CarBtn.Font = Enum.Font.GothamBold
+CarBtn.TextSize = 14
+CarBtn.BorderSizePixel = 0
+CarBtn.Parent = Content
+local CBC = Instance.new("UICorner"); CBC.CornerRadius=UDim.new(0,10); CBC.Parent=CarBtn
+
+CarBtn.MouseButton1Click:Connect(function()
+    local root = lp.Character and lp.Character:FindFirstChild("HumanoidRootPart")
+    if root then
+        root.CFrame = carCF * CFrame.new(-4,3,0)
+        StarterGui:SetCore("SendNotification",{Title="🏎️",Text="تم النقل للسيارة",Duration=2})
+    end
+end)
+
+local ToggleBtn = Instance.new("TextButton")
+ToggleBtn.Size = UDim2.new(1,0,0,45)
+ToggleBtn.Position = UDim2.new(0,0,0,160)
+ToggleBtn.BackgroundColor3 = Color3.fromRGB(60,200,100)
+ToggleBtn.Text = "👁️ إخفاء"
+ToggleBtn.TextColor3 = Color3.fromRGB(255,255,255)
+ToggleBtn.Font = Enum.Font.GothamBold
+ToggleBtn.TextSize = 14
+ToggleBtn.BorderSizePixel = 0
+ToggleBtn.Parent = Content
+local TBC = Instance.new("UICorner"); TBC.CornerRadius=UDim.new(0,10); TBC.Parent=ToggleBtn
+
+local visible = true
+ToggleBtn.MouseButton1Click:Connect(function()
+    visible = not visible
+    for _, obj in ipairs(houseFolder:GetDescendants()) do
+        if obj:IsA("BasePart") then
+            obj.Transparency = visible and 0 or 1
+            obj.CanCollide = visible
+        end
+    end
+    ToggleBtn.Text = visible and "👁️ إخفاء" or "👁️ إظهار"
+end)
+
+local DeleteBtn = Instance.new("TextButton")
+DeleteBtn.Size = UDim2.new(1,0,0,40)
+DeleteBtn.Position = UDim2.new(0,0,0,210)
+DeleteBtn.BackgroundColor3 = Color3.fromRGB(220,60,60)
+DeleteBtn.Text = "🗑️ حذف المنزل"
+DeleteBtn.TextColor3 = Color3.fromRGB(255,255,255)
+DeleteBtn.Font = Enum.Font.GothamBold
+DeleteBtn.TextSize = 12
+DeleteBtn.BorderSizePixel = 0
+DeleteBtn.Parent = Content
+local DBC = Instance.new("UICorner"); DBC.CornerRadius=UDim.new(0,10); DBC.Parent=DeleteBtn
+
+DeleteBtn.MouseButton1Click:Connect(function()
+    houseFolder:Destroy()
+    ScreenGui:Destroy()
+    getgenv().RealHouse_Active = false
+end)
+
+local OpenBtn = Instance.new("TextButton")
+OpenBtn.Size = UDim2.new(0,60,0,60)
+OpenBtn.Position = UDim2.new(0,20,0.5,-30)
+OpenBtn.BackgroundColor3 = Color3.fromRGB(200,15,25)
+OpenBtn.Text = "🏠"
+OpenBtn.TextColor3 = Color3.fromRGB(255,255,255)
+OpenBtn.Font = Enum.Font.GothamBold
+OpenBtn.TextSize = 24
+OpenBtn.BorderSizePixel = 0
+OpenBtn.Active = true
+OpenBtn.Draggable = true
+OpenBtn.Parent = ScreenGui
+local OBC = Instance.new("UICorner"); OBC.CornerRadius=UDim.new(1,0); OBC.Parent=OpenBtn
+local OBS = Instance.new("UIStroke"); OBS.Color=Color3.fromRGB(255,255,255); OBS.Thickness=2; OBS.Transparency=0.4; OBS.Parent=OpenBtn
+
+OpenBtn.MouseButton1Click:Connect(function() MainFrame.Visible = not MainFrame.Visible end)
+
+StarterGui:SetCore("SendNotification",{
+    Title = "🏠 منزل + 🏎️ فيراري",
+    Text = "جاهز! اضغط 🏠 للتحكم",
+    Duration = 5
+})
