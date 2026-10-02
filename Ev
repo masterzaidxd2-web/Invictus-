@@ -95,35 +95,88 @@ createPart("FrontDoor", Vector3.new(doorW-0.8,8.2,0.3), CFrame.new(0,5,D/2+0.15)
 createPart("DoorHandle", Vector3.new(0.3,0.3,0.3), CFrame.new(doorW/2-0.8,4.5,D/2+0.35)*CFrame.Angles(0,0,math.rad(90)), C.CarChrome, {material=Enum.Material.Metal,reflectance=0.5})
 
 -- ═══ السقف المُصحّح ═══
-local RISE = 8
+-- ✅ سقف مثلثي حاد (Roof Triangle)
+local RISE = 32          -- 👈 ارتفاع حاد (42/2 × 1.5)
+local OVERHANG = 1.5     -- بروز صغير
 local slopeAngle = math.deg(math.atan2(RISE, W/2))
 local slopeLength = math.sqrt((W/2)^2 + RISE^2)
 local wallTop = H + 0.5
 
+-- ═══ السقف المائل الأيسر ═══
 createPart("Roof_Left",
-    Vector3.new(slopeLength, 0.5, D + 6),
+    Vector3.new(slopeLength, 0.5, D + OVERHANG * 2),
     CFrame.new(-W/4, wallTop + RISE/2, 0) * CFrame.Angles(0, 0, math.rad(slopeAngle)),
     C.Roof, {material=Enum.Material.Slate, reflectance=0.1})
 
+-- ═══ السقف المائل الأيمن ═══
 createPart("Roof_Right",
-    Vector3.new(slopeLength, 0.5, D + 6),
+    Vector3.new(slopeLength, 0.5, D + OVERHANG * 2),
     CFrame.new(W/4, wallTop + RISE/2, 0) * CFrame.Angles(0, 0, math.rad(-slopeAngle)),
     C.Roof, {material=Enum.Material.Slate, reflectance=0.1})
 
+-- ═══ قمة السقف (Ridge) ═══
 createPart("RoofRidge",
-    Vector3.new(1.2, 0.8, D + 6),
+    Vector3.new(1.2, 0.8, D + OVERHANG * 2),
     CFrame.new(0, wallTop + RISE + 0.2, 0),
     C.RoofTrim, {material=Enum.Material.Slate})
 
-createPart("Gable_Front",
-    Vector3.new(W, RISE, 0.5),
-    CFrame.new(0, wallTop + RISE/2, -D/2 - 0.1),
-    C.Wall, {material=Enum.Material.Concrete, canCollide=true})
+-- ═══ إطار خشبي على حواف السقف ═══
+createPart("RoofTrim_Left",
+    Vector3.new(0.5, 0.8, D + OVERHANG * 2),
+    CFrame.new(-W/2, wallTop, 0),
+    C.RoofTrim, {material=Enum.Material.Wood})
 
-createPart("Gable_Back",
-    Vector3.new(W, RISE, 0.5),
-    CFrame.new(0, wallTop + RISE/2, D/2 + 0.1),
-    C.Wall, {material=Enum.Material.Concrete, canCollide=true})
+createPart("RoofTrim_Right",
+    Vector3.new(0.5, 0.8, D + OVERHANG * 2),
+    CFrame.new(W/2, wallTop, 0),
+    C.RoofTrim, {material=Enum.Material.Wood})
+
+-- ═══ المُثلث الأمامي (Gable Front) - مصنوع من 3 قطع ═══
+-- القاعدة (أسفل المثلث)
+createPart("Gable_Front_Base",
+    Vector3.new(W, 0.5, 0.5),
+    CFrame.new(0, wallTop + 0.25, -D/2 - 0.1),
+    C.Wall, {material=Enum.Material.Concrete})
+
+-- الساق الأيسر (يميل نحو المركز)
+local frontSlopeAngle = math.deg(math.atan2(RISE, W/2))
+createPart("Gable_Front_Left",
+    Vector3.new(slopeLength, 0.5, 0.5),
+    CFrame.new(-W/4, wallTop + RISE/2, -D/2 - 0.1) * CFrame.Angles(0, 0, math.rad(frontSlopeAngle)),
+    C.Wall, {material=Enum.Material.Concrete})
+
+-- الساق الأيمن (يميل نحو المركز)
+createPart("Gable_Front_Right",
+    Vector3.new(slopeLength, 0.5, 0.5),
+    CFrame.new(W/4, wallTop + RISE/2, -D/2 - 0.1) * CFrame.Angles(0, 0, math.rad(-frontSlopeAngle)),
+    C.Wall, {material=Enum.Material.Concrete})
+
+-- ═══ المُثلث الخلفي (Gable Back) ═══
+createPart("Gable_Back_Base",
+    Vector3.new(W, 0.5, 0.5),
+    CFrame.new(0, wallTop + 0.25, D/2 + 0.1),
+    C.Wall, {material=Enum.Material.Concrete})
+
+createPart("Gable_Back_Left",
+    Vector3.new(slopeLength, 0.5, 0.5),
+    CFrame.new(-W/4, wallTop + RISE/2, D/2 + 0.1) * CFrame.Angles(0, 0, math.rad(frontSlopeAngle)),
+    C.Wall, {material=Enum.Material.Concrete})
+
+createPart("Gable_Back_Right",
+    Vector3.new(slopeLength, 0.5, 0.5),
+    CFrame.new(W/4, wallTop + RISE/2, D/2 + 0.1) * CFrame.Angles(0, 0, math.rad(-frontSlopeAngle)),
+    C.Wall, {material=Enum.Material.Concrete})
+
+-- ═══ نافذة صغيرة في قمة المُثلث الأمامي (شكل بيت) ═══
+createPart("AtticWindow",
+    Vector3.new(2.5, 2.5, 0.3),
+    CFrame.new(0, wallTop + RISE * 0.5, -D/2 - 0.4),
+    C.Window, {transparency=0.4, material=Enum.Material.Glass, reflectance=0.3, canCollide=false})
+
+createPart("AtticWindowFrame",
+    Vector3.new(3, 3, 0.2),
+    CFrame.new(0, wallTop + RISE * 0.5, -D/2 - 0.2),
+    C.WindowFrame, {material=Enum.Material.Wood})
 -- ═══ المدخنة ═══
 createPart("Chimney", Vector3.new(3,10,3), CFrame.new(W/3,H+5,-D/4), C.Chimney, {material=Enum.Material.Brick})
 createPart("ChimneyCap", Vector3.new(3.4,0.4,3.4), CFrame.new(W/3,H+10.2,-D/4), C.RoofTrim, {material=Enum.Material.Brick})
