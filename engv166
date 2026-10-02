@@ -1926,7 +1926,7 @@ OthersTab:CreateToggle({
         if Value then
             if not EmoteLoaded then
                 pcall(function()
-                    loadstring(game:HttpGet("https://raw.githubusercontent.com/masterzaidxd2-web/Invictus-/refs/heads/main/emte"))()
+                    loadstring(game:HttpGet("https://raw.githubusercontent.com/the1was1/Invictus-/refs/heads/Thv1/emte"))()
                 end)
                 EmoteLoaded = true
             else
