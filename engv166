@@ -2149,6 +2149,7 @@ OthersTab:CreateSlider({
 })
 
 -- الدالة الأساسية لتشغيل الحركات (تقوم بإيقاف الحركة السابقة تلقائياً)
+-- الدالة الأساسية لتشغيل الحركات (تبقى تعمل حتى بعد خروج اللاعب)
 local function StartAttachLoop(mode)
     -- التحقق من اختيار لاعب أولاً
     if TargetPlayerName == "" then
@@ -2168,26 +2169,47 @@ local function StartAttachLoop(mode)
     
     CurrentMode = mode
     TimeCounter = 0
+    local wasWaiting = false  -- ✅ لتجنب تكرار الإشعار
     
     AttachLoop = RunService.Heartbeat:Connect(function(deltaTime)
+        -- ✅ إذا تم إلغاء الاسم يدوياً → أوقف الحلقة
+        if TargetPlayerName == "" then
+            if AttachLoop then
+                AttachLoop:Disconnect()
+                AttachLoop = nil
+            end
+            return
+        end
+        
         local targetPlayer = game.Players:FindFirstChild(TargetPlayerName)
         local lp = game.Players.LocalPlayer
         
-        -- التأكد من أن اللاعب المستهدف لا يزال موجوداً وأن الشخصيات موجودة
-        if targetPlayer and targetPlayer.Character and targetPlayer.Character:FindFirstChild("HumanoidRootPart") and lp.Character and lp.Character:FindFirstChild("HumanoidRootPart") then
+        -- ✅ التحقق من وجود اللاعب وشخصيته
+        if targetPlayer and targetPlayer.Character and targetPlayer.Character:FindFirstChild("HumanoidRootPart") 
+           and lp.Character and lp.Character:FindFirstChild("HumanoidRootPart") then
+            
+            -- ✅ اللاعب متاح الآن → أعِد تشغيل الترول
+            if wasWaiting then
+                wasWaiting = false
+                Rayfield:Notify({
+                    Title = "🔥 Troll Resume",
+                    Content = "اللاعب " .. TargetPlayerName .. " عاد! تم استئناف الحركة.",
+                    Duration = 3
+                })
+            end
+            
+            -- تنفيذ الحركة
             local targetRoot = targetPlayer.Character.HumanoidRootPart
             local localRoot = lp.Character.HumanoidRootPart
             
             localRoot.Velocity = Vector3.new(0, 0, 0)
             
-            -- حساب السرعة
             if BangSpeed > 0 then
                 TimeCounter = TimeCounter + (deltaTime * BangSpeed * 2)
             else
                 TimeCounter = 0
             end
             
-            -- تنفيذ الحركة بناءً على الزر المضغوط
             if CurrentMode == "MOUTH" then
                 local bangOffset = math.sin(TimeCounter) * 0.75
                 localRoot.CFrame = targetRoot.CFrame * CFrame.new(0, 1.25, -0.4 + bangOffset) * CFrame.Angles(0, math.rad(180), 0)
@@ -2201,15 +2223,15 @@ local function StartAttachLoop(mode)
                 localRoot.CFrame = CFrame.new(targetRoot.Position + Vector3.new(x, 1, z), targetRoot.Position)
             end
         else
-            -- إذا غادر اللاعب السيرفر أثناء تشغيل الحركة
-            AttachLoop:Disconnect()
-            AttachLoop = nil
-            TargetPlayerName = ""
-            Rayfield:Notify({
-                Title = "تنبيه",
-                Content = "لقد غادر اللاعب السيرفر أو ماتت شخصيته.",
-                Duration = 3
-            })
+            -- ✅ اللاعب غير متاح حالياً → انتظر ولا تُلغِ الحلقة
+            if not wasWaiting then
+                wasWaiting = true
+                Rayfield:Notify({
+                    Title = "⏳ Troll Waiting",
+                    Content = "اللاعب " .. TargetPlayerName .. " غادر مؤقتاً. بانتظار عودته...",
+                    Duration = 3
+                })
+            end
         end
     end)
 end
