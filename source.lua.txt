@@ -941,7 +941,7 @@ do
 	local AssetBaseURL = "https://github.com/SiriusSoftwareLtd/Rayfield/blob/main/assets/"
 
 	local assetFiles = {
-["MyBanner"] = "https://cdn.jsdelivr.net/gh/masterzaidxd2-web/Invictus-@main/955873625295.png",
+["MyBanner"] = "https://cdn.jsdelivr.net/gh/the1was1/Invictus-@Thv1/955873625295.png",
 ["111263549366178"] = AssetBaseURL.."111263549366178.png?raw=true",
 		["111263549366178"] = AssetBaseURL.."111263549366178.png?raw=true",
 		["77891951053543"] = AssetBaseURL.."77891951053543.png?raw=true",
