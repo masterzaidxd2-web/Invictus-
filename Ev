@@ -1,35 +1,40 @@
--- ===============================================
--- 🏰 Luxury Villa + Sports Car - PART 1/6
--- ===============================================
-if getgenv().LuxuryVilla_Active then
+-- ========== PART 1/6 ==========
+if getgenv().Villa_Active then
     game:GetService("StarterGui"):SetCore("SendNotification", {
-        Title = "المنزل", Text = "موجود بالفعل!", Duration = 3
+        Title = "المنزل", Text = "يعمل بالفعل!", Duration = 3
     })
     return
 end
-getgenv().LuxuryVilla_Active = true
+getgenv().Villa_Active = true
 
 local Players = game:GetService("Players")
 local CoreGui = game:GetService("CoreGui")
 local StarterGui = game:GetService("StarterGui")
-local Lighting = game:GetService("Lighting")
 local lp = Players.LocalPlayer
 
-local CF = CFrame.new(-63.9, 0.0, 294.0) * CFrame.Angles(0, math.rad(2.4), 0)
+local CF = CFrame.new(-63.9, 0, 294.0) * CFrame.Angles(0, math.rad(2.4), 0)
 
--- ═══════════════════════════════════════════════
--- 🎨 الألوان
--- ═══════════════════════════════════════════════
+-- الأبعاد
+local W, D, T = 50, 40, 0.7
+local H1, H2, SLAB = 16, 14, 0.5
+local Y1_BOT = 1.3
+local Y1_TOP = Y1_BOT + H1
+local Y2_BOT = Y1_TOP + SLAB
+local Y2_TOP = Y2_BOT + H2
+local Y1_MID = Y1_BOT + H1/2
+local Y2_MID = Y2_BOT + H2/2
+
+-- الألوان
 local C = {
     Wall = Color3.fromRGB(248, 244, 235),
-    WallDark = Color3.fromRGB(230, 220, 205),
+    WallDark = Color3.fromRGB(220, 210, 195),
     Trim = Color3.fromRGB(90, 60, 40),
     Floor = Color3.fromRGB(160, 110, 70),
     FloorTile = Color3.fromRGB(220, 215, 205),
     Foundation = Color3.fromRGB(170, 165, 160),
-    Roof = Color3.fromRGB(55, 45, 40),
-    RoofAccent = Color3.fromRGB(40, 32, 28),
-    Glass = Color3.fromRGB(150, 200, 230),
+    Roof = Color3.fromRGB(70, 60, 55),
+    RoofAccent = Color3.fromRGB(50, 40, 35),
+    Glass = Color3.fromRGB(170, 210, 235),
     Door = Color3.fromRGB(80, 45, 25),
     DoorBrass = Color3.fromRGB(200, 160, 60),
     Brick = Color3.fromRGB(140, 80, 60),
@@ -45,7 +50,6 @@ local C = {
     FlowerWhite = Color3.fromRGB(240, 240, 240),
     Water = Color3.fromRGB(100, 180, 220),
     Stone = Color3.fromRGB(190, 185, 175),
-    -- السيارة
     CarRed = Color3.fromRGB(210, 20, 25),
     CarBlack = Color3.fromRGB(15, 15, 20),
     CarChrome = Color3.fromRGB(235, 235, 240),
@@ -54,90 +58,507 @@ local C = {
     CarRim = Color3.fromRGB(210, 210, 215),
     CarLightY = Color3.fromRGB(255, 245, 160),
     CarLightR = Color3.fromRGB(255, 40, 40),
-    CarInterior = Color3.fromRGB(50, 30, 25),
     Leather = Color3.fromRGB(180, 140, 100),
+    Marble = Color3.fromRGB(240, 240, 245),
+    Fabric = Color3.fromRGB(240, 240, 250),
 }
 
--- ═══════════════════════════════════════════════
--- 📁 الحاوية الرئيسية
--- ═══════════════════════════════════════════════
-local root = Instance.new("Folder")
-root.Name = "LuxuryVilla"
-root.Parent = workspace
+-- المجلدات
+local root = Instance.new("Folder"); root.Name = "LuxuryVilla"; root.Parent = workspace
+local house = Instance.new("Folder"); house.Name = "House"; house.Parent = root
+local garden = Instance.new("Folder"); garden.Name = "Garden"; garden.Parent = root
+local ferrari = Instance.new("Folder"); ferrari.Name = "Ferrari"; ferrari.Parent = root
 
-local houseParts = Instance.new("Folder"); houseParts.Name = "House"; houseParts.Parent = root
-local gardenParts = Instance.new("Folder"); gardenParts.Name = "Garden"; gardenParts.Parent = root
-local carFolder = Instance.new("Folder"); carFolder.Name = "Ferrari"; carFolder.Parent = root
-
--- ═══════════════════════════════════════════════
--- 🔧 دوال مساعدة
--- ═══════════════════════════════════════════════
+-- دالة إنشاء جزء
 local function createPart(parent, name, size, offsetCF, color, opts)
     opts = opts or {}
-    local part = Instance.new("Part")
-    part.Name = name
-    part.Size = size
-    part.CFrame = CF * offsetCF
-    part.Anchored = true
-    part.CanCollide = opts.canCollide ~= false
-    part.Material = opts.material or Enum.Material.SmoothPlastic
-    part.Color = color
-    part.Transparency = opts.transparency or 0
-    part.Reflectance = opts.reflectance or 0
-    if opts.shape then part.Shape = opts.shape end
-    part.Parent = parent
-    return part
+    local p = Instance.new("Part")
+    p.Name = name
+    p.Size = size
+    p.CFrame = CF * offsetCF
+    p.Anchored = true
+    p.CanCollide = opts.canCollide ~= false
+    p.Material = opts.material or Enum.Material.SmoothPlastic
+    p.Color = color
+    p.Transparency = opts.transparency or 0
+    p.Reflectance = opts.reflectance or 0
+    if opts.shape then p.Shape = opts.shape end
+    p.Parent = parent
+    return p
 end
 
+-- دالة إنشاء Wedge
 local function createWedge(parent, name, size, offsetCF, color, opts)
     opts = opts or {}
-    local part = Instance.new("WedgePart")
-    part.Name = name
-    part.Size = size
-    part.CFrame = CF * offsetCF
-    part.Anchored = true
-    part.CanCollide = opts.canCollide ~= false
-    part.Material = opts.material or Enum.Material.SmoothPlastic
-    part.Color = color
-    part.Reflectance = opts.reflectance or 0
-    part.Parent = parent
-    return part
+    local p = Instance.new("WedgePart")
+    p.Name = name
+    p.Size = size
+    p.CFrame = CF * offsetCF
+    p.Anchored = true
+    p.CanCollide = opts.canCollide ~= false
+    p.Material = opts.material or Enum.Material.SmoothPlastic
+    p.Color = color
+    p.Reflectance = opts.reflectance or 0
+    p.Parent = parent
+    return p
 end
 
--- ✅ دالة إنشاء نافذة كاملة
-local function createWindow(parent, name, offsetCF, width, height, rotY)
-    rotY = rotY or 0
-    local wcf = offsetCF * CFrame.Angles(0, math.rad(rotY), 0)
-    
-    -- الزجاج
-    createPart(parent, name.."_Glass", Vector3.new(width, height, 0.15), wcf, C.Glass, 
-        {transparency=0.65, material=Enum.Material.Glass, reflectance=0.4, canCollide=false})
-    
-    -- الإطارات الأربعة (خشبية)
-    local t = 0.35
-    createPart(parent, name.."_FT", Vector3.new(width + t*2, t, 0.4), wcf * CFrame.new(0, height/2, 0), C.Trim, {material=Enum.Material.Wood})
-    createPart(parent, name.."_FB", Vector3.new(width + t*2, t, 0.4), wcf * CFrame.new(0, -height/2, 0), C.Trim, {material=Enum.Material.Wood})
-    createPart(parent, name.."_FL", Vector3.new(t, height, 0.4), wcf * CFrame.new(-width/2, 0, 0), C.Trim, {material=Enum.Material.Wood})
-    createPart(parent, name.."_FR", Vector3.new(t, height, 0.4), wcf * CFrame.new(width/2, 0, 0), C.Trim, {material=Enum.Material.Wood})
-    
-    -- تقسيم داخلي (صليب)
-    createPart(parent, name.."_CrossV", Vector3.new(t*0.7, height, 0.2), wcf, C.Trim, {material=Enum.Material.Wood})
-    createPart(parent, name.."_CrossH", Vector3.new(width, t*0.7, 0.2), wcf, C.Trim, {material=Enum.Material.Wood})
+-- بناء جدار Z-facing (يمتد على X) مع فتحات
+local function buildWallX(parent, name, xL, xR, yB, yT, zPos, openings)
+    table.sort(openings, function(a, b) return a.pos[1] < b.pos[1] end)
+    local cursor = xL
+    for i, op in ipairs(openings) do
+        local opL = op.pos[1] - op.size[1]/2
+        local opR = op.pos[1] + op.size[1]/2
+        local opB = op.pos[2] - op.size[2]/2
+        local opT = op.pos[2] + op.size[2]/2
+        if opL > cursor + 0.05 then
+            createPart(parent, name.."_"..i.."L", Vector3.new(opL - cursor, yT - yB, T),
+                CFrame.new((cursor + opL)/2, (yB + yT)/2, zPos), C.Wall, {material=Enum.Material.Concrete})
+        end
+        if opB > yB + 0.05 then
+            createPart(parent, name.."_"..i.."B", Vector3.new(op.size[1], opB - yB, T),
+                CFrame.new(op.pos[1], (yB + opB)/2, zPos), C.Wall, {material=Enum.Material.Concrete})
+        end
+        if opT < yT - 0.05 then
+            createPart(parent, name.."_"..i.."T", Vector3.new(op.size[1], yT - opT, T),
+                CFrame.new(op.pos[1], (opT + yT)/2, zPos), C.Wall, {material=Enum.Material.Concrete})
+        end
+        cursor = opR
+    end
+    if cursor < xR - 0.05 then
+        createPart(parent, name.."_end", Vector3.new(xR - cursor, yT - yB, T),
+            CFrame.new((cursor + xR)/2, (yB + yT)/2, zPos), C.Wall, {material=Enum.Material.Concrete})
+    end
 end
 
--- ✅ دالة إنشاء مصباح سقف
-local function createCeilingLamp(parent, name, offsetCF, range, brightness)
-    range = range or 25
+-- بناء جدار X-facing (يمتد على Z)
+local function buildWallZ(parent, name, zL, zR, yB, yT, xPos, openings)
+    table.sort(openings, function(a, b) return a.pos[1] < b.pos[1] end)
+    local cursor = zL
+    for i, op in ipairs(openings) do
+        local opL = op.pos[1] - op.size[1]/2
+        local opR = op.pos[1] + op.size[1]/2
+        local opB = op.pos[2] - op.size[2]/2
+        local opT = op.pos[2] + op.size[2]/2
+        if opL > cursor + 0.05 then
+            createPart(parent, name.."_"..i.."L", Vector3.new(T, yT - yB, opL - cursor),
+                CFrame.new(xPos, (yB + yT)/2, (cursor + opL)/2), C.Wall, {material=Enum.Material.Concrete})
+        end
+        if opB > yB + 0.05 then
+            createPart(parent, name.."_"..i.."B", Vector3.new(T, opB - yB, op.size[1]),
+                CFrame.new(xPos, (yB + opB)/2, op.pos[1]), C.Wall, {material=Enum.Material.Concrete})
+        end
+        if opT < yT - 0.05 then
+            createPart(parent, name.."_"..i.."T", Vector3.new(T, yT - opT, op.size[1]),
+                CFrame.new(xPos, (opT + yT)/2, op.pos[1]), C.Wall, {material=Enum.Material.Concrete})
+        end
+        cursor = opR
+    end
+    if cursor < zR - 0.05 then
+        createPart(parent, name.."_end", Vector3.new(T, yT - yB, zR - cursor),
+            CFrame.new(xPos, (yB + yT)/2, (cursor + zR)/2), C.Wall, {material=Enum.Material.Concrete})
+    end
+end
+
+-- دالة النافذة Z-facing
+local function windowZ(parent, name, x, y, z, w, h)
+    local bcf = CFrame.new(x, y, z)
+    createPart(parent, name.."_G", Vector3.new(w-0.5, h-0.5, 0.15), bcf, 
+        C.Glass, {transparency=0.6, material=Enum.Material.Glass, reflectance=0.4, canCollide=false})
+    createPart(parent, name.."_FT", Vector3.new(w, 0.4, 0.5), bcf * CFrame.new(0, h/2, 0), C.Trim, {material=Enum.Material.Wood})
+    createPart(parent, name.."_FB", Vector3.new(w, 0.4, 0.5), bcf * CFrame.new(0, -h/2, 0), C.Trim, {material=Enum.Material.Wood})
+    createPart(parent, name.."_FL", Vector3.new(0.4, h+0.4, 0.5), bcf * CFrame.new(-w/2, 0, 0), C.Trim, {material=Enum.Material.Wood})
+    createPart(parent, name.."_FR", Vector3.new(0.4, h+0.4, 0.5), bcf * CFrame.new(w/2, 0, 0), C.Trim, {material=Enum.Material.Wood})
+    createPart(parent, name.."_CV", Vector3.new(0.25, h, 0.3), bcf, C.Trim, {material=Enum.Material.Wood})
+    createPart(parent, name.."_CH", Vector3.new(w, 0.25, 0.3), bcf, C.Trim, {material=Enum.Material.Wood})
+end
+
+-- دالة النافذة X-facing
+local function windowX(parent, name, x, y, z, w, h)
+    local bcf = CFrame.new(x, y, z)
+    createPart(parent, name.."_G", Vector3.new(0.15, h-0.5, w-0.5), bcf, 
+        C.Glass, {transparency=0.6, material=Enum.Material.Glass, reflectance=0.4, canCollide=false})
+    createPart(parent, name.."_FT", Vector3.new(0.5, 0.4, w), bcf * CFrame.new(0, h/2, 0), C.Trim, {material=Enum.Material.Wood})
+    createPart(parent, name.."_FB", Vector3.new(0.5, 0.4, w), bcf * CFrame.new(0, -h/2, 0), C.Trim, {material=Enum.Material.Wood})
+    createPart(parent, name.."_FL", Vector3.new(0.5, h+0.4, 0.4), bcf * CFrame.new(0, 0, -w/2), C.Trim, {material=Enum.Material.Wood})
+    createPart(parent, name.."_FR", Vector3.new(0.5, h+0.4, 0.4), bcf * CFrame.new(0, 0, w/2), C.Trim, {material=Enum.Material.Wood})
+    createPart(parent, name.."_CV", Vector3.new(0.3, h, 0.25), bcf, C.Trim, {material=Enum.Material.Wood})
+    createPart(parent, name.."_CH", Vector3.new(0.3, 0.25, w), bcf, C.Trim, {material=Enum.Material.Wood})
+end
+
+-- الأساس + أرضية الطابق 1
+createPart(house, "Foundation", Vector3.new(W+6, 1, D+6), CFrame.new(0, 0.5, 0), C.Foundation, {material=Enum.Material.Concrete})
+createPart(house, "Floor1_Wood", Vector3.new(W-1, 0.3, D-1), CFrame.new(0, Y1_BOT - 0.15, 0), C.Floor, {material=Enum.Material.WoodPlanks})
+
+-- جدران الطابق 1 الخارجية مع الفتحات
+local doorW, doorH = 6, 10
+local backDoorW, backDoorH = 5, 9
+
+-- الجدار الأمامي
+buildWallX(house, "Wall1_Front", -W/2, W/2, Y1_BOT, Y1_TOP, D/2, {
+    {pos={-15, Y1_MID}, size={7, 6}},
+    {pos={0, Y1_BOT + doorH/2}, size={doorW, doorH}},
+    {pos={15, Y1_MID}, size={7, 6}},
+})
+
+-- الجدار الخلفي
+buildWallX(house, "Wall1_Back", -W/2, W/2, Y1_BOT, Y1_TOP, -D/2, {
+    {pos={-15, Y1_MID}, size={7, 6}},
+    {pos={0, Y1_BOT + backDoorH/2}, size={backDoorW, backDoorH}},
+    {pos={15, Y1_MID}, size={7, 6}},
+})
+
+-- الجدار الأيسر
+buildWallZ(house, "Wall1_Left", -D/2, D/2, Y1_BOT, Y1_TOP, -W/2, {
+    {pos={-10, Y1_MID}, size={7, 6}},
+    {pos={10, Y1_MID}, size={7, 6}},
+})
+
+-- الجدار الأيمن
+buildWallZ(house, "Wall1_Right", -D/2, D/2, Y1_BOT, Y1_TOP, W/2, {
+    {pos={-10, Y1_MID}, size={7, 6}},
+    {pos={10, Y1_MID}, size={7, 6}},
+})
+-- ========== PART 2/6 ==========
+
+-- نوافذ الطابق 1
+windowZ(house, "Win1_FL", -15, Y1_MID, D/2 + 0.05, 7, 6)
+windowZ(house, "Win1_FR", 15, Y1_MID, D/2 + 0.05, 7, 6)
+windowZ(house, "Win1_BL", -15, Y1_MID, -D/2 - 0.05, 7, 6)
+windowZ(house, "Win1_BR", 15, Y1_MID, -D/2 - 0.05, 7, 6)
+windowX(house, "Win1_L1", -W/2 - 0.05, Y1_MID, -10, 7, 6)
+windowX(house, "Win1_L2", -W/2 - 0.05, Y1_MID, 10, 7, 6)
+windowX(house, "Win1_R1", W/2 + 0.05, Y1_MID, -10, 7, 6)
+windowX(house, "Win1_R2", W/2 + 0.05, Y1_MID, 10, 7, 6)
+
+-- ═══ الباب الأمامي ═══
+-- الإطار
+createPart(house, "FDoor_FrL", Vector3.new(0.5, doorH+0.8, T+0.6), 
+    CFrame.new(-doorW/2 - 0.25, Y1_BOT + (doorH+0.8)/2, D/2), C.Trim, {material=Enum.Material.Wood})
+createPart(house, "FDoor_FrR", Vector3.new(0.5, doorH+0.8, T+0.6), 
+    CFrame.new(doorW/2 + 0.25, Y1_BOT + (doorH+0.8)/2, D/2), C.Trim, {material=Enum.Material.Wood})
+createPart(house, "FDoor_FrT", Vector3.new(doorW+1, 0.5, T+0.6), 
+    CFrame.new(0, Y1_BOT + doorH + 0.25, D/2), C.Trim, {material=Enum.Material.Wood})
+
+-- عتبة الباب
+createPart(house, "FDoor_Thresh", Vector3.new(doorW+0.6, 0.4, 2), 
+    CFrame.new(0, Y1_BOT + 0.2, D/2 + 0.8), C.Foundation, {material=Enum.Material.Concrete})
+
+-- الباب المفتوح (70 درجة للداخل)
+createPart(house, "FrontDoor", Vector3.new(doorW-0.6, doorH-0.4, 0.3),
+    CFrame.new(-doorW/2, Y1_BOT + doorH/2, D/2) * CFrame.Angles(0, math.rad(-70), 0) * CFrame.new((doorW-0.6)/2, 0, 0),
+    C.Door, {material=Enum.Material.Wood})
+
+-- مقبض الباب
+createPart(house, "FDoor_Handle", Vector3.new(0.35, 0.35, 0.5),
+    CFrame.new(-doorW/2, Y1_BOT + doorH/2, D/2) * CFrame.Angles(0, math.rad(-70), 0) * CFrame.new(doorW-1, 0, 0.35) * CFrame.Angles(0, 0, math.rad(90)),
+    C.DoorBrass, {material=Enum.Material.Metal, reflectance=0.6, shape=Enum.PartType.Cylinder})
+
+-- ═══ الباب الخلفي ═══
+createPart(house, "BDoor_FrL", Vector3.new(0.5, backDoorH+0.7, T+0.5), 
+    CFrame.new(-backDoorW/2 - 0.25, Y1_BOT + (backDoorH+0.7)/2, -D/2), C.Trim, {material=Enum.Material.Wood})
+createPart(house, "BDoor_FrR", Vector3.new(0.5, backDoorH+0.7, T+0.5), 
+    CFrame.new(backDoorW/2 + 0.25, Y1_BOT + (backDoorH+0.7)/2, -D/2), C.Trim, {material=Enum.Material.Wood})
+createPart(house, "BDoor_FrT", Vector3.new(backDoorW+1, 0.5, T+0.5), 
+    CFrame.new(0, Y1_BOT + backDoorH + 0.25, -D/2), C.Trim, {material=Enum.Material.Wood})
+
+-- عتبة الباب الخلفي
+createPart(house, "BDoor_Thresh", Vector3.new(backDoorW+0.6, 0.4, 1.5), 
+    CFrame.new(0, Y1_BOT + 0.2, -D/2 - 0.6), C.Foundation, {material=Enum.Material.Concrete})
+
+-- الباب الخلفي المفتوح (75 درجة للداخل)
+createPart(house, "BackDoor", Vector3.new(backDoorW-0.6, backDoorH-0.4, 0.3),
+    CFrame.new(-backDoorW/2, Y1_BOT + backDoorH/2, -D/2) * CFrame.Angles(0, math.rad(-75), 0) * CFrame.new((backDoorW-0.6)/2, 0, 0),
+    C.Door, {material=Enum.Material.Wood})
+
+createPart(house, "BDoor_Handle", Vector3.new(0.3, 0.3, 0.4),
+    CFrame.new(-backDoorW/2, Y1_BOT + backDoorH/2, -D/2) * CFrame.Angles(0, math.rad(-75), 0) * CFrame.new(backDoorW-1, 0, 0.3) * CFrame.Angles(0, 0, math.rad(90)),
+    C.DoorBrass, {material=Enum.Material.Metal, reflectance=0.6, shape=Enum.PartType.Cylinder})
+
+-- ═══ الجدران الداخلية للطابق 1 ═══
+local iDoorW, iDoorH = 4, 9
+
+-- جدار فاصل Z=0 (من X=-W/2 إلى X=0) مع باب
+buildWallX(house, "Wall1_SplitA", -W/2, 0, Y1_BOT, Y1_TOP, 0, {
+    {pos={-18, Y1_BOT + iDoorH/2}, size={iDoorW, iDoorH}},
+})
+
+-- جدار فاصل X=0 (من Z=0 إلى Z=D/2) مع باب  
+buildWallZ(house, "Wall1_SplitB", 0, D/2, Y1_BOT, Y1_TOP, 0, {
+    {pos={15, Y1_BOT + iDoorH/2}, size={iDoorW, iDoorH}},
+})
+
+-- جدار فاصل X=0 (من Z=-D/2 إلى Z=0) مع باب
+buildWallZ(house, "Wall1_SplitC", -D/2, 0, Y1_BOT, Y1_TOP, 0, {
+    {pos={-12, Y1_BOT + iDoorH/2}, size={iDoorW, iDoorH}},
+})
+
+-- ═══ الدرج الفاخر (ينتهي في الممر الأمامي يمين) ═══
+-- يقع على الجدار الأيمن، يصعد من Z=+2 (أمام) إلى Z=-12 (خلف)
+local stepCount = 15
+local stepH = (Y2_BOT - Y1_BOT) / stepCount
+local stepD = 1.4
+local stepW = 6
+local stairX = W/2 - stepW/2 - 1  -- 21.5 (على يمين المنزل)
+local stairStartZ = 2  -- يبدأ من الأمام (Z=2) ويصعد للخلف
+
+for i = 1, stepCount do
+    local stepY = Y1_BOT + i * stepH
+    local stepZ = stairStartZ - (i - 0.5) * stepD
+    
+    -- الدرجة
+    createPart(house, "Stair_"..i, Vector3.new(stepW, 0.4, stepD), 
+        CFrame.new(stairX, stepY, stepZ), C.Floor, {material=Enum.Material.WoodPlanks})
+    
+    -- عمود الدرابزين (يسار - جهة الداخل)
+    createPart(house, "StairRail_L_"..i, Vector3.new(0.3, 2, 0.3),
+        CFrame.new(stairX - stepW/2, stepY + 1, stepZ), C.Trim, {material=Enum.Material.Wood})
+    
+    -- عمود الدرابزين (يمين - على الجدار)
+    createPart(house, "StairRail_R_"..i, Vector3.new(0.3, 2, 0.3),
+        CFrame.new(stairX + stepW/2, stepY + 1, stepZ), C.Trim, {material=Enum.Material.Wood})
+end
+
+-- الدرابزين العلوي المائل (Rail)
+local railLen = math.sqrt((stepCount * stepD)^2 + (stepCount * stepH)^2)
+local railAngle = math.deg(math.atan2(stepCount * stepH, stepCount * stepD))
+local railMidZ = stairStartZ - (stepCount * stepD) / 2
+local railMidY = Y1_BOT + (stepCount * stepH) / 2 + 1
+
+createPart(house, "StairRailTop_L", Vector3.new(0.35, 0.35, railLen),
+    CFrame.new(stairX - stepW/2, railMidY, railMidZ) * CFrame.Angles(math.rad(railAngle), 0, 0),
+    C.Trim, {material=Enum.Material.Wood})
+
+createPart(house, "StairRailTop_R", Vector3.new(0.35, 0.35, railLen),
+    CFrame.new(stairX + stepW/2, railMidY, railMidZ) * CFrame.Angles(math.rad(railAngle), 0, 0),
+    C.Trim, {material=Enum.Material.Wood})
+
+-- هيكل تحتي للدرج
+createPart(house, "Stair_Support", Vector3.new(stepW, 0.5, stepCount * stepD),
+    CFrame.new(stairX, Y1_BOT + stepCount * stepH / 2, stairStartZ - stepCount * stepD / 2) * CFrame.Angles(math.rad(railAngle), 0, 0),
+    C.Wood, {material=Enum.Material.Wood})
+-- ========== PART 3/6 ==========
+
+-- ═══ أرضية الطابق الثاني ═══
+-- الجزء الرئيسي (بدون منطقة الدرج - فتحة)
+-- نترك فتحة بمقاس (stepW+1) x (stepCount*stepD+2) في الركن الأمامي الأيمن
+
+local holeW = stepW + 1
+local holeD = stepCount * stepD + 2
+local holeX = stairX
+local holeZ = stairStartZ - stepCount * stepD / 2  -- مركز الفتحة
+
+-- الأرضية مقسمة إلى 4 قطع حول الفتحة
+-- 1) الجانب الأيسر من الفتحة (X: -W/2 إلى holeX - holeW/2)
+local leftW = (holeX - holeW/2) - (-W/2)
+if leftW > 0.1 then
+    createPart(house, "Floor2_L", Vector3.new(leftW, 0.5, D),
+        CFrame.new(-W/2 + leftW/2, Y1_TOP + SLAB/2, 0), C.Floor, {material=Enum.Material.WoodPlanks})
+end
+
+-- 2) الجانب الأيمن من الفتحة (X: holeX + holeW/2 إلى W/2)
+local rightW = W/2 - (holeX + holeW/2)
+if rightW > 0.1 then
+    createPart(house, "Floor2_R", Vector3.new(rightW, 0.5, D),
+        CFrame.new(holeX + holeW/2 + rightW/2, Y1_TOP + SLAB/2, 0), C.Floor, {material=Enum.Material.WoodPlanks})
+end
+
+-- 3) فوق الفتحة (Z: -D/2 إلى holeZ - holeD/2)
+local aboveD = (holeZ - holeD/2) - (-D/2)
+if aboveD > 0.1 then
+    createPart(house, "Floor2_B", Vector3.new(holeW, 0.5, aboveD),
+        CFrame.new(holeX, Y1_TOP + SLAB/2, -D/2 + aboveD/2), C.Floor, {material=Enum.Material.WoodPlanks})
+end
+
+-- 4) تحت الفتحة (Z: holeZ + holeD/2 إلى D/2)
+local belowD = D/2 - (holeZ + holeD/2)
+if belowD > 0.1 then
+    createPart(house, "Floor2_F", Vector3.new(holeW, 0.5, belowD),
+        CFrame.new(holeX, Y1_TOP + SLAB/2, holeZ + holeD/2 + belowD/2), C.Floor, {material=Enum.Material.WoodPlanks})
+end
+
+-- ═══ الجدران الخارجية للطابق الثاني ═══
+local door2W, door2H = 6, 9
+
+-- الجدار الأمامي (مع نافذتين)
+buildWallX(house, "Wall2_Front", -W/2, W/2, Y2_BOT, Y2_TOP, D/2, {
+    {pos={-15, Y2_MID}, size={7, 6}},
+    {pos={15, Y2_MID}, size={7, 6}},
+})
+
+-- الجدار الخلفي (مع نافذتين)
+buildWallX(house, "Wall2_Back", -W/2, W/2, Y2_BOT, Y2_TOP, -D/2, {
+    {pos={-15, Y2_MID}, size={7, 6}},
+    {pos={15, Y2_MID}, size={7, 6}},
+})
+
+-- الجدار الأيسر (نافذتان)
+buildWallZ(house, "Wall2_Left", -D/2, D/2, Y2_BOT, Y2_TOP, -W/2, {
+    {pos={-10, Y2_MID}, size={7, 6}},
+    {pos={10, Y2_MID}, size={7, 6}},
+})
+
+-- الجدار الأيمن (نافذتان)
+buildWallZ(house, "Wall2_Right", -D/2, D/2, Y2_BOT, Y2_TOP, W/2, {
+    {pos={-15, Y2_MID}, size={6, 5}},
+    {pos={-4, Y2_MID}, size={6, 5}},
+})
+
+-- ═══ نوافذ الطابق الثاني ═══
+windowZ(house, "Win2_FL", -15, Y2_MID, D/2 + 0.05, 7, 6)
+windowZ(house, "Win2_FR", 15, Y2_MID, D/2 + 0.05, 7, 6)
+windowZ(house, "Win2_BL", -15, Y2_MID, -D/2 - 0.05, 7, 6)
+windowZ(house, "Win2_BR", 15, Y2_MID, -D/2 - 0.05, 7, 6)
+windowX(house, "Win2_L1", -W/2 - 0.05, Y2_MID, -10, 7, 6)
+windowX(house, "Win2_L2", -W/2 - 0.05, Y2_MID, 10, 7, 6)
+windowX(house, "Win2_R1", W/2 + 0.05, Y2_MID, -15, 6, 5)
+windowX(house, "Win2_R2", W/2 + 0.05, Y2_MID, -4, 6, 5)
+
+-- ═══ الجدران الداخلية للطابق الثاني ═══
+
+-- جدار فاصل Z=0 من X=-W/2 إلى X=-5 مع باب (يفصل غرفتي نوم في الأمام)
+buildWallX(house, "Wall2_SplitA", -W/2, -5, Y2_BOT, Y2_TOP, 0, {
+    {pos={-20, Y2_BOT + iDoorH/2}, size={iDoorW, iDoorH}},
+})
+
+-- جدار فاصل Z=0 من X=5 إلى X=W/2 مع باب (يفصل ممر الدرج)
+buildWallX(house, "Wall2_SplitB", 5, W/2, Y2_BOT, Y2_TOP, 0, {
+    {pos={15, Y2_BOT + iDoorH/2}, size={iDoorW, iDoorH}},
+})
+
+-- جدار فاصل X=-5 (من Z=-D/2 إلى Z=0) يفصل غرفة النوم الخلفية
+buildWallZ(house, "Wall2_SplitC", -D/2, 0, Y2_BOT, Y2_TOP, -5, {
+    {pos={-12, Y2_BOT + iDoorH/2}, size={iDoorW, iDoorH}},
+})
+
+-- جدار فاصل X=5 (من Z=-D/2 إلى Z=0) يفصل المكتب
+buildWallZ(house, "Wall2_SplitD", -D/2, 0, Y2_BOT, Y2_TOP, 5, {
+    {pos={-12, Y2_BOT + iDoorH/2}, size={iDoorW, iDoorH}},
+})
+
+-- ═══ سور الحماية حول فتحة الدرج في الطابق 2 ═══
+-- سياج على الجانب الأيسر من الفتحة (لمنع السقوط)
+createPart(house, "StairHole_RailL", Vector3.new(0.3, 3, holeD),
+    CFrame.new(holeX - holeW/2, Y2_BOT + 1.5, holeZ), C.Trim, {material=Enum.Material.Wood})
+
+createPart(house, "StairHole_RailL_Top", Vector3.new(0.5, 0.3, holeD),
+    CFrame.new(holeX - holeW/2, Y2_BOT + 3, holeZ), C.Trim, {material=Enum.Material.Wood})
+
+-- سياج على الجانب الأمامي من الفتحة
+createPart(house, "StairHole_RailF", Vector3.new(holeW, 3, 0.3),
+    CFrame.new(holeX, Y2_BOT + 1.5, holeZ + holeD/2), C.Trim, {material=Enum.Material.Wood})
+
+createPart(house, "StairHole_RailF_Top", Vector3.new(holeW, 0.3, 0.5),
+    CFrame.new(holeX, Y2_BOT + 3, holeZ + holeD/2), C.Trim, {material=Enum.Material.Wood})
+-- ========== PART 4/6 ==========
+
+-- ═══ السقف المثلثي الحاد ═══
+local RISE = 22
+local OVERHANG = 2
+local roofBaseY = Y2_TOP + 0.3
+local slopeAngle = math.deg(math.atan2(RISE, W/2))
+local slopeLength = math.sqrt((W/2)^2 + RISE^2)
+
+-- السقف المائل الأيسر
+createPart(house, "Roof_Left", Vector3.new(slopeLength + 1, 0.6, D + OVERHANG * 2),
+    CFrame.new(-W/4, roofBaseY + RISE/2, 0) * CFrame.Angles(0, 0, math.rad(slopeAngle)),
+    C.Roof, {material=Enum.Material.Slate, reflectance=0.1})
+
+-- السقف المائل الأيمن
+createPart(house, "Roof_Right", Vector3.new(slopeLength + 1, 0.6, D + OVERHANG * 2),
+    CFrame.new(W/4, roofBaseY + RISE/2, 0) * CFrame.Angles(0, 0, math.rad(-slopeAngle)),
+    C.Roof, {material=Enum.Material.Slate, reflectance=0.1})
+
+-- قمة السقف
+createPart(house, "RoofRidge", Vector3.new(1.5, 1, D + OVERHANG * 2),
+    CFrame.new(0, roofBaseY + RISE + 0.3, 0), C.RoofAccent, {material=Enum.Material.Slate})
+
+-- إطار خشبي على حواف السقف
+createPart(house, "RoofTrim_L", Vector3.new(0.8, 1, D + OVERHANG * 2),
+    CFrame.new(-W/2 - 0.4, roofBaseY, 0), C.Trim, {material=Enum.Material.Wood})
+
+createPart(house, "RoofTrim_R", Vector3.new(0.8, 1, D + OVERHANG * 2),
+    CFrame.new(W/2 + 0.4, roofBaseY, 0), C.Trim, {material=Enum.Material.Wood})
+
+-- المُثلث الأمامي (Gable Front)
+createPart(house, "GableF_Base", Vector3.new(W, 0.5, 0.5),
+    CFrame.new(0, roofBaseY + 0.25, D/2 + 0.1), C.Wall, {material=Enum.Material.Concrete})
+createPart(house, "GableF_Left", Vector3.new(slopeLength, 0.5, 0.5),
+    CFrame.new(-W/4, roofBaseY + RISE/2, D/2 + 0.1) * CFrame.Angles(0, 0, math.rad(slopeAngle)),
+    C.Wall, {material=Enum.Material.Concrete})
+createPart(house, "GableF_Right", Vector3.new(slopeLength, 0.5, 0.5),
+    CFrame.new(W/4, roofBaseY + RISE/2, D/2 + 0.1) * CFrame.Angles(0, 0, math.rad(-slopeAngle)),
+    C.Wall, {material=Enum.Material.Concrete})
+
+-- المُثلث الخلفي (Gable Back)
+createPart(house, "GableB_Base", Vector3.new(W, 0.5, 0.5),
+    CFrame.new(0, roofBaseY + 0.25, -D/2 - 0.1), C.Wall, {material=Enum.Material.Concrete})
+createPart(house, "GableB_Left", Vector3.new(slopeLength, 0.5, 0.5),
+    CFrame.new(-W/4, roofBaseY + RISE/2, -D/2 - 0.1) * CFrame.Angles(0, 0, math.rad(slopeAngle)),
+    C.Wall, {material=Enum.Material.Concrete})
+createPart(house, "GableB_Right", Vector3.new(slopeLength, 0.5, 0.5),
+    CFrame.new(W/4, roofBaseY + RISE/2, -D/2 - 0.1) * CFrame.Angles(0, 0, math.rad(-slopeAngle)),
+    C.Wall, {material=Enum.Material.Concrete})
+
+-- نافذة العلية الأمامية
+windowZ(house, "AtticWin", 0, roofBaseY + RISE * 0.4, D/2 + 0.4, 3.5, 3.5)
+
+-- ═══ المدخنة ═══
+createPart(house, "Chimney", Vector3.new(4, 14, 4),
+    CFrame.new(W/3, roofBaseY + RISE * 0.3, -D/4), C.Brick, {material=Enum.Material.Brick})
+createPart(house, "ChimneyCap", Vector3.new(4.5, 0.5, 4.5),
+    CFrame.new(W/3, roofBaseY + RISE * 0.3 + 7.25, -D/4), C.RoofAccent, {material=Enum.Material.Slate})
+createPart(house, "ChimneyTop", Vector3.new(3, 0.3, 3),
+    CFrame.new(W/3, roofBaseY + RISE * 0.3 + 7.5, -D/4), Color3.fromRGB(50, 50, 55), {material=Enum.Material.Concrete})
+
+-- ═══ الرواق الأمامي ═══
+local porchDepth = 8
+local porchWidth = 16
+local porchFloorY = 1.3
+
+-- سقف الرواق
+createPart(house, "PorchRoof", Vector3.new(porchWidth, 0.5, porchDepth),
+    CFrame.new(0, Y1_TOP - 3, D/2 + porchDepth/2), C.Roof, {material=Enum.Material.Slate})
+
+-- إطار خشبي للرواق
+createPart(house, "PorchTrim_L", Vector3.new(0.6, 0.8, porchDepth),
+    CFrame.new(-porchWidth/2, Y1_TOP - 3.3, D/2 + porchDepth/2), C.Trim, {material=Enum.Material.Wood})
+createPart(house, "PorchTrim_R", Vector3.new(0.6, 0.8, porchDepth),
+    CFrame.new(porchWidth/2, Y1_TOP - 3.3, D/2 + porchDepth/2), C.Trim, {material=Enum.Material.Wood})
+
+-- أعمدة الرواق (4)
+local porchCols = {{-7, D/2 + 2.5}, {7, D/2 + 2.5}, {-7, D/2 + 6.5}, {7, D/2 + 6.5}}
+for i, pos in ipairs(porchCols) do
+    createPart(house, "PorchCol_"..i, Vector3.new(0.9, Y1_TOP - 4 - 1.3, 0.9),
+        CFrame.new(pos[1], (Y1_TOP - 4 + 1.3)/2, pos[2]), C.Wall, {material=Enum.Material.Wood})
+    createPart(house, "PorchColBase_"..i, Vector3.new(1.3, 0.5, 1.3),
+        CFrame.new(pos[1], 1.55, pos[2]), C.Trim, {material=Enum.Material.Wood})
+    createPart(house, "PorchColCap_"..i, Vector3.new(1.3, 0.5, 1.3),
+        CFrame.new(pos[1], Y1_TOP - 4.25, pos[2]), C.Trim, {material=Enum.Material.Wood})
+end
+
+-- أرضية الرواق
+createPart(house, "PorchFloor", Vector3.new(porchWidth, 0.3, porchDepth),
+    CFrame.new(0, Y1_BOT - 0.15, D/2 + porchDepth/2), C.FloorTile, {material=Enum.Material.Marble})
+
+-- درجات الدخول
+createPart(house, "PorchStep1", Vector3.new(porchWidth, 0.4, 2),
+    CFrame.new(0, 1.4, D/2 + porchDepth + 1), C.Foundation, {material=Enum.Material.Concrete})
+createPart(house, "PorchStep2", Vector3.new(porchWidth, 0.4, 1.5),
+    CFrame.new(0, 1.0, D/2 + porchDepth + 0.25), C.Foundation, {material=Enum.Material.Concrete})
+
+-- ═══ الإنارة الداخلية (مصابيح سقف) ═══
+local function ceilingLamp(name, x, y, z, brightness, range)
     brightness = brightness or 2.5
-    
-    -- القاعدة
-    createPart(parent, name.."_Base", Vector3.new(1.5, 0.3, 1.5), offsetCF * CFrame.new(0, 0.3, 0), C.Metal, {material=Enum.Material.Metal})
-    
+    range = range or 25
+    -- قاعدة
+    createPart(house, name.."_Base", Vector3.new(1.5, 0.3, 1.5),
+        CFrame.new(x, y + 0.15, z), C.Metal, {material=Enum.Material.Metal})
     -- الجزء المضيء
-    local bulb = createPart(parent, name.."_Bulb", Vector3.new(1.2, 0.4, 1.2), offsetCF, 
-        Color3.fromRGB(255, 250, 230), {material=Enum.Material.Neon, canCollide=false})
-    
-    -- PointLight
+    local bulb = createPart(house, name.."_Bulb", Vector3.new(1.2, 0.4, 1.2),
+        CFrame.new(x, y, z), Color3.fromRGB(255, 250, 230), {material=Enum.Material.Neon, canCollide=false})
+    -- الإضاءة
     local light = Instance.new("PointLight")
     light.Brightness = brightness
     light.Range = range
@@ -146,876 +567,187 @@ local function createCeilingLamp(parent, name, offsetCF, range, brightness)
     light.Parent = bulb
 end
 
--- ═══════════════════════════════════════════════
--- 📐 الأبعاد الرئيسية
--- ═══════════════════════════════════════════════
-local W = 50        -- عرض المنزل
-local D = 40        -- عمق المنزل
-local H1 = 16       -- ارتفاع الطابق الأول
-local H2 = 14       -- ارتفاع الطابق الثاني
-local T = 0.7       -- سماكة الجدار
-local H_TOTAL = H1 + H2 + 1  -- ارتفاع الكلي
-
--- ═══════════════════════════════════════════════
--- 🏗️ الأساس والأرضيات
--- ═══════════════════════════════════════════════
-
--- ✅ الأساس الخارجي (خرسانة)
-createPart(houseParts, "Foundation", 
-    Vector3.new(W + 6, 1, D + 6), 
-    CFrame.new(0, 0.5, 0), 
-    C.Foundation, {material=Enum.Material.Concrete})
-
--- ✅ الأرضية الداخلية للطابق الأول (خشب)
-createPart(houseParts, "Floor1", 
-    Vector3.new(W - 1, 0.3, D - 1), 
-    CFrame.new(0, 1.15, 0), 
-    C.Floor, {material=Enum.Material.WoodPlanks})
-
--- ═══════════════════════════════════════════════
--- 🧱 جدران الطابق الأول
--- ═══════════════════════════════════════════════
-local Y1 = 1.3 + H1/2  -- منتصف الطابق الأول
-
--- ✅ الجدار الخلفي (كامل)
-createPart(houseParts, "Wall1_Back", 
-    Vector3.new(W, H1, T), 
-    CFrame.new(0, Y1, -D/2), 
-    C.Wall, {material=Enum.Material.Concrete})
-
--- ✅ الجدار الأيسر (مع فتحة نافذة كبيرة)
-createPart(houseParts, "Wall1_Left_F", 
-    Vector3.new(T, H1, D/3), 
-    CFrame.new(-W/2, Y1, -D/3), 
-    C.Wall, {material=Enum.Material.Concrete})
-createPart(houseParts, "Wall1_Left_B", 
-    Vector3.new(T, H1, D/3), 
-    CFrame.new(-W/2, Y1, D/3), 
-    C.Wall, {material=Enum.Material.Concrete})
-createPart(houseParts, "Wall1_Left_Top", 
-    Vector3.new(T, H1/4, D/3), 
-    CFrame.new(-W/2, Y1 + H1*3/8, 0), 
-    C.Wall, {material=Enum.Material.Concrete})
-createPart(houseParts, "Wall1_Left_Bot", 
-    Vector3.new(T, H1/4, D/3), 
-    CFrame.new(-W/2, Y1 - H1*3/8, 0), 
-    C.Wall, {material=Enum.Material.Concrete})
-
--- ✅ الجدار الأيمن (مشابه)
-createPart(houseParts, "Wall1_Right_F", 
-    Vector3.new(T, H1, D/3), 
-    CFrame.new(W/2, Y1, -D/3), 
-    C.Wall, {material=Enum.Material.Concrete})
-createPart(houseParts, "Wall1_Right_B", 
-    Vector3.new(T, H1, D/3), 
-    CFrame.new(W/2, Y1, D/3), 
-    C.Wall, {material=Enum.Material.Concrete})
-createPart(houseParts, "Wall1_Right_Top", 
-    Vector3.new(T, H1/4, D/3), 
-    CFrame.new(W/2, Y1 + H1*3/8, 0), 
-    C.Wall, {material=Enum.Material.Concrete})
-createPart(houseParts, "Wall1_Right_Bot", 
-    Vector3.new(T, H1/4, D/3), 
-    CFrame.new(W/2, Y1 - H1*3/8, 0), 
-    C.Wall, {material=Enum.Material.Concrete})
-
--- ✅ الجدار الأمامي (مع الباب الأمامي والنوافذ)
-local doorW = 6
-local doorH = 10
-
--- اليسار (نافذة + جدار)
-createPart(houseParts, "Wall1_Front_L_side", 
-    Vector3.new((W - doorW)/2 - 10, H1, T), 
-    CFrame.new(-(W/2 - ((W-doorW)/2 - 10)/2), Y1, D/2), 
-    C.Wall, {material=Enum.Material.Concrete})
-createPart(houseParts, "Wall1_Front_L_win_top", 
-    Vector3.new(8, H1/3, T), 
-    CFrame.new(-W/4 - 4, Y1 + H1/3, D/2), 
-    C.Wall, {material=Enum.Material.Concrete})
-createPart(houseParts, "Wall1_Front_L_win_bot", 
-    Vector3.new(8, H1/4, T), 
-    CFrame.new(-W/4 - 4, Y1 - H1*3/8, D/2), 
-    C.Wall, {material=Enum.Material.Concrete})
-
--- اليمين (نافذة + جدار)
-createPart(houseParts, "Wall1_Front_R_side", 
-    Vector3.new((W - doorW)/2 - 10, H1, T), 
-    CFrame.new((W/2 - ((W-doorW)/2 - 10)/2), Y1, D/2), 
-    C.Wall, {material=Enum.Material.Concrete})
-createPart(houseParts, "Wall1_Front_R_win_top", 
-    Vector3.new(8, H1/3, T), 
-    CFrame.new(W/4 + 4, Y1 + H1/3, D/2), 
-    C.Wall, {material=Enum.Material.Concrete})
-createPart(houseParts, "Wall1_Front_R_win_bot", 
-    Vector3.new(8, H1/4, T), 
-    CFrame.new(W/4 + 4, Y1 - H1*3/8, D/2), 
-    C.Wall, {material=Enum.Material.Concrete})
-
--- فوق الباب
-createPart(houseParts, "Wall1_Front_Top", 
-    Vector3.new(doorW, H1 - doorH, T), 
-    CFrame.new(0, 1.3 + doorH + (H1 - doorH)/2, D/2), 
-    C.Wall, {material=Enum.Material.Concrete})
--- ═══════════════════════════════════════════════
--- 🪟 نوافذ الطابق الأول
--- ═══════════════════════════════════════════════
-
--- ✅ النافذة الأمامية اليسرى
-createWindow(houseParts, "Win1_FL", 
-    CFrame.new(-W/4 - 4, Y1, D/2 + 0.4), 8, 6, 0)
-
--- ✅ النافذة الأمامية اليمنى
-createWindow(houseParts, "Win1_FR", 
-    CFrame.new(W/4 + 4, Y1, D/2 + 0.4), 8, 6, 0)
-
--- ✅ النافذة اليسرى (كبيرة)
-createWindow(houseParts, "Win1_L", 
-    CFrame.new(-W/2 - 0.4, Y1, 0), 10, 8, 90)
-
--- ✅ النافذة اليمنى (كبيرة)
-createWindow(houseParts, "Win1_R", 
-    CFrame.new(W/2 + 0.4, Y1, 0), 10, 8, 90)
-
--- ✅ نافذتا الجدار الخلفي
-createWindow(houseParts, "Win1_Back_L", 
-    CFrame.new(-W/4, Y1 + 1, -D/2 - 0.4), 7, 6, 0)
-createWindow(houseParts, "Win1_Back_R", 
-    CFrame.new(W/4, Y1 + 1, -D/2 - 0.4), 7, 6, 0)
-
--- ═══════════════════════════════════════════════
--- 🚪 الباب الأمامي (مفتوح)
--- ═══════════════════════════════════════════════
-
--- إطار الباب
-createPart(houseParts, "DoorFrame_T", Vector3.new(doorW + 1, 0.8, T + 0.6), 
-    CFrame.new(0, 1.3 + doorH, D/2), C.Trim, {material=Enum.Material.Wood})
-createPart(houseParts, "DoorFrame_L", Vector3.new(0.8, doorH + 0.4, T + 0.6), 
-    CFrame.new(-doorW/2 - 0.3, 1.3 + doorH/2, D/2), C.Trim, {material=Enum.Material.Wood})
-createPart(houseParts, "DoorFrame_R", Vector3.new(0.8, doorH + 0.4, T + 0.6), 
-    CFrame.new(doorW/2 + 0.3, 1.3 + doorH/2, D/2), C.Trim, {material=Enum.Material.Wood})
-
--- الباب المفتوح (زاوية 65 درجة للداخل)
-createPart(houseParts, "FrontDoor", 
-    Vector3.new(doorW - 1, doorH - 0.8, 0.4), 
-    CFrame.new(-doorW/2 + 0.5, 1.3 + doorH/2, D/2 - 1.5) * CFrame.Angles(0, math.rad(-65), 0), 
-    C.Door, {material=Enum.Material.Wood})
-
--- مقبض الباب (نحاسي)
-createPart(houseParts, "DoorHandle", 
-    Vector3.new(0.4, 0.4, 0.5), 
-    CFrame.new(-doorW/2 + 1, 1.3 + doorH/2, D/2 - 0.5) * CFrame.Angles(0, 0, math.rad(90)), 
-    C.DoorBrass, {material=Enum.Material.Metal, reflectance=0.6, shape=Enum.PartType.Cylinder})
-
--- ═══════════════════════════════════════════════
--- 🚪 الباب الخلفي للحديقة
--- ═══════════════════════════════════════════════
-local backDoorW = 5
-local backDoorH = 9
-
--- فتحة الباب الخلفي في الجدار
--- (الجدار الخلفي مقسّم)
-createPart(houseParts, "Wall1_Back_L", 
-    Vector3.new((W - backDoorW)/2, H1, T), 
-    CFrame.new(-(W/2 - (W-backDoorW)/4), Y1, -D/2), 
-    C.Wall, {material=Enum.Material.Concrete})
-createPart(houseParts, "Wall1_Back_R", 
-    Vector3.new((W - backDoorW)/2, H1, T), 
-    CFrame.new((W/2 - (W-backDoorW)/4), Y1, -D/2), 
-    C.Wall, {material=Enum.Material.Concrete})
-createPart(houseParts, "Wall1_Back_Top", 
-    Vector3.new(backDoorW, H1 - backDoorH, T), 
-    CFrame.new(0, 1.3 + backDoorH + (H1 - backDoorH)/2, -D/2), 
-    C.Wall, {material=Enum.Material.Concrete})
-
--- إطار الباب الخلفي
-createPart(houseParts, "BackDoorFrame_T", Vector3.new(backDoorW + 0.8, 0.6, T + 0.5), 
-    CFrame.new(0, 1.3 + backDoorH, -D/2), C.Trim, {material=Enum.Material.Wood})
-createPart(houseParts, "BackDoorFrame_L", Vector3.new(0.6, backDoorH + 0.3, T + 0.5), 
-    CFrame.new(-backDoorW/2 - 0.3, 1.3 + backDoorH/2, -D/2), C.Trim, {material=Enum.Material.Wood})
-createPart(houseParts, "BackDoorFrame_R", Vector3.new(0.6, backDoorH + 0.3, T + 0.5), 
-    CFrame.new(backDoorW/2 + 0.3, 1.3 + backDoorH/2, -D/2), C.Trim, {material=Enum.Material.Wood})
-
--- الباب الخلفي المفتوح
-createPart(houseParts, "BackDoor", 
-    Vector3.new(backDoorW - 0.8, backDoorH - 0.6, 0.4), 
-    CFrame.new(-backDoorW/2 + 0.4, 1.3 + backDoorH/2, -D/2 - 1.5) * CFrame.Angles(0, math.rad(75), 0), 
-    C.Door, {material=Enum.Material.Wood})
-
--- ═══════════════════════════════════════════════
--- 🏛️ جدران داخلية - غرف الطابق الأول
--- ═══════════════════════════════════════════════
-
--- ✅ جدار قسم (يقسم الطابق إلى قسمين)
-createPart(houseParts, "Split1", 
-    Vector3.new(W/2, H1, 0.5), 
-    CFrame.new(-W/4, Y1, 0), 
-    C.WallDark, {material=Enum.Material.Concrete})
-
--- فتحة للباب الداخلي في الجدار
-createPart(houseParts, "Split1_doorTop", 
-    Vector3.new(3, H1 - 7.5, 0.5), 
-    CFrame.new(-W/4 + 8, 1.3 + 7.5 + (H1-7.5)/2, 0), 
-    C.WallDark, {material=Enum.Material.Concrete})
-
--- ✅ جدار قسم ثاني (غرفة صغيرة)
-createPart(houseParts, "Split2", 
-    Vector3.new(0.5, H1, D/2), 
-    CFrame.new(W/4, Y1, -D/4), 
-    C.WallDark, {material=Enum.Material.Concrete})
-
--- فتحة باب
-createPart(houseParts, "Split2_doorTop", 
-    Vector3.new(0.5, H1 - 7.5, 3), 
-    CFrame.new(W/4, 1.3 + 7.5 + (H1-7.5)/2, -D/4 + 3), 
-    C.WallDark, {material=Enum.Material.Concrete})
-
--- ═══════════════════════════════════════════════
--- 🪜 الدرج الفاخر للطابق الثاني
--- ═══════════════════════════════════════════════
-
-local stairsX = -W/4 + 3
-local stairsZ = D/4 - 3
-local stepCount = 12
-local stepH = (H1 + 0.7) / stepCount
-local stepW = 6
-local stepD = 2.5
-
--- ✅ كل درجة
-for i = 1, stepCount do
-    createPart(houseParts, "Stair_"..i, 
-        Vector3.new(stepW, 0.5, stepD), 
-        CFrame.new(stairsX, 1.3 + (i-0.5) * stepH, stairsZ - (i-1) * stepD), 
-        C.Floor, {material=Enum.Material.WoodPlanks})
-    
-    -- درابزين جانبي
-    createPart(houseParts, "StairRail_"..i.."_L", 
-        Vector3.new(0.3, stepH + 1.5, 0.3), 
-        CFrame.new(stairsX - stepW/2, 1.3 + (i-0.5) * stepH + 0.75, stairsZ - (i-1) * stepD), 
-        C.Trim, {material=Enum.Material.Wood})
-    
-    createPart(houseParts, "StairRail_"..i.."_R", 
-        Vector3.new(0.3, stepH + 1.5, 0.3), 
-        CFrame.new(stairsX + stepW/2, 1.3 + (i-0.5) * stepH + 0.75, stairsZ - (i-1) * stepD), 
-        C.Trim, {material=Enum.Material.Wood})
-end
-
--- الدرابزين العلوي (Rail)
-createPart(houseParts, "StairRailTop_L", 
-    Vector3.new(0.4, 0.4, stepD * stepCount), 
-    CFrame.new(stairsX - stepW/2, 1.3 + stepH * stepCount + 0.5, stairsZ - (stepCount-1) * stepD/2) * CFrame.Angles(math.rad(-math.deg(math.atan(stepH/stepD))), 0, 0), 
-    C.Trim, {material=Enum.Material.Wood})
-
-createPart(houseParts, "StairRailTop_R", 
-    Vector3.new(0.4, 0.4, stepD * stepCount), 
-    CFrame.new(stairsX + stepW/2, 1.3 + stepH * stepCount + 0.5, stairsZ - (stepCount-1) * stepD/2) * CFrame.Angles(math.rad(-math.deg(math.atan(stepH/stepD))), 0, 0), 
-    C.Trim, {material=Enum.Material.Wood})
-
--- ═══════════════════════════════════════════════
--- 🏗️ أرضية الطابق الثاني
--- ═══════════════════════════════════════════════
-
-local Y2Start = 1.3 + H1 + 0.7  -- ارتفاع بداية الطابق الثاني
-local Y2 = Y2Start + H2/2        -- منتصف الطابق الثاني
-
--- ✅ أرضية الطابق الثاني (مع فتحة للدرج)
--- الجزء الرئيسي
-createPart(houseParts, "Floor2_Main", 
-    Vector3.new(W - 1, 0.5, D - 1 - 8), 
-    CFrame.new(0, Y2Start, -4), 
-    C.Floor, {material=Enum.Material.WoodPlanks})
-
--- الجزء الأمامي (مع فتحة الدرج)
-createPart(houseParts, "Floor2_Front_L", 
-    Vector3.new(W/3, 0.5, 8), 
-    CFrame.new(-W/3, Y2Start, D/2 - 4), 
-    C.Floor, {material=Enum.Material.WoodPlanks})
-createPart(houseParts, "Floor2_Front_R", 
-    Vector3.new(W/3, 0.5, 8), 
-    CFrame.new(W/3, Y2Start, D/2 - 4), 
-    C.Floor, {material=Enum.Material.WoodPlanks})
-
--- ═══════════════════════════════════════════════
--- 🧱 جدران الطابق الثاني
--- ═══════════════════════════════════════════════
-
--- ✅ الجدار الخلفي
-createPart(houseParts, "Wall2_Back", 
-    Vector3.new(W, H2, T), 
-    CFrame.new(0, Y2, -D/2), 
-    C.Wall, {material=Enum.Material.Concrete})
-
--- ✅ الجدار الأمامي (مع نافذتين)
-createPart(houseParts, "Wall2_Front_L", 
-    Vector3.new(W/4, H2, T), 
-    CFrame.new(-W*3/8, Y2, D/2), 
-    C.Wall, {material=Enum.Material.Concrete})
-createPart(houseParts, "Wall2_Front_R", 
-    Vector3.new(W/4, H2, T), 
-    CFrame.new(W*3/8, Y2, D/2), 
-    C.Wall, {material=Enum.Material.Concrete})
-createPart(houseParts, "Wall2_Front_Mid_Top", 
-    Vector3.new(W/4, H2/4, T), 
-    CFrame.new(0, Y2 + H2*3/8, D/2), 
-    C.Wall, {material=Enum.Material.Concrete})
-createPart(houseParts, "Wall2_Front_Mid_Bot", 
-    Vector3.new(W/4, H2/4, T), 
-    CFrame.new(0, Y2 - H2*3/8, D/2), 
-    C.Wall, {material=Enum.Material.Concrete})
-
--- ✅ الجدران الجانبية
-createPart(houseParts, "Wall2_Left_F", 
-    Vector3.new(T, H2, D/3), 
-    CFrame.new(-W/2, Y2, -D/3), 
-    C.Wall, {material=Enum.Material.Concrete})
-createPart(houseParts, "Wall2_Left_B", 
-    Vector3.new(T, H2, D/3), 
-    CFrame.new(-W/2, Y2, D/3), 
-    C.Wall, {material=Enum.Material.Concrete})
-createPart(houseParts, "Wall2_Left_Mid_Top", 
-    Vector3.new(T, H2/5, D/3), 
-    CFrame.new(-W/2, Y2 + H2*0.4, 0), 
-    C.Wall, {material=Enum.Material.Concrete})
-createPart(houseParts, "Wall2_Left_Mid_Bot", 
-    Vector3.new(T, H2/5, D/3), 
-    CFrame.new(-W/2, Y2 - H2*0.4, 0), 
-    C.Wall, {material=Enum.Material.Concrete})
-
-createPart(houseParts, "Wall2_Right_F", 
-    Vector3.new(T, H2, D/3), 
-    CFrame.new(W/2, Y2, -D/3), 
-    C.Wall, {material=Enum.Material.Concrete})
-createPart(houseParts, "Wall2_Right_B", 
-    Vector3.new(T, H2, D/3), 
-    CFrame.new(W/2, Y2, D/3), 
-    C.Wall, {material=Enum.Material.Concrete})
-createPart(houseParts, "Wall2_Right_Mid_Top", 
-    Vector3.new(T, H2/5, D/3), 
-    CFrame.new(W/2, Y2 + H2*0.4, 0), 
-    C.Wall, {material=Enum.Material.Concrete})
-createPart(houseParts, "Wall2_Right_Mid_Bot", 
-    Vector3.new(T, H2/5, D/3), 
-    CFrame.new(W/2, Y2 - H2*0.4, 0), 
-    C.Wall, {material=Enum.Material.Concrete})
-
--- ✅ الجدار الفاصل للطابق الثاني (غرفتان)
-createPart(houseParts, "Wall2_Split", 
-    Vector3.new(0.5, H2, D), 
-    CFrame.new(0, Y2, 0), 
-    C.WallDark, {material=Enum.Material.Concrete})
-
--- فتحة باب
-createPart(houseParts, "Wall2_Split_DoorTop", 
-    Vector3.new(0.5, H2 - 7.5, 3), 
-    CFrame.new(0, Y2 + 7.5/2, 3), 
-    C.WallDark, {material=Enum.Material.Concrete})
--- ═══════════════════════════════════════════════
--- 🪟 نوافذ الطابق الثاني
--- ═══════════════════════════════════════════════
-
--- ✅ نافذة أمامية وسطى
-createWindow(houseParts, "Win2_FMid", 
-    CFrame.new(0, Y2, D/2 + 0.4), 8, 7, 0)
-
--- ✅ النوافذ الجانبية اليسرى
-createWindow(houseParts, "Win2_L_F", 
-    CFrame.new(-W/2 - 0.4, Y2, -D/6), 6, 6, 90)
-createWindow(houseParts, "Win2_L_B", 
-    CFrame.new(-W/2 - 0.4, Y2, D/6), 6, 6, 90)
-
--- ✅ النوافذ الجانبية اليمنى
-createWindow(houseParts, "Win2_R_F", 
-    CFrame.new(W/2 + 0.4, Y2, -D/6), 6, 6, 90)
-createWindow(houseParts, "Win2_R_B", 
-    CFrame.new(W/2 + 0.4, Y2, D/6), 6, 6, 90)
-
--- ✅ نوافذ خلفية
-createWindow(houseParts, "Win2_Back_L", 
-    CFrame.new(-W/4, Y2, -D/2 - 0.4), 6, 5, 0)
-createWindow(houseParts, "Win2_Back_R", 
-    CFrame.new(W/4, Y2, -D/2 - 0.4), 6, 5, 0)
-
--- ═══════════════════════════════════════════════
--- 🏔️ السقف المثلثي الحاد (Gable Roof)
--- ═══════════════════════════════════════════════
-
-local RISE = 20                    -- ارتفاع قمة السقف
-local OVERHANG = 2                 -- البروز الخارجي
-local wallTop = Y2Start + H2 + 0.5 -- أعلى نقطة في الجدار
-local slopeAngle = math.deg(math.atan2(RISE, W/2))
-local slopeLength = math.sqrt((W/2)^2 + RISE^2)
-
--- ✅ السقف المائل الأيسر
-createPart(houseParts, "Roof_Left", 
-    Vector3.new(slopeLength + 2, 0.6, D + OVERHANG * 2), 
-    CFrame.new(-W/4 - 1, wallTop + RISE/2, 0) * CFrame.Angles(0, 0, math.rad(slopeAngle)), 
-    C.Roof, {material=Enum.Material.Slate, reflectance=0.1})
-
--- ✅ السقف المائل الأيمن
-createPart(houseParts, "Roof_Right", 
-    Vector3.new(slopeLength + 2, 0.6, D + OVERHANG * 2), 
-    CFrame.new(W/4 + 1, wallTop + RISE/2, 0) * CFrame.Angles(0, 0, math.rad(-slopeAngle)), 
-    C.Roof, {material=Enum.Material.Slate, reflectance=0.1})
-
--- ✅ قمة السقف (Ridge)
-createPart(houseParts, "RoofRidge", 
-    Vector3.new(1.5, 1, D + OVERHANG * 2), 
-    CFrame.new(0, wallTop + RISE + 0.3, 0), 
-    C.RoofAccent, {material=Enum.Material.Slate})
-
--- ✅ إطار خشبي على حواف السقف السفلية
-createPart(houseParts, "RoofTrim_L", 
-    Vector3.new(1, 1, D + OVERHANG * 2), 
-    CFrame.new(-W/2 - 0.5, wallTop - 0.3, 0), 
-    C.Trim, {material=Enum.Material.Wood})
-
-createPart(houseParts, "RoofTrim_R", 
-    Vector3.new(1, 1, D + OVERHANG * 2), 
-    CFrame.new(W/2 + 0.5, wallTop - 0.3, 0), 
-    C.Trim, {material=Enum.Material.Wood})
-
--- ✅ المُثلث الأمامي (Gable Front) - مقسم 3 قطع
-createPart(houseParts, "GableF_Base", 
-    Vector3.new(W, 0.5, 0.5), 
-    CFrame.new(0, wallTop + 0.25, D/2 + 0.1), 
-    C.Wall, {material=Enum.Material.Concrete})
-
-createPart(houseParts, "GableF_Left", 
-    Vector3.new(slopeLength, 0.5, 0.5), 
-    CFrame.new(-W/4, wallTop + RISE/2, D/2 + 0.1) * CFrame.Angles(0, 0, math.rad(slopeAngle)), 
-    C.Wall, {material=Enum.Material.Concrete})
-
-createPart(houseParts, "GableF_Right", 
-    Vector3.new(slopeLength, 0.5, 0.5), 
-    CFrame.new(W/4, wallTop + RISE/2, D/2 + 0.1) * CFrame.Angles(0, 0, math.rad(-slopeAngle)), 
-    C.Wall, {material=Enum.Material.Concrete})
-
--- ✅ المُثلث الخلفي
-createPart(houseParts, "GableB_Base", 
-    Vector3.new(W, 0.5, 0.5), 
-    CFrame.new(0, wallTop + 0.25, -D/2 - 0.1), 
-    C.Wall, {material=Enum.Material.Concrete})
-
-createPart(houseParts, "GableB_Left", 
-    Vector3.new(slopeLength, 0.5, 0.5), 
-    CFrame.new(-W/4, wallTop + RISE/2, -D/2 - 0.1) * CFrame.Angles(0, 0, math.rad(slopeAngle)), 
-    C.Wall, {material=Enum.Material.Concrete})
-
-createPart(houseParts, "GableB_Right", 
-    Vector3.new(slopeLength, 0.5, 0.5), 
-    CFrame.new(W/4, wallTop + RISE/2, -D/2 - 0.1) * CFrame.Angles(0, 0, math.rad(-slopeAngle)), 
-    C.Wall, {material=Enum.Material.Concrete})
-
--- ✅ نافذة العلية (Attic Window) - شكل بيت صغير
-createWindow(houseParts, "AtticWindow", 
-    CFrame.new(0, wallTop + RISE * 0.45, D/2 + 0.5), 3, 3, 0)
-
--- ═══════════════════════════════════════════════
--- 🏭 المدخنة
--- ═══════════════════════════════════════════════
-createPart(houseParts, "Chimney", 
-    Vector3.new(4, 12, 4), 
-    CFrame.new(W/3, wallTop + RISE * 0.4, -D/4), 
-    C.Brick, {material=Enum.Material.Brick})
-
-createPart(houseParts, "ChimneyCap", 
-    Vector3.new(4.5, 0.5, 4.5), 
-    CFrame.new(W/3, wallTop + RISE * 0.4 + 6.2, -D/4), 
-    C.RoofAccent, {material=Enum.Material.Slate})
-
-createPart(houseParts, "ChimneyTop", 
-    Vector3.new(3.5, 0.3, 3.5), 
-    CFrame.new(W/3, wallTop + RISE * 0.4 + 6.4, -D/4), 
-    Color3.fromRGB(50, 50, 55), {material=Enum.Material.Concrete})
-
--- ═══════════════════════════════════════════════
--- 💡 الإضاءة الداخلية الشاملة
--- ═══════════════════════════════════════════════
-
--- ✅ الطابق الأول
-createCeilingLamp(houseParts, "Lamp1_Grand", CFrame.new(-W/4, 1.3 + H1 - 0.5, D/4), 30, 3)
-createCeilingLamp(houseParts, "Lamp1_Living", CFrame.new(W/4, 1.3 + H1 - 0.5, D/4), 25, 2.5)
-createCeilingLamp(houseParts, "Lamp1_Kitchen", CFrame.new(-W/4, 1.3 + H1 - 0.5, -D/4), 25, 2.5)
-createCeilingLamp(houseParts, "Lamp1_Bath", CFrame.new(W/4, 1.3 + H1 - 0.5, -D/4), 20, 2)
-
--- ✅ الطابق الثاني
-createCeilingLamp(houseParts, "Lamp2_Bed1", CFrame.new(-W/4, Y2Start + H2 - 0.5, D/4), 25, 2.5)
-createCeilingLamp(houseParts, "Lamp2_Bed2", CFrame.new(W/4, Y2Start + H2 - 0.5, D/4), 25, 2.5)
-createCeilingLamp(houseParts, "Lamp2_Office", CFrame.new(-W/4, Y2Start + H2 - 0.5, -D/4), 20, 2)
-createCeilingLamp(houseParts, "Lamp2_Hall", CFrame.new(W/4, Y2Start + H2 - 0.5, -D/4), 20, 2)
+-- الطابق 1
+ceilingLamp("Lamp1_Living", -W/4, Y1_TOP - 0.5, D/4, 3, 30)
+ceilingLamp("Lamp1_Dining", W/4, Y1_TOP - 0.5, D/4, 2.5, 25)
+ceilingLamp("Lamp1_Kitchen", -W/4, Y1_TOP - 0.5, -D/4, 2.5, 25)
+ceilingLamp("Lamp1_Bath", W/4, Y1_TOP - 0.5, -D/4, 2, 20)
+ceilingLamp("Lamp1_Hall", 0, Y1_TOP - 0.5, 0, 2, 20)
+
+-- الطابق 2
+ceilingLamp("Lamp2_Bed1", -W/4, Y2_TOP - 0.5, D/4, 2.5, 25)
+ceilingLamp("Lamp2_Bed2", W/4, Y2_TOP - 0.5, D/4, 2.5, 25)
+ceilingLamp("Lamp2_Office", -W/4, Y2_TOP - 0.5, -D/4, 2, 20)
+ceilingLamp("Lamp2_Hall", W/4, Y2_TOP - 0.5, -D/4, 2, 20)
+
+-- إضاءة الرواق
+local porchLight = createPart(house, "PorchLight", Vector3.new(0.8, 0.8, 0.8),
+    CFrame.new(0, Y1_TOP - 3.6, D/2 + 4), Color3.fromRGB(255, 250, 220), 
+    {material=Enum.Material.Neon, shape=Enum.PartType.Ball, canCollide=false})
+local pl = Instance.new("PointLight")
+pl.Brightness = 3
+pl.Range = 20
+pl.Color = Color3.fromRGB(255, 240, 200)
+pl.Parent = porchLight
+-- ========== PART 5/6 ==========
+-- ========== PART 5/6 ==========
 
 -- ═══════════════════════════════════════════════
 -- 🛋️ الأثاث الداخلي
 -- ═══════════════════════════════════════════════
 
--- ═══ غرفة المعيشة (الطابق الأول - يمين أمامي) ═══
-local livingX = W/4
-local livingZ = D/4 - 2
+-- ═══ غرفة المعيشة (يسار أمامي) ═══
+local lvX, lvZ = -W/4, D/4
 
--- الأريكة (Sofa)
-createPart(houseParts, "Sofa_Base", 
-    Vector3.new(8, 1, 3), 
-    CFrame.new(livingX, 1.9, livingZ + 3), 
-    C.Leather, {material=Enum.Material.Fabric})
-createPart(houseParts, "Sofa_Back", 
-    Vector3.new(8, 2, 0.8), 
-    CFrame.new(livingX, 2.9, livingZ + 4), 
-    C.Leather, {material=Enum.Material.Fabric})
-createPart(houseParts, "Sofa_Left", 
-    Vector3.new(0.8, 2, 3), 
-    CFrame.new(livingX - 3.6, 2.3, livingZ + 3), 
-    C.Leather, {material=Enum.Material.Fabric})
-createPart(houseParts, "Sofa_Right", 
-    Vector3.new(0.8, 2, 3), 
-    CFrame.new(livingX + 3.6, 2.3, livingZ + 3), 
-    C.Leather, {material=Enum.Material.Fabric})
+-- الأريكة
+createPart(house, "Sofa_Base", Vector3.new(9, 1, 3), CFrame.new(lvX, Y1_BOT + 0.9, lvZ + 4), C.Leather, {material=Enum.Material.Fabric})
+createPart(house, "Sofa_Back", Vector3.new(9, 2.5, 0.8), CFrame.new(lvX, Y1_BOT + 2, lvZ + 5), C.Leather, {material=Enum.Material.Fabric})
+createPart(house, "Sofa_L", Vector3.new(0.8, 2.5, 3.2), CFrame.new(lvX - 4, Y1_BOT + 2, lvZ + 4), C.Leather, {material=Enum.Material.Fabric})
+createPart(house, "Sofa_R", Vector3.new(0.8, 2.5, 3.2), CFrame.new(lvX + 4, Y1_BOT + 2, lvZ + 4), C.Leather, {material=Enum.Material.Fabric})
 
 -- طاولة القهوة
-createPart(houseParts, "CoffeeTable_Top", 
-    Vector3.new(6, 0.3, 3), 
-    CFrame.new(livingX, 2.4, livingZ - 1), 
-    C.Wood, {material=Enum.Material.Wood})
-createPart(houseParts, "CoffeeTable_L1", 
-    Vector3.new(0.3, 1.5, 0.3), 
-    CFrame.new(livingX - 2.5, 1.7, livingZ - 2), 
-    C.Wood, {material=Enum.Material.Wood})
-createPart(houseParts, "CoffeeTable_L2", 
-    Vector3.new(0.3, 1.5, 0.3), 
-    CFrame.new(livingX + 2.5, 1.7, livingZ - 2), 
-    C.Wood, {material=Enum.Material.Wood})
-createPart(houseParts, "CoffeeTable_L3", 
-    Vector3.new(0.3, 1.5, 0.3), 
-    CFrame.new(livingX - 2.5, 1.7, livingZ), 
-    C.Wood, {material=Enum.Material.Wood})
-createPart(houseParts, "CoffeeTable_L4", 
-    Vector3.new(0.3, 1.5, 0.3), 
-    CFrame.new(livingX + 2.5, 1.7, livingZ), 
-    C.Wood, {material=Enum.Material.Wood})
+createPart(house, "CoffeeTable", Vector3.new(6, 0.3, 3), CFrame.new(lvX, Y1_BOT + 2.3, lvZ), C.Wood, {material=Enum.Material.Wood})
+for dx = -2, 2, 4 do
+    for dz = -1, 1, 2 do
+        createPart(house, "CT_L_"..dx.."_"..dz, Vector3.new(0.3, 2, 0.3),
+            CFrame.new(lvX + dx, Y1_BOT + 1.15, lvZ + dz), C.Wood, {material=Enum.Material.Wood})
+    end
+end
 
--- تلفاز على الحائط
-createPart(houseParts, "TV_Frame", 
-    Vector3.new(8, 5, 0.3), 
-    CFrame.new(livingX, 2.8, livingZ - 5.7), 
-    C.CarBlack, {material=Enum.Material.Metal})
-createPart(houseParts, "TV_Screen", 
-    Vector3.new(7.4, 4.4, 0.1), 
-    CFrame.new(livingX, 2.8, livingZ - 5.5), 
+-- تلفاز على الجدار الأيسر
+createPart(house, "TV_Frame", Vector3.new(0.3, 4, 7), CFrame.new(lvX - 6.5, Y1_BOT + 6, lvZ - 3), C.CarBlack, {material=Enum.Material.Metal})
+createPart(house, "TV_Screen", Vector3.new(0.1, 3.5, 6.5), CFrame.new(lvX - 6.4, Y1_BOT + 6, lvZ - 3), 
     Color3.fromRGB(20, 30, 50), {material=Enum.Material.Glass, reflectance=0.5, canCollide=false})
 
--- ═══ المطبخ (الطابق الأول - يسار خلفي) ═══
-local kitchenX = -W/4
-local kitchenZ = -D/4
+-- ═══ المطبخ (يسار خلفي) ═══
+local ktX, ktZ = -W/4, -D/4
 
--- رخام المطبخ
-createPart(houseParts, "KitchenCounter1", 
-    Vector3.new(8, 3, 2), 
-    CFrame.new(kitchenX - 3, 2.8, kitchenZ + 4), 
-    C.Wood, {material=Enum.Material.Wood})
-createPart(houseParts, "KitchenCounter1_Top", 
-    Vector3.new(8.2, 0.3, 2.2), 
-    CFrame.new(kitchenX - 3, 4.3, kitchenZ + 4), 
-    Color3.fromRGB(240, 240, 245), {material=Enum.Material.Marble})
-createPart(houseParts, "KitchenCounter2", 
-    Vector3.new(2, 3, 6), 
-    CFrame.new(kitchenX + 1, 2.8, kitchenZ + 1), 
-    C.Wood, {material=Enum.Material.Wood})
-createPart(houseParts, "KitchenCounter2_Top", 
-    Vector3.new(2.2, 0.3, 6.2), 
-    CFrame.new(kitchenX + 1, 4.3, kitchenZ + 1), 
-    Color3.fromRGB(240, 240, 245), {material=Enum.Material.Marble})
+-- خزائن المطبخ
+createPart(house, "KitchCounter", Vector3.new(8, 3, 2.5), CFrame.new(ktX - 3, Y1_BOT + 2.8, ktZ + 4), C.Wood, {material=Enum.Material.Wood})
+createPart(house, "KitchCounterTop", Vector3.new(8.3, 0.3, 2.8), CFrame.new(ktX - 3, Y1_BOT + 4.45, ktZ + 4), C.Marble, {material=Enum.Material.Marble})
+createPart(house, "KitchCounter2", Vector3.new(2.5, 3, 6), CFrame.new(ktX + 3, Y1_BOT + 2.8, ktZ + 2), C.Wood, {material=Enum.Material.Wood})
+createPart(house, "KitchCounter2Top", Vector3.new(2.8, 0.3, 6.3), CFrame.new(ktX + 3, Y1_BOT + 4.45, ktZ + 2), C.Marble, {material=Enum.Material.Marble})
 
 -- الثلاجة
-createPart(houseParts, "Fridge", 
-    Vector3.new(3, 6, 2.5), 
-    CFrame.new(kitchenX - 5, 4.3, kitchenZ + 1), 
-    Color3.fromRGB(230, 235, 240), {material=Enum.Material.Metal, reflectance=0.3})
-createPart(houseParts, "Fridge_Handle", 
-    Vector3.new(0.3, 3, 0.3), 
-    CFrame.new(kitchenX - 3.6, 4.5, kitchenZ + 1), 
-    C.Metal, {material=Enum.Material.Metal})
+createPart(house, "Fridge", Vector3.new(3, 7, 2.5), CFrame.new(ktX - 7, Y1_BOT + 4.8, ktZ + 3.5), Color3.fromRGB(230, 235, 240), {material=Enum.Material.Metal, reflectance=0.3})
+createPart(house, "FridgeHandle", Vector3.new(0.3, 3, 0.3), CFrame.new(ktX - 5.6, Y1_BOT + 5, ktZ + 3.5), C.Metal, {material=Enum.Material.Metal})
 
 -- طاولة الطعام
-createPart(houseParts, "DiningTable_Top", 
-    Vector3.new(8, 0.3, 5), 
-    CFrame.new(kitchenX - 3, 3.3, kitchenZ - 2), 
-    C.Wood, {material=Enum.Material.Wood})
+createPart(house, "DiningTableTop", Vector3.new(8, 0.3, 5), CFrame.new(ktX - 3, Y1_BOT + 3.5, ktZ - 3), C.Wood, {material=Enum.Material.Wood})
 for dx = -1, 1, 2 do
     for dz = -1, 1, 2 do
-        createPart(houseParts, "DiningTable_L_"..dx.."_"..dz, 
-            Vector3.new(0.4, 2, 0.4), 
-            CFrame.new(kitchenX - 3 + dx * 3.5, 2.3, kitchenZ - 2 + dz * 2), 
-            C.Wood, {material=Enum.Material.Wood})
+        createPart(house, "DT_L_"..dx.."_"..dz, Vector3.new(0.4, 2, 0.4),
+            CFrame.new(ktX - 3 + dx*3.5, Y1_BOT + 2.5, ktZ - 3 + dz*2), C.Wood, {material=Enum.Material.Wood})
     end
 end
 
 -- كراسي
 for i = -1, 1, 2 do
-    createPart(houseParts, "Chair"..i.."_Seat", Vector3.new(2, 0.3, 2), 
-        CFrame.new(kitchenX - 3 + i * 4, 2.3, kitchenZ - 2), C.Wood, {material=Enum.Material.Wood})
-    createPart(houseParts, "Chair"..i.."_Back", Vector3.new(2, 2, 0.3), 
-        CFrame.new(kitchenX - 3 + i * 4, 3.3, kitchenZ - 3), C.Wood, {material=Enum.Material.Wood})
+    createPart(house, "Chair"..i.."_S", Vector3.new(2, 0.3, 2), CFrame.new(ktX - 3 + i*4.5, Y1_BOT + 2.4, ktZ - 3), C.Wood, {material=Enum.Material.Wood})
+    createPart(house, "Chair"..i.."_B", Vector3.new(2, 2, 0.3), CFrame.new(ktX - 3 + i*4.5, Y1_BOT + 3.4, ktZ - 4.2), C.Wood, {material=Enum.Material.Wood})
 end
 
--- ═══ غرفة النوم الرئيسية (الطابق الثاني - يسار أمامي) ═══
-local bedX = -W/4
-local bedZ = D/4 - 2
+-- ═══ غرفة النوم الرئيسية (يسار أمامي ط 2) ═══
+local bd1X, bd1Z = -W/4, D/4
 
--- السرير
-createPart(houseParts, "Bed_Frame", 
-    Vector3.new(8, 1, 10), 
-    CFrame.new(bedX, Y2Start + 1.2, bedZ), 
-    C.Wood, {material=Enum.Material.Wood})
-createPart(houseParts, "Bed_Mattress", 
-    Vector3.new(7.6, 1, 9.6), 
-    CFrame.new(bedX, Y2Start + 2.2, bedZ), 
-    Color3.fromRGB(250, 250, 250), {material=Enum.Material.Fabric})
-createPart(houseParts, "Bed_Pillow1", 
-    Vector3.new(3.5, 0.6, 1.5), 
-    CFrame.new(bedX - 1.8, Y2Start + 3, bedZ - 3.5), 
-    Color3.fromRGB(240, 240, 250), {material=Enum.Material.Fabric})
-createPart(houseParts, "Bed_Pillow2", 
-    Vector3.new(3.5, 0.6, 1.5), 
-    CFrame.new(bedX + 1.8, Y2Start + 3, bedZ - 3.5), 
-    Color3.fromRGB(240, 240, 250), {material=Enum.Material.Fabric})
-createPart(houseParts, "Bed_Blanket", 
-    Vector3.new(7.6, 0.4, 5), 
-    CFrame.new(bedX, Y2Start + 2.9, bedZ + 2), 
-    Color3.fromRGB(150, 30, 40), {material=Enum.Material.Fabric})
+createPart(house, "Bed1_Frame", Vector3.new(8, 1.2, 10), CFrame.new(bd1X, Y2_BOT + 1.4, bd1Z), C.Wood, {material=Enum.Material.Wood})
+createPart(house, "Bed1_Mattress", Vector3.new(7.5, 1.2, 9.5), CFrame.new(bd1X, Y2_BOT + 2.5, bd1Z), C.Fabric, {material=Enum.Material.Fabric})
+createPart(house, "Bed1_Pillow1", Vector3.new(3.5, 0.6, 1.8), CFrame.new(bd1X - 1.7, Y2_BOT + 3.3, bd1Z - 3.5), Color3.fromRGB(240, 240, 250), {material=Enum.Material.Fabric})
+createPart(house, "Bed1_Pillow2", Vector3.new(3.5, 0.6, 1.8), CFrame.new(bd1X + 1.7, Y2_BOT + 3.3, bd1Z - 3.5), Color3.fromRGB(240, 240, 250), {material=Enum.Material.Fabric})
+createPart(house, "Bed1_Blanket", Vector3.new(7.5, 0.4, 5.5), CFrame.new(bd1X, Y2_BOT + 3.1, bd1Z + 2), Color3.fromRGB(150, 30, 40), {material=Enum.Material.Fabric})
 
--- طاولة جانبية
-createPart(houseParts, "Nightstand_Top", 
-    Vector3.new(2.5, 0.3, 2), 
-    CFrame.new(bedX + 5, Y2Start + 2, bedZ - 4), 
-    C.Wood, {material=Enum.Material.Wood})
-createPart(houseParts, "Nightstand_Body", 
-    Vector3.new(2.5, 2, 2), 
-    CFrame.new(bedX + 5, Y2Start + 1, bedZ - 4), 
-    C.Wood, {material=Enum.Material.Wood})
+createPart(house, "Nightstand1", Vector3.new(2.5, 2, 2), CFrame.new(bd1X - 5.5, Y2_BOT + 1.2, bd1Z - 4), C.Wood, {material=Enum.Material.Wood})
+createPart(house, "Nightstand1_Lamp", Vector3.new(0.3, 0.3, 0.3), CFrame.new(bd1X - 5.5, Y2_BOT + 2.8, bd1Z - 4), C.Metal, {material=Enum.Material.Metal})
+createPart(house, "Nightstand1_Bulb", Vector3.new(0.8, 0.8, 0.8), CFrame.new(bd1X - 5.5, Y2_BOT + 3.5, bd1Z - 4), C.Light, {material=Enum.Material.Neon, shape=Enum.PartType.Ball})
 
--- ═══ غرفة النوم الثانية (الطابق الثاني - يمين) ═══
-local bed2X = W/4
-local bed2Z = D/4 - 2
+-- ═══ غرفة النوم الثانية (يمين أمامي ط 2) ═══
+local bd2X, bd2Z = W/4, D/4
+createPart(house, "Bed2_Frame", Vector3.new(7, 1.2, 9), CFrame.new(bd2X, Y2_BOT + 1.4, bd2Z), C.Wood, {material=Enum.Material.Wood})
+createPart(house, "Bed2_Mattress", Vector3.new(6.5, 1.2, 8.5), CFrame.new(bd2X, Y2_BOT + 2.5, bd2Z), C.Fabric, {material=Enum.Material.Fabric})
+createPart(house, "Bed2_Blanket", Vector3.new(6.5, 0.4, 5), CFrame.new(bd2X, Y2_BOT + 3.1, bd2Z + 2), Color3.fromRGB(40, 80, 150), {material=Enum.Material.Fabric})
 
-createPart(houseParts, "Bed2_Frame", 
-    Vector3.new(7, 1, 9), 
-    CFrame.new(bed2X, Y2Start + 1.2, bed2Z), 
-    C.Wood, {material=Enum.Material.Wood})
-createPart(houseParts, "Bed2_Mattress", 
-    Vector3.new(6.6, 1, 8.6), 
-    CFrame.new(bed2X, Y2Start + 2.2, bed2Z), 
-    Color3.fromRGB(250, 250, 250), {material=Enum.Material.Fabric})
-createPart(houseParts, "Bed2_Blanket", 
-    Vector3.new(6.6, 0.4, 5), 
-    CFrame.new(bed2X, Y2Start + 2.9, bed2Z + 1.5), 
-    Color3.fromRGB(40, 80, 150), {material=Enum.Material.Fabric})
-
--- ═══ المكتب (الطابق الثاني - يسار خلفي) ═══
-local deskX = -W/4
-local deskZ = -D/4
-
-createPart(houseParts, "Desk_Top", 
-    Vector3.new(6, 0.3, 3), 
-    CFrame.new(deskX, Y2Start + 3, deskZ), 
-    C.Wood, {material=Enum.Material.Wood})
-createPart(houseParts, "Desk_L1", Vector3.new(0.3, 2.7, 0.3), 
-    CFrame.new(deskX - 2.7, Y2Start + 1.7, deskZ - 1.3), C.Wood, {material=Enum.Material.Wood})
-createPart(houseParts, "Desk_L2", Vector3.new(0.3, 2.7, 0.3), 
-    CFrame.new(deskX + 2.7, Y2Start + 1.7, deskZ - 1.3), C.Wood, {material=Enum.Material.Wood})
-createPart(houseParts, "Desk_L3", Vector3.new(0.3, 2.7, 0.3), 
-    CFrame.new(deskX - 2.7, Y2Start + 1.7, deskZ + 1.3), C.Wood, {material=Enum.Material.Wood})
-createPart(houseParts, "Desk_L4", Vector3.new(0.3, 2.7, 0.3), 
-    CFrame.new(deskX + 2.7, Y2Start + 1.7, deskZ + 1.3), C.Wood, {material=Enum.Material.Wood})
-
--- شاشة الكمبيوتر
-createPart(houseParts, "Monitor_Stand", 
-    Vector3.new(1, 0.5, 1), 
-    CFrame.new(deskX, Y2Start + 3.4, deskZ - 1), 
-    C.CarBlack, {material=Enum.Material.Metal})
-createPart(houseParts, "Monitor_Screen", 
-    Vector3.new(4, 3, 0.3), 
-    CFrame.new(deskX, Y2Start + 5, deskZ - 1), 
-    C.CarBlack, {material=Enum.Material.Metal})
-createPart(houseParts, "Monitor_Display", 
-    Vector3.new(3.6, 2.6, 0.1), 
-    CFrame.new(deskX, Y2Start + 5, deskZ - 0.85), 
-    Color3.fromRGB(30, 60, 90), {material=Enum.Material.Glass, reflectance=0.4})
--- ═══════════════════════════════════════════════
--- 🌳 الحديقة الخلفية (Backyard Garden)
--- ═══════════════════════════════════════════════
-
-local gardenZ = -D/2 - 20  -- مركز الحديقة (خلف المنزل)
-local gardenW = W + 10
-local gardenD = 40
-
--- ✅ العشب (أرضية خضراء)
-createPart(gardenParts, "GardenGrass", 
-    Vector3.new(gardenW, 0.3, gardenD), 
-    CFrame.new(0, 0.45, -D/2 - gardenD/2 - 3), 
-    C.Grass, {material=Enum.Material.Grass})
-
--- ✅ ممر حجري داخل الحديقة
-createPart(gardenParts, "GardenPath", 
-    Vector3.new(4, 0.4, 25), 
-    CFrame.new(0, 0.6, -D/2 - 12), 
-    C.Stone, {material=Enum.Material.Cobblestone})
+-- ═══ المكتب (يسار خلفي ط 2) ═══
+local ofX, ofZ = -W/4, -D/4
+createPart(house, "DeskTop", Vector3.new(6, 0.3, 3), CFrame.new(ofX, Y2_BOT + 3, ofZ), C.Wood, {material=Enum.Material.Wood})
+for dx = -2.7, 2.7, 5.4 do
+    for dz = -1.3, 1.3, 2.6 do
+        createPart(house, "Desk_L_"..dx.."_"..dz, Vector3.new(0.3, 2.7, 0.3),
+            CFrame.new(ofX + dx, Y2_BOT + 1.65, ofZ + dz), C.Wood, {material=Enum.Material.Wood})
+    end
+end
+createPart(house, "MonitorStand", Vector3.new(1, 0.5, 1), CFrame.new(ofX, Y2_BOT + 3.4, ofZ - 1), C.CarBlack, {material=Enum.Material.Metal})
+createPart(house, "MonitorScreen", Vector3.new(4, 3, 0.3), CFrame.new(ofX, Y2_BOT + 5.1, ofZ - 1), C.CarBlack, {material=Enum.Material.Metal})
+createPart(house, "MonitorDisplay", Vector3.new(3.6, 2.6, 0.1), CFrame.new(ofX, Y2_BOT + 5.1, ofZ - 0.85), Color3.fromRGB(30, 60, 90), {material=Enum.Material.Glass, reflectance=0.4})
 
 -- ═══════════════════════════════════════════════
--- 🌳 الأشجار (6 أشجار بأماكن مختلفة)
+-- 🌳 الحديقة الخلفية
 -- ═══════════════════════════════════════════════
-local function createTree(name, x, z, size)
-    size = size or 1
-    
-    -- الجذع
-    createPart(gardenParts, name.."_Trunk", 
-        Vector3.new(2.5*size, 12*size, 2.5*size), 
-        CFrame.new(x, 0.6 + 6*size, z), 
-        C.TreeTrunk, {material=Enum.Material.Wood})
-    
-    -- الأوراق (3 طبقات)
-    -- طبقة سفلية
-    createPart(gardenParts, name.."_Leaf1", 
-        Vector3.new(11*size, 7*size, 11*size), 
-        CFrame.new(x, 0.6 + 12*size, z), 
-        C.TreeLeaf, {material=Enum.Material.Grass, shape=Enum.PartType.Ball, canCollide=false})
-    
-    -- طبقة وسطى
-    createPart(gardenParts, name.."_Leaf2", 
-        Vector3.new(8*size, 5*size, 8*size), 
-        CFrame.new(x, 0.6 + 15*size, z), 
-        C.TreeLeaf, {material=Enum.Material.Grass, shape=Enum.PartType.Ball, canCollide=false})
-    
-    -- طبقة عليا
-    createPart(gardenParts, name.."_Leaf3", 
-        Vector3.new(5*size, 4*size, 5*size), 
-        CFrame.new(x, 0.6 + 18*size, z), 
-        C.TreeLeaf, {material=Enum.Material.Grass, shape=Enum.PartType.Ball, canCollide=false})
+
+local gW, gD = W + 20, 50
+createPart(garden, "Grass", Vector3.new(gW, 0.3, gD), CFrame.new(0, 0.45, -D/2 - gD/2 - 3), C.Grass, {material=Enum.Material.Grass})
+
+-- ممر حجري
+createPart(garden, "GardenPath", Vector3.new(4, 0.4, gD - 8), CFrame.new(0, 0.6, -D/2 - gD/2 - 3), C.Stone, {material=Enum.Material.Cobblestone})
+
+-- دالة الشجرة
+local function createTree(name, x, z, s)
+    s = s or 1
+    createPart(garden, name.."_Trunk", Vector3.new(2.5*s, 12*s, 2.5*s), CFrame.new(x, 0.6 + 6*s, z), C.TreeTrunk, {material=Enum.Material.Wood})
+    createPart(garden, name.."_L1", Vector3.new(11*s, 7*s, 11*s), CFrame.new(x, 0.6 + 12*s, z), C.TreeLeaf, {material=Enum.Material.Grass, shape=Enum.PartType.Ball, canCollide=false})
+    createPart(garden, name.."_L2", Vector3.new(8*s, 5*s, 8*s), CFrame.new(x, 0.6 + 15*s, z), C.TreeLeaf, {material=Enum.Material.Grass, shape=Enum.PartType.Ball, canCollide=false})
+    createPart(garden, name.."_L3", Vector3.new(5*s, 4*s, 5*s), CFrame.new(x, 0.6 + 18*s, z), C.TreeLeaf, {material=Enum.Material.Grass, shape=Enum.PartType.Ball, canCollide=false})
 end
 
--- ✅ 6 أشجار في الحديقة
-createTree("Tree1", -20, -D/2 - 8, 1)
-createTree("Tree2", 20, -D/2 - 8, 1)
-createTree("Tree3", -25, -D/2 - 25, 1.2)
-createTree("Tree4", 25, -D/2 - 25, 1.2)
-createTree("Tree5", -15, -D/2 - 35, 0.9)
-createTree("Tree6", 15, -D/2 - 35, 0.9)
+-- أشجار في صفوف آمنة (بعيدة عن المنزل والسقف)
+createTree("Tree_L1", -W/2 - 8, -D/2 - 10, 1.1)
+createTree("Tree_R1", W/2 + 8, -D/2 - 10, 1.1)
+createTree("Tree_L2", -W/2 - 8, -D/2 - 28, 1.2)
+createTree("Tree_R2", W/2 + 8, -D/2 - 28, 1.2)
+createTree("Tree_L3", -15, -D/2 - 40, 0.9)
+createTree("Tree_R3", 15, -D/2 - 40, 0.9)
 
--- ═══════════════════════════════════════════════
--- 🌸 الزهور (حديقة أزهار)
--- ═══════════════════════════════════════════════
+-- دالة الزهرة
 local function createFlower(name, x, z, color)
-    -- الساق
-    createPart(gardenParts, name.."_Stem", 
-        Vector3.new(0.3, 1.5, 0.3), 
-        CFrame.new(x, 1.35, z), 
-        Color3.fromRGB(40, 120, 40), {material=Enum.Material.Grass})
-    
-    -- الزهرة
-    createPart(gardenParts, name.."_Bloom", 
-        Vector3.new(1, 1, 1), 
-        CFrame.new(x, 2.2, z), 
-        color, {material=Enum.Material.Neon, shape=Enum.PartType.Ball, canCollide=false})
-    
-    -- المركز الأصفر
-    createPart(gardenParts, name.."_Center", 
-        Vector3.new(0.4, 0.4, 0.4), 
-        CFrame.new(x, 2.3, z), 
-        Color3.fromRGB(255, 220, 50), {material=Enum.Material.Neon, shape=Enum.PartType.Ball, canCollide=false})
+    createPart(garden, name.."_Stem", Vector3.new(0.3, 1.5, 0.3), CFrame.new(x, 1.35, z), Color3.fromRGB(40, 120, 40), {material=Enum.Material.Grass})
+    createPart(garden, name.."_Bloom", Vector3.new(1, 1, 1), CFrame.new(x, 2.2, z), color, {material=Enum.Material.Neon, shape=Enum.PartType.Ball, canCollide=false})
+    createPart(garden, name.."_Center", Vector3.new(0.4, 0.4, 0.4), CFrame.new(x, 2.3, z), Color3.fromRGB(255, 220, 50), {material=Enum.Material.Neon, shape=Enum.PartType.Ball, canCollide=false})
 end
 
--- ✅ أزهار على طول الممر
+-- زهور على جانبي الممر
 local flowerColors = {C.FlowerRed, C.FlowerYellow, C.FlowerWhite}
-local flowerPositions = {
-    {-4, -D/2 - 5}, {-4, -D/2 - 10}, {-4, -D/2 - 15},
-    {4, -D/2 - 5}, {4, -D/2 - 10}, {4, -D/2 - 15},
-    {-8, -D/2 - 20}, {8, -D/2 - 20},
-    {-12, -D/2 - 28}, {12, -D/2 - 28},
-}
-
-for i, pos in ipairs(flowerPositions) do
-    local color = flowerColors[(i % 3) + 1]
-    createFlower("Flower_"..i, pos[1], pos[2], color)
+for i, pos in ipairs({
+    {-5, -D/2 - 6}, {-5, -D/2 - 14}, {-5, -D/2 - 22},
+    {5, -D/2 - 6}, {5, -D/2 - 14}, {5, -D/2 - 22},
+    {-10, -D/2 - 32}, {10, -D/2 - 32},
+}) do
+    createFlower("Flower_"..i, pos[1], pos[2], flowerColors[(i % 3) + 1])
 end
 
--- ═══════════════════════════════════════════════
--- ⛲ النافورة (Fountain)
--- ═══════════════════════════════════════════════
-local fountX = 0
-local fountZ = -D/2 - 15
+-- ═══ النافورة ═══
+local fX, fZ = 0, -D/2 - 20
+createPart(garden, "FountBase", Vector3.new(10, 1.5, 10), CFrame.new(fX, 1.3, fZ), C.Stone, {material=Enum.Material.Cobblestone, shape=Enum.PartType.Cylinder})
+createPart(garden, "FountWater", Vector3.new(8, 1.6, 8), CFrame.new(fX, 1.9, fZ), C.Water, {material=Enum.Material.Glass, transparency=0.3, reflectance=0.5, shape=Enum.PartType.Cylinder})
+createPart(garden, "FountPillar", Vector3.new(2, 5, 2), CFrame.new(fX, 3.6, fZ), C.Stone, {material=Enum.Material.Cobblestone, shape=Enum.PartType.Cylinder})
+createPart(garden, "FountTop", Vector3.new(5, 0.8, 5), CFrame.new(fX, 6.2, fZ), C.Stone, {material=Enum.Material.Cobblestone, shape=Enum.PartType.Cylinder})
+createPart(garden, "FountBall", Vector3.new(2, 2, 2), CFrame.new(fX, 7.5, fZ), C.Water, {material=Enum.Material.Glass, transparency=0.3, reflectance=0.5, shape=Enum.PartType.Ball})
 
--- القاعدة الخارجية (حجر)
-createPart(gardenParts, "Fountain_Base", 
-    Vector3.new(10, 1.5, 10), 
-    CFrame.new(fountX, 1.3, fountZ), 
-    C.Stone, {material=Enum.Material.Cobblestone, shape=Enum.PartType.Cylinder})
-
--- الحوض (ماء)
-createPart(gardenParts, "Fountain_Water", 
-    Vector3.new(8, 1.6, 8), 
-    CFrame.new(fountX, 1.9, fountZ), 
-    C.Water, {material=Enum.Material.Glass, transparency=0.3, reflectance=0.5, shape=Enum.PartType.Cylinder})
-
--- العمود المركزي
-createPart(gardenParts, "Fountain_Pillar", 
-    Vector3.new(2, 5, 2), 
-    CFrame.new(fountX, 3.6, fountZ), 
-    C.Stone, {material=Enum.Material.Cobblestone, shape=Enum.PartType.Cylinder})
-
--- الطبقة العلوية
-createPart(gardenParts, "Fountain_Top", 
-    Vector3.new(5, 0.8, 5), 
-    CFrame.new(fountX, 6.2, fountZ), 
-    C.Stone, {material=Enum.Material.Cobblestone, shape=Enum.PartType.Cylinder})
-
--- الكرة العلوية
-createPart(gardenParts, "Fountain_Ball", 
-    Vector3.new(2, 2, 2), 
-    CFrame.new(fountX, 7.5, fountZ), 
-    C.Water, {material=Enum.Material.Glass, transparency=0.3, reflectance=0.5, shape=Enum.PartType.Ball})
-
--- ═══════════════════════════════════════════════
--- 🪑 مقاعد الحديقة
--- ═══════════════════════════════════════════════
+-- ═══ مقاعد الحديقة ═══
 local function createBench(name, x, z, rotY)
-    local bcf = CFrame.new(x, 0.6, z) * CFrame.Angles(0, math.rad(rotY or 0), 0)
-    
-    -- المقعد
-    createPart(gardenParts, name.."_Seat", 
-        Vector3.new(6, 0.4, 2), bcf * CFrame.new(0, 1, 0), 
-        C.Wood, {material=Enum.Material.Wood})
-    
-    -- الظهر
-    createPart(gardenParts, name.."_Back", 
-        Vector3.new(6, 2, 0.4), bcf * CFrame.new(0, 2.2, -1), 
-        C.Wood, {material=Enum.Material.Wood})
-    
-    -- الأرجل
-    for dx = -1, 1, 2 do
-        createPart(gardenParts, name.."_Leg"..dx, 
-            Vector3.new(0.5, 1.5, 2), bcf * CFrame.new(dx * 2.5, 0.3, 0), 
-            C.Wood, {material=Enum.Material.Wood})
+    local bcf = CF * CFrame.new(x, 0.6, z) * CFrame.Angles(0, math.rad(rotY or 0), 0)
+    createPart(garden, name.."_S", Vector3.new(6, 0.4, 2), bcf * CFrame.new(0, 1, 0), C.Wood, {material=Enum.Material.Wood})
+    createPart(garden, name.."_B", Vector3.new(6, 2, 0.4), bcf * CFrame.new(0, 2.2, -1), C.Wood, {material=Enum.Material.Wood})
+    for dx = -2.5, 2.5, 5 do
+        createPart(garden, name.."_Leg"..dx, Vector3.new(0.5, 1.5, 2), bcf * CFrame.new(dx, 0.3, 0), C.Wood, {material=Enum.Material.Wood})
     end
 end
 
 createBench("Bench1", -12, -D/2 - 15, 90)
 createBench("Bench2", 12, -D/2 - 15, -90)
-createBench("Bench3", 0, -D/2 - 32, 0)
 
--- ═══════════════════════════════════════════════
--- 💡 إضاءة الحديقة (فوانيس)
--- ═══════════════════════════════════════════════
-local function createGardenLamp(name, x, z)
-    -- العمود
-    createPart(gardenParts, name.."_Pole", 
-        Vector3.new(0.5, 8, 0.5), 
-        CFrame.new(x, 4.6, z), 
-        C.CarBlack, {material=Enum.Material.Metal})
-    
-    -- المصباح
-    local bulb = createPart(gardenParts, name.."_Bulb", 
-        Vector3.new(1.5, 1.5, 1.5), 
-        CFrame.new(x, 9, z), 
-        Color3.fromRGB(255, 250, 220), {material=Enum.Material.Neon, shape=Enum.PartType.Ball})
-    
-    -- الإضاءة
+-- ═══ فوانيس الحديقة ═══
+local function gardenLamp(name, x, z)
+    createPart(garden, name.."_P", Vector3.new(0.5, 8, 0.5), CFrame.new(x, 4.6, z), C.CarBlack, {material=Enum.Material.Metal})
+    local bulb = createPart(garden, name.."_B", Vector3.new(1.5, 1.5, 1.5), CFrame.new(x, 9, z), Color3.fromRGB(255, 250, 220), {material=Enum.Material.Neon, shape=Enum.PartType.Ball})
     local light = Instance.new("PointLight")
     light.Brightness = 2
     light.Range = 20
@@ -1023,387 +755,219 @@ local function createGardenLamp(name, x, z)
     light.Parent = bulb
 end
 
-createGardenLamp("Lamp1", -8, -D/2 - 20)
-createGardenLamp("Lamp2", 8, -D/2 - 20)
-createGardenLamp("Lamp3", -8, -D/2 - 35)
-createGardenLamp("Lamp4", 8, -D/2 - 35)
+gardenLamp("GLamp1", -8, -D/2 - 15)
+gardenLamp("GLamp2", 8, -D/2 - 15)
+gardenLamp("GLamp3", -8, -D/2 - 35)
+gardenLamp("GLamp4", 8, -D/2 - 35)
 
--- ═══════════════════════════════════════════════
--- 🛤️ الرواق الأمامي (Porch)
--- ═══════════════════════════════════════════════
-local porchDepth = 8
-local porchWidth = 16
-
--- ✅ السقف
-createPart(houseParts, "PorchRoof", 
-    Vector3.new(porchWidth, 0.5, porchDepth), 
-    CFrame.new(0, 12, D/2 + porchDepth/2), 
-    C.Roof, {material=Enum.Material.Slate})
-
--- ✅ أعمدة الرواق (4 أعمدة)
-local porchColPositions = {{-7, D/2 + 3}, {7, D/2 + 3}, {-7, D/2 + 7}, {7, D/2 + 7}}
-for i, pos in ipairs(porchColPositions) do
-    -- العمود
-    createPart(houseParts, "PorchCol_"..i, 
-        Vector3.new(1, 11, 1), 
-        CFrame.new(pos[1], 6.8, pos[2]), 
-        C.Wall, {material=Enum.Material.Wood})
-    -- القاعدة
-    createPart(houseParts, "PorchCol_"..i.."_Base", 
-        Vector3.new(1.5, 0.5, 1.5), 
-        CFrame.new(pos[1], 1.5, pos[2]), 
-        C.Trim, {material=Enum.Material.Wood})
-    -- التاج
-    createPart(houseParts, "PorchCol_"..i.."_Cap", 
-        Vector3.new(1.5, 0.5, 1.5), 
-        CFrame.new(pos[1], 11.9, pos[2]), 
-        C.Trim, {material=Enum.Material.Wood})
-end
-
--- ✅ درج الرواق
-createPart(houseParts, "PorchStep1", 
-    Vector3.new(porchWidth, 0.4, 2), 
-    CFrame.new(0, 1.5, D/2 + porchDepth + 1), 
-    C.Foundation, {material=Enum.Material.Concrete})
-createPart(houseParts, "PorchStep2", 
-    Vector3.new(porchWidth, 0.4, 1.5), 
-    CFrame.new(0, 1.1, D/2 + porchDepth + 0.75), 
-    C.Foundation, {material=Enum.Material.Concrete})
-createPart(houseParts, "PorchFloor", 
-    Vector3.new(porchWidth, 0.3, porchDepth), 
-    CFrame.new(0, 1.3, D/2 + porchDepth/2), 
-    C.FloorTile, {material=Enum.Material.Marble})
-
--- ═══════════════════════════════════════════════
--- 🚶 الممر الأمامي (Front Walkway)
--- ═══════════════════════════════════════════════
-for i = 1, 5 do
-    createPart(houseParts, "Walkway_"..i, 
-        Vector3.new(6, 0.3, 4), 
-        CFrame.new(0, 0.15, D/2 + porchDepth + 2 + (i-1) * 4), 
-        C.Stone, {material=Enum.Material.Cobblestone})
-end
-
--- ═══════════════════════════════════════════════
--- 🚧 السياج الأنيق (Elegant Fence) - حول المنزل والحديقة
--- ═══════════════════════════════════════════════
-local fenceW = W + 40     -- عرض السياج
-local fenceD = D + 80     -- عمق السياج
+-- ═══ السياج الأنيق ═══
+local fenceW = W + 40
+local fenceD = D + 80
 local fenceH = 3
 local postSpacing = 4
+local frontZ = D/2 + 25
 
-local function createFencePost(name, x, z)
-    -- العمود
-    createPart(gardenParts, name.."_Post", 
-        Vector3.new(0.4, fenceH, 0.4), 
-        CFrame.new(x, 0.6 + fenceH/2, z), 
-        C.Trim, {material=Enum.Material.Wood})
-    
-    -- القمة المدببة
-    createWedge(gardenParts, name.."_Tip", 
-        Vector3.new(0.5, 0.8, 0.5), 
-        CFrame.new(x, 0.6 + fenceH + 0.4, z), 
-        C.Trim, {material=Enum.Material.Wood})
+local function fencePost(name, x, z)
+    createPart(garden, name.."_P", Vector3.new(0.4, fenceH, 0.4), CFrame.new(x, 0.6 + fenceH/2, z), C.Trim, {material=Enum.Material.Wood})
+    createWedge(garden, name.."_T", Vector3.new(0.5, 0.8, 0.5), CFrame.new(x, 0.6 + fenceH + 0.4, z), C.Trim, {material=Enum.Material.Wood})
 end
 
-local function createFenceRail(name, x1, z1, x2, z2)
-    local dx = x2 - x1
-    local dz = z2 - z1
-    local length = math.sqrt(dx^2 + dz^2)
+local function fenceRail(name, x1, z1, x2, z2)
+    local dx, dz = x2 - x1, z2 - z1
+    local len = math.sqrt(dx*dx + dz*dz)
     local angle = math.deg(math.atan2(dz, dx))
-    local cx = (x1 + x2) / 2
-    local cz = (z1 + z2) / 2
-    
-    -- العارضات الأفقية (2 طبقات)
+    local cx, cz = (x1+x2)/2, (z1+z2)/2
     for i = 1, 2 do
-        local y = 0.6 + (i * 0.9)
-        createPart(gardenParts, name.."_Rail"..i, 
-            Vector3.new(length, 0.25, 0.25), 
-            CFrame.new(cx, y, cz) * CFrame.Angles(0, math.rad(-angle), 0), 
-            C.Trim, {material=Enum.Material.Wood})
+        local y = 0.6 + i * 0.9
+        createPart(garden, name.."_R"..i, Vector3.new(len, 0.25, 0.25),
+            CFrame.new(cx, y, cz) * CFrame.Angles(0, math.rad(-angle), 0), C.Trim, {material=Enum.Material.Wood})
     end
 end
 
--- ✅ السياج الأمامي (مع بوابة)
-local frontZ = D/2 + porchDepth + 25
--- الجزء الأيسر
-for x = -fenceW/2, -5, postSpacing do
-    createFencePost("FenceFrontL_"..x, x, frontZ)
-end
-createFenceRail("FenceFrontLRail", -fenceW/2, frontZ, -5, frontZ)
+-- السياج الأمامي (مع فتحة بوابة)
+for x = -fenceW/2, -4, postSpacing do fencePost("FL_"..x, x, frontZ) end
+fenceRail("FLRail", -fenceW/2, frontZ, -4, frontZ)
 
--- الجزء الأيمن
-for x = 5, fenceW/2, postSpacing do
-    createFencePost("FenceFrontR_"..x, x, frontZ)
-end
-createFenceRail("FenceFrontRRail", 5, frontZ, fenceW/2, frontZ)
+for x = 4, fenceW/2, postSpacing do fencePost("FR_"..x, x, frontZ) end
+fenceRail("FRRail", 4, frontZ, fenceW/2, frontZ)
 
--- ✅ بوابة الدخول
-createFencePost("GateL", -5, frontZ)
-createFencePost("GateR", 5, frontZ)
-
--- ✅ السياج الجانبي الأيسر
+-- الجانبي
 for z = -fenceD/2, frontZ, postSpacing do
-    if z ~= frontZ then
-        createFencePost("FenceLeft_"..z, -fenceW/2, z)
-    end
+    if z ~= frontZ then fencePost("FLeft_"..z, -fenceW/2, z) end
 end
-createFenceRail("FenceLeftRail", -fenceW/2, -fenceD/2, -fenceW/2, frontZ)
+fenceRail("FLeftRail", -fenceW/2, -fenceD/2, -fenceW/2, frontZ)
 
--- ✅ السياج الجانبي الأيمن
 for z = -fenceD/2, frontZ, postSpacing do
-    if z ~= frontZ then
-        createFencePost("FenceRight_"..z, fenceW/2, z)
-    end
+    if z ~= frontZ then fencePost("FRight_"..z, fenceW/2, z) end
 end
-createFenceRail("FenceRightRail", fenceW/2, -fenceD/2, fenceW/2, frontZ)
+fenceRail("FRightRail", fenceW/2, -fenceD/2, fenceW/2, frontZ)
 
--- ✅ السياج الخلفي
-for x = -fenceW/2, fenceW/2, postSpacing do
-    createFencePost("FenceBack_"..x, x, -fenceD/2)
+-- الخلفي
+for x = -fenceW/2, fenceW/2, postSpacing do fencePost("FB_"..x, x, -fenceD/2) end
+fenceRail("FBRail", -fenceW/2, -fenceD/2, fenceW/2, -fenceD/2)
+
+-- ═══ الممر الأمامي ═══
+for i = 1, 5 do
+    createPart(house, "Walkway_"..i, Vector3.new(6, 0.3, 4),
+        CFrame.new(0, 0.15, D/2 + porchDepth + 2 + (i-1) * 4), C.Stone, {material=Enum.Material.Cobblestone})
 end
-createFenceRail("FenceBackRail", -fenceW/2, -fenceD/2, fenceW/2, -fenceD/2)
+-- ========== PART 6/6 ==========
+
 -- ═══════════════════════════════════════════════
--- 🏎️ Ferrari 488 GTB - تفصيلية بـ WedgeParts
+-- 🏎️ Ferrari 488 GTB
 -- ═══════════════════════════════════════════════
-local carCF = CF * CFrame.new(18, 0, D/2 + 18) * CFrame.Angles(0, math.rad(90), 0)
+local carCF = CF * CFrame.new(W/2 + 12, 0, D/2 + 8) * CFrame.Angles(0, math.rad(-90), 0)
 
-local function createCarPart(name, size, offsetCF, color, opts)
+local function carPart(name, size, offsetCF, color, opts)
     opts = opts or {}
-    local part = Instance.new("Part")
-    part.Name = name
-    part.Size = size
-    part.CFrame = carCF * offsetCF
-    part.Anchored = true
-    part.CanCollide = opts.canCollide ~= false
-    part.Material = opts.material or Enum.Material.SmoothPlastic
-    part.Color = color
-    part.Transparency = opts.transparency or 0
-    part.Reflectance = opts.reflectance or 0
-    if opts.shape then part.Shape = opts.shape end
-    part.Parent = carFolder
-    return part
+    local p = Instance.new("Part")
+    p.Name = name
+    p.Size = size
+    p.CFrame = carCF * offsetCF
+    p.Anchored = true
+    p.CanCollide = opts.canCollide ~= false
+    p.Material = opts.material or Enum.Material.SmoothPlastic
+    p.Color = color
+    p.Transparency = opts.transparency or 0
+    p.Reflectance = opts.reflectance or 0
+    if opts.shape then p.Shape = opts.shape end
+    p.Parent = ferrari
+    return p
 end
 
-local function createCarWedge(name, size, offsetCF, color, opts)
+local function carWedge(name, size, offsetCF, color, opts)
     opts = opts or {}
-    local part = Instance.new("WedgePart")
-    part.Name = name
-    part.Size = size
-    part.CFrame = carCF * offsetCF
-    part.Anchored = true
-    part.CanCollide = opts.canCollide ~= false
-    part.Material = opts.material or Enum.Material.SmoothPlastic
-    part.Color = color
-    part.Reflectance = opts.reflectance or 0
-    part.Parent = carFolder
-    return part
+    local p = Instance.new("WedgePart")
+    p.Name = name
+    p.Size = size
+    p.CFrame = carCF * offsetCF
+    p.Anchored = true
+    p.CanCollide = opts.canCollide ~= false
+    p.Material = opts.material or Enum.Material.SmoothPlastic
+    p.Color = color
+    p.Reflectance = opts.reflectance or 0
+    p.Parent = ferrari
+    return p
 end
 
--- ═══ الهيكل السفلي (Chassis) ═══
-createCarPart("Chassis", Vector3.new(9, 1, 20), CFrame.new(0, 1.4, 0), C.CarRed, 
-    {material=Enum.Material.Metal, reflectance=0.6})
+-- الهيكل الأساسي
+carPart("Chassis", Vector3.new(9, 1.2, 20), CFrame.new(0, 1.4, 0), C.CarRed, {material=Enum.Material.Metal, reflectance=0.6})
 
--- ═══ الأنف الأمامي المنحدر (Wedge) ═══
-createCarWedge("NoseWedge", Vector3.new(8.5, 1.4, 5), 
+-- الأنف الأمامي المنحدر
+carWedge("NoseWedge", Vector3.new(8.5, 1.4, 5), 
     CFrame.new(0, 1.5, -12) * CFrame.Angles(0, math.rad(180), 0),
     C.CarRed, {material=Enum.Material.Metal, reflectance=0.6})
 
--- ═══ غطاء المحرك (مائل) ═══
-createCarWedge("HoodWedge", Vector3.new(8, 0.9, 6),
-    CFrame.new(0, 2.2, -7.5),
+-- غطاء المحرك المنحدر
+carWedge("HoodWedge", Vector3.new(8, 0.9, 6), CFrame.new(0, 2.2, -7.5),
     C.CarRed, {material=Enum.Material.Metal, reflectance=0.6})
+carPart("HoodBase", Vector3.new(8, 0.7, 6), CFrame.new(0, 1.7, -7.5), C.CarRed, {material=Enum.Material.Metal, reflectance=0.6})
 
-createCarPart("HoodBase", Vector3.new(8, 0.7, 6), CFrame.new(0, 1.7, -7.5), C.CarRed, 
-    {material=Enum.Material.Metal, reflectance=0.6})
+-- المقدمة
+carPart("FrontBumper", Vector3.new(8, 1.2, 0.6), CFrame.new(0, 1.5, -14.5), C.CarRed, {material=Enum.Material.Metal, reflectance=0.6})
+carPart("FrontSplitter", Vector3.new(8.5, 0.25, 2), CFrame.new(0, 0.9, -15), C.CarBlack, {material=Enum.Material.Metal})
 
--- ═══ المقدمة (Front Fascia) ═══
-createCarPart("FrontBumper", Vector3.new(8, 1.2, 0.6), CFrame.new(0, 1.5, -14.5), C.CarRed, 
-    {material=Enum.Material.Metal, reflectance=0.6})
-createCarPart("FrontSplitter", Vector3.new(8.5, 0.25, 2), CFrame.new(0, 0.9, -15), C.CarBlack, 
-    {material=Enum.Material.Metal})
+-- المقصورة
+carPart("CabinBase", Vector3.new(7, 2, 6), CFrame.new(0, 2.9, 2), C.CarRed, {material=Enum.Material.Metal, reflectance=0.6})
 
--- ═══ المقصورة (Cabin) - منخفضة ورياضية ═══
-createCarPart("CabinBase", Vector3.new(7, 2, 6), CFrame.new(0, 2.9, 2), C.CarRed, 
-    {material=Enum.Material.Metal, reflectance=0.6})
-
--- ═══ الزجاج الأمامي (Wedge منحدر) ═══
-createCarWedge("Windshield", Vector3.new(6.5, 2.4, 4),
-    CFrame.new(0, 3.9, -1) * CFrame.Angles(0, 0, 0),
+-- الزجاج الأمامي
+carWedge("Windshield", Vector3.new(6.5, 2.4, 4), CFrame.new(0, 3.9, -1),
     C.CarGlass, {transparency=0.35, material=Enum.Material.Glass, reflectance=0.7})
 
--- ═══ السقف الرياضي ═══
-createCarPart("Roof", Vector3.new(6.5, 0.4, 4), CFrame.new(0, 5.2, 2), C.CarRed, 
-    {material=Enum.Material.Metal, reflectance=0.6})
+-- السقف
+carPart("Roof", Vector3.new(6.5, 0.4, 4), CFrame.new(0, 5.2, 2), C.CarRed, {material=Enum.Material.Metal, reflectance=0.6})
 
--- ═══ الزجاج الخلفي (Wedge) ═══
-createCarWedge("RearGlass", Vector3.new(6.5, 1.8, 3),
-    CFrame.new(0, 4, 6) * CFrame.Angles(0, math.rad(180), 0),
+-- الزجاج الخلفي
+carWedge("RearGlass", Vector3.new(6.5, 1.8, 3), CFrame.new(0, 4, 6) * CFrame.Angles(0, math.rad(180), 0),
     C.CarGlass, {transparency=0.35, material=Enum.Material.Glass, reflectance=0.7})
 
--- ═══ الصندوق الخلفي (Wedge) ═══
-createCarWedge("TrunkWedge", Vector3.new(8, 1, 5),
-    CFrame.new(0, 2.6, 9) * CFrame.Angles(0, math.rad(180), 0),
+-- الصندوق
+carWedge("TrunkWedge", Vector3.new(8, 1, 5), CFrame.new(0, 2.6, 9) * CFrame.Angles(0, math.rad(180), 0),
     C.CarRed, {material=Enum.Material.Metal, reflectance=0.6})
+carPart("TrunkBase", Vector3.new(8, 0.7, 5), CFrame.new(0, 1.9, 9), C.CarRed, {material=Enum.Material.Metal, reflectance=0.6})
 
-createCarPart("TrunkBase", Vector3.new(8, 0.7, 5), CFrame.new(0, 1.9, 9), C.CarRed, 
-    {material=Enum.Material.Metal, reflectance=0.6})
+-- المؤخرة
+carPart("RearBumper", Vector3.new(8, 1.3, 0.6), CFrame.new(0, 1.5, 11.7), C.CarRed, {material=Enum.Material.Metal, reflectance=0.6})
 
--- ═══ المؤخرة ═══
-createCarPart("RearBumper", Vector3.new(8, 1.3, 0.6), CFrame.new(0, 1.5, 11.7), C.CarRed, 
-    {material=Enum.Material.Metal, reflectance=0.6})
+-- الزجاج الجانبي
+carPart("SideGlassL", Vector3.new(0.3, 1.5, 6), CFrame.new(-3.4, 4, 2), C.CarGlass, {transparency=0.35, material=Enum.Material.Glass, reflectance=0.7})
+carPart("SideGlassR", Vector3.new(0.3, 1.5, 6), CFrame.new(3.4, 4, 2), C.CarGlass, {transparency=0.35, material=Enum.Material.Glass, reflectance=0.7})
 
--- ═══ الزجاج الجانبي ═══
-createCarPart("SideGlass_L", Vector3.new(0.3, 1.5, 6), CFrame.new(-3.4, 4, 2), C.CarGlass, 
-    {transparency=0.35, material=Enum.Material.Glass, reflectance=0.7})
-createCarPart("SideGlass_R", Vector3.new(0.3, 1.5, 6), CFrame.new(3.4, 4, 2), C.CarGlass, 
-    {transparency=0.35, material=Enum.Material.Glass, reflectance=0.7})
-
--- ═══ العجلات الرياضية ═══
+-- العجلات
 for _, w in ipairs({{"FL",-4.4,-7},{"FR",4.4,-7},{"RL",-4.4,7},{"RR",4.4,7}}) do
-    -- الإطار
-    createCarPart("Tire_"..w[1], Vector3.new(1, 3.2, 3.2), 
-        CFrame.new(w[2],1.5,w[3])*CFrame.Angles(0,0,math.rad(90)), 
-        C.CarTire, {material=Enum.Material.Rubber, shape=Enum.PartType.Cylinder})
-    
-    -- الجنط
-    createCarPart("Rim_"..w[1], Vector3.new(1.1, 1.8, 1.8), 
-        CFrame.new(w[2],1.5,w[3])*CFrame.Angles(0,0,math.rad(90)), 
-        C.CarRim, {material=Enum.Material.Metal, reflectance=0.9, shape=Enum.PartType.Cylinder, canCollide=false})
-    
-    -- المركز
-    createCarPart("Hub_"..w[1], Vector3.new(1.2, 0.6, 0.6), 
-        CFrame.new(w[2],1.5,w[3])*CFrame.Angles(0,0,math.rad(90)), 
-        C.CarBlack, {material=Enum.Material.Metal, shape=Enum.PartType.Cylinder, canCollide=false})
-    
-    -- الفرامل (قرص أحمر)
-    createCarPart("Brake_"..w[1], Vector3.new(1.15, 1.4, 1.4), 
-        CFrame.new(w[2],1.5,w[3])*CFrame.Angles(0,0,math.rad(90)), 
-        Color3.fromRGB(255, 100, 30), {material=Enum.Material.Metal, reflectance=0.7, shape=Enum.PartType.Cylinder, canCollide=false})
+    carPart("Tire_"..w[1], Vector3.new(1, 3.2, 3.2), CFrame.new(w[2],1.5,w[3])*CFrame.Angles(0,0,math.rad(90)), C.CarTire, {material=Enum.Material.Rubber, shape=Enum.PartType.Cylinder})
+    carPart("Rim_"..w[1], Vector3.new(1.1, 1.8, 1.8), CFrame.new(w[2],1.5,w[3])*CFrame.Angles(0,0,math.rad(90)), C.CarRim, {material=Enum.Material.Metal, reflectance=0.9, shape=Enum.PartType.Cylinder, canCollide=false})
+    carPart("Hub_"..w[1], Vector3.new(1.2, 0.6, 0.6), CFrame.new(w[2],1.5,w[3])*CFrame.Angles(0,0,math.rad(90)), C.CarBlack, {material=Enum.Material.Metal, shape=Enum.PartType.Cylinder, canCollide=false})
+    -- قرص الفرامل
+    carPart("Brake_"..w[1], Vector3.new(1.15, 1.4, 1.4), CFrame.new(w[2],1.5,w[3])*CFrame.Angles(0,0,math.rad(90)), Color3.fromRGB(255, 100, 30), {material=Enum.Material.Metal, reflectance=0.7, shape=Enum.PartType.Cylinder, canCollide=false})
 end
 
--- ═══ الإضاءة الأمامية (LED) ═══
-createCarPart("HeadlightL", Vector3.new(2, 0.6, 0.4), CFrame.new(-2.8, 2, -14.4), C.CarLightY, 
-    {material=Enum.Material.Neon})
-createCarPart("HeadlightR", Vector3.new(2, 0.6, 0.4), CFrame.new(2.8, 2, -14.4), C.CarLightY, 
-    {material=Enum.Material.Neon})
+-- الإضاءة الأمامية
+carPart("HeadL", Vector3.new(2, 0.6, 0.4), CFrame.new(-2.8, 2, -14.4), C.CarLightY, {material=Enum.Material.Neon})
+carPart("HeadR", Vector3.new(2, 0.6, 0.4), CFrame.new(2.8, 2, -14.4), C.CarLightY, {material=Enum.Material.Neon})
 
--- إضاءة أمامية (SpotLight)
-local hlL = carFolder:FindFirstChild("HeadlightL")
-if hlL then
-    local spot = Instance.new("SpotLight")
-    spot.Brightness = 3
-    spot.Range = 40
-    spot.Angle = 60
-    spot.Face = Enum.NormalId.Front
-    spot.Parent = hlL
+-- الإضاءة الخلفية
+carPart("TailL", Vector3.new(1.8, 0.6, 0.4), CFrame.new(-2.8, 2.3, 11.6), C.CarLightR, {material=Enum.Material.Neon})
+carPart("TailR", Vector3.new(1.8, 0.6, 0.4), CFrame.new(2.8, 2.3, 11.6), C.CarLightR, {material=Enum.Material.Neon})
+
+-- الشبك
+carPart("Grille", Vector3.new(5, 1.2, 0.4), CFrame.new(0, 1.6, -14.6), C.CarBlack, {material=Enum.Material.Metal})
+carPart("GrilleSL", Vector3.new(1.5, 1, 0.4), CFrame.new(-3, 1.5, -14.6), C.CarBlack, {material=Enum.Material.Metal})
+carPart("GrilleSR", Vector3.new(1.5, 1, 0.4), CFrame.new(3, 1.5, -14.6), C.CarBlack, {material=Enum.Material.Metal})
+
+-- الشعار
+carPart("Badge", Vector3.new(0.8, 0.8, 0.3), CFrame.new(0, 2.4, -14.7), Color3.fromRGB(255, 220, 0), {material=Enum.Material.Neon})
+
+-- الخط الرياضي على السقف
+carPart("RaceStripe", Vector3.new(0.5, 0.1, 22), CFrame.new(0, 5.45, 0), Color3.fromRGB(255, 255, 255), {canCollide=false})
+
+-- السبويلر
+carPart("Spoiler", Vector3.new(8, 0.35, 1.5), CFrame.new(0, 4.8, 11.5), C.CarBlack, {material=Enum.Material.CarbonFiber})
+carPart("SpoilerSL", Vector3.new(0.4, 1.2, 0.4), CFrame.new(-3.5, 4.2, 11.5), C.CarBlack, {material=Enum.Material.CarbonFiber})
+carPart("SpoilerSR", Vector3.new(0.4, 1.2, 0.4), CFrame.new(3.5, 4.2, 11.5), C.CarBlack, {material=Enum.Material.CarbonFiber})
+
+-- المرايا
+carPart("MirrorL", Vector3.new(0.4, 0.4, 0.8), CFrame.new(-3.9, 3.5, -1), C.CarRed, {material=Enum.Material.Metal})
+carPart("MirrorR", Vector3.new(0.4, 0.4, 0.8), CFrame.new(3.9, 3.5, -1), C.CarRed, {material=Enum.Material.Metal})
+
+-- فتحات التهوية الجانبية
+carPart("VentL", Vector3.new(0.15, 0.8, 3), CFrame.new(-4.5, 2.3, 1), C.CarBlack)
+carPart("VentR", Vector3.new(0.15, 0.8, 3), CFrame.new(4.5, 2.3, 1), C.CarBlack)
+
+-- الشكمان
+for i, x in ipairs({-2.2, -1.4, 1.4, 2.2}) do
+    carPart("Exh"..i, Vector3.new(0.4, 0.4, 0.8), CFrame.new(x, 1.2, 11.8), C.CarChrome, {material=Enum.Material.Metal, reflectance=0.9, shape=Enum.PartType.Cylinder})
 end
 
--- ═══ الإضاءة الخلفية ═══
-createCarPart("TailL", Vector3.new(1.8, 0.6, 0.4), CFrame.new(-2.8, 2.3, 11.6), C.CarLightR, 
-    {material=Enum.Material.Neon})
-createCarPart("TailR", Vector3.new(1.8, 0.6, 0.4), CFrame.new(2.8, 2.3, 11.6), C.CarLightR, 
-    {material=Enum.Material.Neon})
-
--- ═══ الشبك الأمامي (Grille) ═══
-createCarPart("Grille", Vector3.new(5, 1.2, 0.4), CFrame.new(0, 1.6, -14.6), C.CarBlack, 
-    {material=Enum.Material.Metal})
-
--- الشبكات الجانبية
-createCarPart("GrilleSideL", Vector3.new(1.5, 1, 0.4), CFrame.new(-3, 1.5, -14.6), C.CarBlack, 
-    {material=Enum.Material.Metal})
-createCarPart("GrilleSideR", Vector3.new(1.5, 1, 0.4), CFrame.new(3, 1.5, -14.6), C.CarBlack, 
-    {material=Enum.Material.Metal})
-
--- ═══ شعار الفيراري (الحصان) ═══
-createCarPart("FerrariBadge", Vector3.new(0.8, 0.8, 0.3), CFrame.new(0, 2.4, -14.7), 
-    Color3.fromRGB(255, 220, 0), {material=Enum.Material.Neon})
-
--- ═══ الخط الرياضي الأبيض على السقف ═══
-createCarPart("RaceStripe_S", Vector3.new(0.5, 0.1, 22), CFrame.new(0, 5.45, 0), 
-    Color3.fromRGB(255, 255, 255), {canCollide=false})
-
--- ═══ السبويلر الرياضي ═══
-createCarPart("Spoiler", Vector3.new(8, 0.35, 1.5), CFrame.new(0, 4.8, 11.5), C.CarBlack, 
-    {material=Enum.Material.CarbonFiber})
-createCarPart("SpoilerSupportL", Vector3.new(0.4, 1.2, 0.4), CFrame.new(-3.5, 4.2, 11.5), C.CarBlack, 
-    {material=Enum.Material.CarbonFiber})
-createCarPart("SpoilerSupportR", Vector3.new(0.4, 1.2, 0.4), CFrame.new(3.5, 4.2, 11.5), C.CarBlack, 
-    {material=Enum.Material.CarbonFiber})
-
--- ═══ المرايا الرياضية ═══
-createCarPart("MirrorL", Vector3.new(0.4, 0.4, 0.8), CFrame.new(-3.9, 3.5, -1), C.CarRed, 
-    {material=Enum.Material.Metal})
-createCarPart("MirrorR", Vector3.new(0.4, 0.4, 0.8), CFrame.new(3.9, 3.5, -1), C.CarRed, 
-    {material=Enum.Material.Metal})
-
--- ═══ فتحات التهوية الجانبية ═══
-createCarPart("VentL", Vector3.new(0.15, 0.8, 3), CFrame.new(-4.5, 2.3, 1), C.CarBlack)
-createCarPart("VentR", Vector3.new(0.15, 0.8, 3), CFrame.new(4.5, 2.3, 1), C.CarBlack)
-
--- ═══ الشكمان الرياضي (4 مخارج) ═══
-createCarPart("Exhaust1", Vector3.new(0.4, 0.4, 0.8), CFrame.new(-2.2, 1.2, 11.8), C.CarChrome, 
-    {material=Enum.Material.Metal, reflectance=0.9, shape=Enum.PartType.Cylinder})
-createCarPart("Exhaust2", Vector3.new(0.4, 0.4, 0.8), CFrame.new(-1.4, 1.2, 11.8), C.CarChrome, 
-    {material=Enum.Material.Metal, reflectance=0.9, shape=Enum.PartType.Cylinder})
-createCarPart("Exhaust3", Vector3.new(0.4, 0.4, 0.8), CFrame.new(1.4, 1.2, 11.8), C.CarChrome, 
-    {material=Enum.Material.Metal, reflectance=0.9, shape=Enum.PartType.Cylinder})
-createCarPart("Exhaust4", Vector3.new(0.4, 0.4, 0.8), CFrame.new(2.2, 1.2, 11.8), C.CarChrome, 
-    {material=Enum.Material.Metal, reflectance=0.9, shape=Enum.PartType.Cylinder})
-
--- ═══ المقصورة الداخلية ═══
 -- المقود
-createCarPart("SteeringWheel_Base", Vector3.new(0.3, 0.3, 0.3), CFrame.new(-1.5, 3.2, -0.5), 
-    C.CarBlack, {material=Enum.Material.Metal})
-createCarPart("SteeringWheel_Ring", Vector3.new(0.2, 1.5, 1.5), CFrame.new(-1.5, 3.2, -0.5) * CFrame.Angles(0, 0, math.rad(90)), 
-    C.CarBlack, {material=Enum.Material.Metal, shape=Enum.PartType.Cylinder})
+carPart("SteeringWheelB", Vector3.new(0.3, 0.3, 0.3), CFrame.new(-1.5, 3.2, -0.5), C.CarBlack, {material=Enum.Material.Metal})
+carPart("SteeringWheelR", Vector3.new(0.2, 1.5, 1.5), CFrame.new(-1.5, 3.2, -0.5) * CFrame.Angles(0, 0, math.rad(90)), C.CarBlack, {material=Enum.Material.Metal, shape=Enum.PartType.Cylinder})
 
--- المقعدان
-createCarPart("SeatL", Vector3.new(2, 1.5, 2.5), CFrame.new(-1.8, 3, 1.5), C.CarInterior, 
-    {material=Enum.Material.Fabric})
-createCarPart("SeatR", Vector3.new(2, 1.5, 2.5), CFrame.new(1.8, 3, 1.5), C.CarInterior, 
-    {material=Enum.Material.Fabric})
+-- المقاعد
+carPart("SeatL", Vector3.new(2, 1.5, 2.5), CFrame.new(-1.8, 3, 1.5), C.Leather, {material=Enum.Material.Fabric})
+carPart("SeatR", Vector3.new(2, 1.5, 2.5), CFrame.new(1.8, 3, 1.5), C.Leather, {material=Enum.Material.Fabric})
 
 -- لوحة القيادة
-createCarPart("Dashboard", Vector3.new(6.5, 0.5, 0.8), CFrame.new(0, 3.3, -1.8), C.CarBlack, 
-    {material=Enum.Material.Metal})
+carPart("Dash", Vector3.new(6.5, 0.5, 0.8), CFrame.new(0, 3.3, -1.8), C.CarBlack, {material=Enum.Material.Metal})
 
--- ═══ جناح أمامي (Splitter Lip) ═══
-createCarWedge("FrontLip", Vector3.new(8, 0.3, 1.5), 
-    CFrame.new(0, 0.85, -14.3), 
-    C.CarBlack, {material=Enum.Material.CarbonFiber})
+-- إضاءة أسفل السيارة
+local underGlow = carPart("UnderGlow", Vector3.new(8, 0.3, 18), CFrame.new(0, 0.5, 0), Color3.fromRGB(255, 100, 100), {material=Enum.Material.Neon, transparency=0.5, canCollide=false})
+local ugl = Instance.new("PointLight")
+ugl.Brightness = 3
+ugl.Range = 15
+ugl.Color = Color3.fromRGB(255, 100, 100)
+ugl.Parent = underGlow
 
--- ═══ غطاء المحرك الأمامي (Hood Scoop) ═══
-createCarPart("HoodScoop", Vector3.new(3, 0.3, 2), CFrame.new(0, 2.6, -7), C.CarBlack, 
-    {material=Enum.Material.CarbonFiber})
-
--- ═══ الجنوط الرياضية المضيئة (اختياري) ═══
-createCarPart("RimGlowL", Vector3.new(1.2, 1.7, 0.15), CFrame.new(-4.5, 1.5, -7), 
-    Color3.fromRGB(255, 200, 100), {material=Enum.Material.Neon, transparency=0.3, canCollide=false})
-createCarPart("RimGlowR", Vector3.new(1.2, 1.7, 0.15), CFrame.new(4.5, 1.5, -7), 
-    Color3.fromRGB(255, 200, 100), {material=Enum.Material.Neon, transparency=0.3, canCollide=false})
-
--- ═══ إضاءة أسفل السيارة (Under-glow) ═══
-local underGlow = createCarPart("UnderGlow", 
-    Vector3.new(8, 0.3, 18), CFrame.new(0, 0.5, 0), 
-    Color3.fromRGB(255, 100, 100), {material=Enum.Material.Neon, transparency=0.5, canCollide=false})
-
-local glow = Instance.new("PointLight")
-glow.Brightness = 3
-glow.Range = 15
-glow.Color = Color3.fromRGB(255, 100, 100)
-glow.Parent = underGlow
 -- ═══════════════════════════════════════════════
--- 📱 واجهة التحكم الكاملة
+-- 📱 الواجهة الكاملة
 -- ═══════════════════════════════════════════════
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "LuxuryVillaGUI"
+ScreenGui.Name = "VillaGUI"
 ScreenGui.ResetOnSpawn = false
 ScreenGui.IgnoreGuiInset = true
 pcall(function() ScreenGui.Parent = CoreGui end)
 if not ScreenGui.Parent then ScreenGui.Parent = lp:WaitForChild("PlayerGui") end
 
--- ═══ الإطار الرئيسي ═══
 local MainFrame = Instance.new("Frame")
 MainFrame.Size = UDim2.new(0, 320, 0, 480)
 MainFrame.Position = UDim2.new(0.5, -160, 0.5, -240)
@@ -1417,7 +981,6 @@ MainFrame.Parent = ScreenGui
 local MC = Instance.new("UICorner"); MC.CornerRadius = UDim.new(0, 16); MC.Parent = MainFrame
 local MS = Instance.new("UIStroke"); MS.Color = Color3.fromRGB(200, 160, 60); MS.Thickness = 2; MS.Transparency = 0.2; MS.Parent = MainFrame
 
--- ═══ الشريط العلوي ═══
 local TopBar = Instance.new("Frame")
 TopBar.Size = UDim2.new(1, 0, 0, 55)
 TopBar.BackgroundColor3 = Color3.fromRGB(200, 160, 60)
@@ -1430,7 +993,7 @@ local Title = Instance.new("TextLabel")
 Title.Size = UDim2.new(1, -60, 1, 0)
 Title.Position = UDim2.new(0, 18, 0, 0)
 Title.BackgroundTransparency = 1
-Title.Text = "🏰 قصر + 🏎️ فيراري"
+Title.Text = "🏰 قصر فاخر + 🏎️ فيراري"
 Title.TextColor3 = Color3.fromRGB(30, 20, 10)
 Title.Font = Enum.Font.GothamBold
 Title.TextSize = 16
@@ -1450,7 +1013,6 @@ CloseBtn.Parent = TopBar
 local CC = Instance.new("UICorner"); CC.CornerRadius = UDim.new(1, 0); CC.Parent = CloseBtn
 CloseBtn.MouseButton1Click:Connect(function() MainFrame.Visible = false end)
 
--- ═══ ScrollFrame للمحتوى ═══
 local Content = Instance.new("ScrollingFrame")
 Content.Size = UDim2.new(1, -20, 1, -70)
 Content.Position = UDim2.new(0, 10, 0, 65)
@@ -1467,261 +1029,154 @@ Layout.Padding = UDim.new(0, 8)
 Layout.SortOrder = Enum.SortOrder.LayoutOrder
 Layout.Parent = Content
 
--- ✅ دالة إنشاء زر
-local function createButton(text, color, order, callback)
-    local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(1, -8, 0, 44)
-    btn.BackgroundColor3 = color
-    btn.Text = text
-    btn.TextColor3 = Color3.fromRGB(255, 255, 255)
-    btn.Font = Enum.Font.GothamBold
-    btn.TextSize = 13
-    btn.BorderSizePixel = 0
-    btn.LayoutOrder = order
-    btn.Parent = Content
-    
-    local bc = Instance.new("UICorner"); bc.CornerRadius = UDim.new(0, 10); bc.Parent = btn
-    
-    btn.MouseButton1Click:Connect(function()
-        pcall(callback)
-    end)
-    
-    return btn
+local function addBtn(text, color, order, cb)
+    local b = Instance.new("TextButton")
+    b.Size = UDim2.new(1, -8, 0, 44)
+    b.BackgroundColor3 = color
+    b.Text = text
+    b.TextColor3 = Color3.fromRGB(255, 255, 255)
+    b.Font = Enum.Font.GothamBold
+    b.TextSize = 13
+    b.BorderSizePixel = 0
+    b.LayoutOrder = order
+    b.Parent = Content
+    local bc = Instance.new("UICorner"); bc.CornerRadius = UDim.new(0, 10); bc.Parent = b
+    b.MouseButton1Click:Connect(function() pcall(cb) end)
+    return b
 end
 
--- ✅ دالة إنشاء عنوان قسم
-local function createSection(text, order)
-    local lbl = Instance.new("TextLabel")
-    lbl.Size = UDim2.new(1, -8, 0, 25)
-    lbl.BackgroundTransparency = 1
-    lbl.Text = "▸ " .. text
-    lbl.TextColor3 = Color3.fromRGB(200, 160, 60)
-    lbl.Font = Enum.Font.GothamBold
-    lbl.TextSize = 13
-    lbl.TextXAlignment = Enum.TextXAlignment.Left
-    lbl.LayoutOrder = order
-    lbl.Parent = Content
-    return lbl
+local function addSec(text, order)
+    local l = Instance.new("TextLabel")
+    l.Size = UDim2.new(1, -8, 0, 25)
+    l.BackgroundTransparency = 1
+    l.Text = "▸ " .. text
+    l.TextColor3 = Color3.fromRGB(200, 160, 60)
+    l.Font = Enum.Font.GothamBold
+    l.TextSize = 13
+    l.TextXAlignment = Enum.TextXAlignment.Left
+    l.LayoutOrder = order
+    l.Parent = Content
 end
 
--- ✅ دالة إنشاء معلومة
-local function createInfo(text, order)
-    local lbl = Instance.new("TextLabel")
-    lbl.Size = UDim2.new(1, -8, 0, 40)
-    lbl.BackgroundColor3 = Color3.fromRGB(30, 22, 45)
-    lbl.BorderSizePixel = 0
-    lbl.Text = text
-    lbl.TextColor3 = Color3.fromRGB(180, 170, 210)
-    lbl.Font = Enum.Font.Gotham
-    lbl.TextSize = 11
-    lbl.TextYAlignment = Enum.TextYAlignment.Center
-    lbl.LayoutOrder = order
-    lbl.Parent = Content
-    
-    local lc = Instance.new("UICorner"); lc.CornerRadius = UDim.new(0, 8); lc.Parent = lbl
-    return lbl
-end
+addSec("الانتقال", 1)
 
--- ═══ القسم 1: معلومات ═══
-createSection("معلومات", 1)
-createInfo("📍 الموقع: X=-63.9, Z=294.0\n🏰 منزل بطابقين + 🌳 حديقة\n🔒 كل شيء قابل للاصطدام", 2)
-
--- ═══ القسم 2: الانتقال ═══
-createSection("الانتقال", 3)
-createButton("🚀 اذهب للباب الأمامي", Color3.fromRGB(140, 70, 230), 4, function()
+addBtn("🚪 الباب الأمامي", Color3.fromRGB(140, 70, 230), 2, function()
     local r = lp.Character and lp.Character:FindFirstChild("HumanoidRootPart")
-    if r then
-        r.CFrame = CF * CFrame.new(0, 5, D/2 + 15)
-        StarterGui:SetCore("SendNotification", {Title="🏠", Text="تم النقل للباب", Duration=2})
-    end
+    if r then r.CFrame = CF * CFrame.new(0, 5, D/2 + 15) end
 end)
 
-createButton("🏎️ اذهب للفيراري", Color3.fromRGB(210, 20, 25), 5, function()
+addBtn("🚪 الباب الخلفي (الحديقة)", Color3.fromRGB(140, 90, 60), 3, function()
     local r = lp.Character and lp.Character:FindFirstChild("HumanoidRootPart")
-    if r then
-        r.CFrame = carCF * CFrame.new(-6, 3, 0)
-        StarterGui:SetCore("SendNotification", {Title="🏎️", Text="تم النقل للسيارة", Duration=2})
-    end
+    if r then r.CFrame = CF * CFrame.new(0, 5, -D/2 - 5) end
 end)
 
-createButton("🌳 اذهب للحديقة الخلفية", Color3.fromRGB(80, 160, 70), 6, function()
+addBtn("🏎️ الفيراري", Color3.fromRGB(210, 20, 25), 4, function()
     local r = lp.Character and lp.Character:FindFirstChild("HumanoidRootPart")
-    if r then
-        r.CFrame = CF * CFrame.new(0, 5, -D/2 - 20)
-        StarterGui:SetCore("SendNotification", {Title="🌳", Text="تم النقل للحديقة", Duration=2})
-    end
+    if r then r.CFrame = carCF * CFrame.new(-6, 3, 0) end
 end)
 
-createButton("⛲ اذهب للنافورة", Color3.fromRGB(100, 180, 220), 7, function()
+addBtn("🌳 الحديقة الخلفية", Color3.fromRGB(80, 160, 70), 5, function()
     local r = lp.Character and lp.Character:FindFirstChild("HumanoidRootPart")
-    if r then
-        r.CFrame = CF * CFrame.new(0, 5, -D/2 - 15)
-        StarterGui:SetCore("SendNotification", {Title="⛲", Text="تم النقل للنافورة", Duration=2})
-    end
+    if r then r.CFrame = CF * CFrame.new(0, 5, -D/2 - 25) end
 end)
 
-createButton("🪜 اذهب للدرج (للطابق الثاني)", Color3.fromRGB(140, 90, 60), 8, function()
+addBtn("⛲ النافورة", Color3.fromRGB(100, 180, 220), 6, function()
     local r = lp.Character and lp.Character:FindFirstChild("HumanoidRootPart")
-    if r then
-        r.CFrame = CF * CFrame.new(-W/4 + 3, 3, D/4 - 3)
-        StarterGui:SetCore("SendNotification", {Title="🪜", Text="تم النقل للدرج", Duration=2})
-    end
+    if r then r.CFrame = CF * CFrame.new(0, 5, -D/2 - 20) end
 end)
 
--- ═══ القسم 3: التحكم بالرؤية ═══
-createSection("التحكم بالرؤية", 9)
+addBtn("🪜 الدرج (للطابق الثاني)", Color3.fromRGB(140, 90, 60), 7, function()
+    local r = lp.Character and lp.Character:FindFirstChild("HumanoidRootPart")
+    if r then r.CFrame = CF * CFrame.new(stairX, Y1_BOT + 2, stairStartZ + 3) end
+end)
 
-local visible = true
-local ToggleVisBtn = createButton("👁️ إخفاء الكل", Color3.fromRGB(60, 200, 100), 10, function()
-    visible = not visible
+addSec("التحكم", 8)
+
+local vis = true
+local visBtn = addBtn("👁️ إخفاء الكل", Color3.fromRGB(60, 200, 100), 9, function()
+    vis = not vis
     for _, obj in ipairs(root:GetDescendants()) do
         if obj:IsA("BasePart") then
-            obj.Transparency = visible and 0 or 1
-            obj.CanCollide = visible
+            obj.Transparency = vis and 0 or 1
+            obj.CanCollide = vis
         elseif obj:IsA("PointLight") or obj:IsA("SpotLight") then
-            obj.Enabled = visible
+            obj.Enabled = vis
         end
     end
-    ToggleVisBtn.Text = visible and "👁️ إخفاء الكل" or "👁️ إظهار الكل"
-    ToggleVisBtn.BackgroundColor3 = visible and Color3.fromRGB(60, 200, 100) or Color3.fromRGB(220, 60, 60)
+    visBtn.Text = vis and "👁️ إخفاء الكل" or "👁️ إظهار الكل"
+    visBtn.BackgroundColor3 = vis and Color3.fromRGB(60, 200, 100) or Color3.fromRGB(220, 60, 60)
 end)
 
--- ═══ القسم 4: الإنارة ═══
-createSection("التحكم بالإنارة", 11)
-
 local lightsOn = true
-local ToggleLightsBtn = createButton("💡 إطفاء الإنارة الداخلية", Color3.fromRGB(255, 200, 80), 12, function()
+addBtn("💡 تبديل الإنارة", Color3.fromRGB(255, 200, 80), 10, function()
     lightsOn = not lightsOn
     for _, obj in ipairs(root:GetDescendants()) do
         if obj:IsA("PointLight") or obj:IsA("SpotLight") then
             obj.Enabled = lightsOn
         end
     end
-    ToggleLightsBtn.Text = lightsOn and "💡 إطفاء الإنارة" or "💡 تشغيل الإنارة"
-    ToggleLightsBtn.BackgroundColor3 = lightsOn and Color3.fromRGB(255, 200, 80) or Color3.fromRGB(80, 80, 100)
 end)
 
--- ═══ القسم 5: التخصيص ═══
-createSection("التخصيص", 13)
+addSec("تغيير الألوان", 11)
 
-local currentColor = 1
-local colorOptions = {
+local cidx = 0
+local colorSets = {
     {name = "أحمر فيراري", car = Color3.fromRGB(210, 20, 25), wall = Color3.fromRGB(248, 244, 235)},
     {name = "أزرق بوجاتي", car = Color3.fromRGB(30, 60, 150), wall = Color3.fromRGB(240, 245, 250)},
     {name = "أصفر لامبو", car = Color3.fromRGB(255, 210, 20), wall = Color3.fromRGB(250, 245, 220)},
     {name = "أسود نينجا", car = Color3.fromRGB(15, 15, 20), wall = Color3.fromRGB(230, 230, 235)},
     {name = "أخضر ماكلارين", car = Color3.fromRGB(30, 200, 80), wall = Color3.fromRGB(240, 250, 240)},
-    {name = "برتقالي لامبو", car = Color3.fromRGB(255, 120, 20), wall = Color3.fromRGB(250, 240, 230)},
 }
 
-createButton("🎨 غيّر لون السيارة والمنزل", Color3.fromRGB(200, 100, 200), 14, function()
-    currentColor = (currentColor % #colorOptions) + 1
-    local opt = colorOptions[currentColor]
-    
-    -- غيّر لون السيارة
-    for _, obj in ipairs(carFolder:GetDescendants()) do
-        if obj:IsA("BasePart") then
-            if obj.Color == C.CarRed or obj.Name:find("Red") or 
-               (obj.Material == Enum.Material.Metal and obj.Reflectance > 0.3) then
-                obj.Color = opt.car
-            end
-        end
+addBtn("🎨 غيّر لون السيارة والجدران", Color3.fromRGB(200, 100, 200), 12, function()
+    cidx = (cidx % #colorSets) + 1
+    local opt = colorSets[cidx]
+    for _, obj in ipairs(ferrari:GetDescendants()) do
+        if obj:IsA("BasePart") and obj.Color == C.CarRed then obj.Color = opt.car end
     end
-    
-    -- غيّر لون جدران المنزل
-    for _, obj in ipairs(houseParts:GetDescendants()) do
-        if obj:IsA("BasePart") and obj.Color == C.Wall then
-            obj.Color = opt.wall
-        end
+    for _, obj in ipairs(house:GetDescendants()) do
+        if obj:IsA("BasePart") and obj.Color == C.Wall then obj.Color = opt.wall end
     end
-    
-    StarterGui:SetCore("SendNotification", {
-        Title = "🎨 تغيير اللون", 
-        Text = opt.name, 
-        Duration = 2
-    })
+    StarterGui:SetCore("SendNotification", {Title="🎨 لون جديد", Text=opt.name, Duration=2})
 end)
 
--- ═══ القسم 6: الإحصاء ═══
-createSection("إحصاءات", 15)
+addSec("إحصاءات", 13)
 
-local StatsLabel = Instance.new("TextLabel")
-StatsLabel.Size = UDim2.new(1, -8, 0, 60)
-StatsLabel.BackgroundColor3 = Color3.fromRGB(30, 22, 45)
-StatsLabel.BorderSizePixel = 0
-StatsLabel.Text = "⏳ جاري الحساب..."
-StatsLabel.TextColor3 = Color3.fromRGB(180, 220, 180)
-StatsLabel.Font = Enum.Font.Gotham
-StatsLabel.TextSize = 11
-StatsLabel.LayoutOrder = 16
-StatsLabel.Parent = Content
-
-local sc = Instance.new("UICorner"); sc.CornerRadius = UDim.new(0, 8); sc.Parent = StatsLabel
+local statsLbl = Instance.new("TextLabel")
+statsLbl.Size = UDim2.new(1, -8, 0, 70)
+statsLbl.BackgroundColor3 = Color3.fromRGB(30, 22, 45)
+statsLbl.BorderSizePixel = 0
+statsLbl.Text = "⏳ جاري الحساب..."
+statsLbl.TextColor3 = Color3.fromRGB(180, 220, 180)
+statsLbl.Font = Enum.Font.Gotham
+statsLbl.TextSize = 11
+statsLbl.LayoutOrder = 14
+statsLbl.Parent = Content
+local slc = Instance.new("UICorner"); slc.CornerRadius = UDim.new(0, 8); slc.Parent = statsLbl
 
 task.spawn(function()
-    task.wait(1)
-    local totalParts = 0
-    local houseParts_count = 0
-    local gardenParts_count = 0
-    local carParts_count = 0
-    
+    task.wait(0.5)
+    local h, g, c = 0, 0, 0
     for _, obj in ipairs(root:GetDescendants()) do
         if obj:IsA("BasePart") then
-            totalParts = totalParts + 1
-            if obj:IsDescendantOf(houseParts) then houseParts_count = houseParts_count + 1
-            elseif obj:IsDescendantOf(gardenParts) then gardenParts_count = gardenParts_count + 1
-            elseif obj:IsDescendantOf(carFolder) then carParts_count = carParts_count + 1
+            if obj:IsDescendantOf(house) then h = h + 1
+            elseif obj:IsDescendantOf(garden) then g = g + 1
+            elseif obj:IsDescendantOf(ferrari) then c = c + 1
             end
         end
     end
-    
-    StatsLabel.Text = string.format(
-        "📊 إحصاءات المشروع:\n🏠 المنزل: %d قطعة\n🌳 الحديقة: %d قطعة\n🏎️ الفيراري: %d قطعة\n📦 الإجمالي: %d قطعة",
-        houseParts_count, gardenParts_count, carParts_count, totalParts
-    )
+    statsLbl.Text = string.format("🏠 المنزل: %d قطعة\n🌳 الحديقة: %d قطعة\n🏎️ الفيراري: %d قطعة\n📦 الإجمالي: %d", h, g, c, h+g+c)
 end)
 
--- ═══ القسم 7: أدوات ═══
-createSection("أدوات", 17)
+addSec("خطر", 15)
 
-createButton("📸 حفظ موقعي الحالي", Color3.fromRGB(60, 130, 240), 18, function()
-    local r = lp.Character and lp.Character:FindFirstChild("HumanoidRootPart")
-    if r then
-        local pos = r.Position
-        StarterGui:SetCore("SendNotification", {
-            Title = "📍 موقعك الحالي", 
-            Text = string.format("%.1f, %.1f, %.1f", pos.X, pos.Y, pos.Z), 
-            Duration = 4
-        })
-        print(string.format("موقعك الحالي: X=%.1f, Y=%.1f, Z=%.1f", pos.X, pos.Y, pos.Z))
-    end
-end)
-
-createButton("🔧 إعادة بناء المنزل", Color3.fromRGB(255, 140, 60), 19, function()
-    StarterGui:SetCore("SendNotification", {
-        Title = "🔧 إعادة البناء", 
-        Text = "أعد تشغيل السكربت لإعادة البناء", 
-        Duration = 3
-    })
-end)
-
--- ═══ القسم 8: خطر ═══
-createSection("حذف", 20)
-
-createButton("🗑️ حذف المنزل نهائياً", Color3.fromRGB(220, 60, 60), 21, function()
+addBtn("🗑️ حذف المنزل نهائياً", Color3.fromRGB(220, 60, 60), 16, function()
     root:Destroy()
     ScreenGui:Destroy()
-    getgenv().LuxuryVilla_Active = false
-    StarterGui:SetCore("SendNotification", {
-        Title = "🗑️ تم الحذف", 
-        Text = "تم حذف المنزل بالكامل", 
-        Duration = 3
-    })
+    getgenv().Villa_Active = false
 end)
 
--- ═══════════════════════════════════════════════
--- 🎯 زر الفتح العائم
--- ═══════════════════════════════════════════════
+-- زر الفتح العائم
 local OpenBtn = Instance.new("TextButton")
 OpenBtn.Size = UDim2.new(0, 65, 0, 65)
 OpenBtn.Position = UDim2.new(0, 20, 0.5, -32)
@@ -1736,23 +1191,10 @@ OpenBtn.Draggable = true
 OpenBtn.Parent = ScreenGui
 local OBC = Instance.new("UICorner"); OBC.CornerRadius = UDim.new(1, 0); OBC.Parent = OpenBtn
 local OBS = Instance.new("UIStroke"); OBS.Color = Color3.fromRGB(255, 255, 255); OBS.Thickness = 2.5; OBS.Transparency = 0.3; OBS.Parent = OpenBtn
+OpenBtn.MouseButton1Click:Connect(function() MainFrame.Visible = not MainFrame.Visible end)
 
-OpenBtn.MouseButton1Click:Connect(function()
-    MainFrame.Visible = not MainFrame.Visible
-end)
-
--- ═══════════════════════════════════════════════
--- ✨ إشعار التشغيل
--- ═══════════════════════════════════════════════
 StarterGui:SetCore("SendNotification", {
-    Title = "🏰 قصر فاخر + 🏎️ فيراري",
-    Text = "جاهز! اضغط 🏰 للتحكم الكامل",
+    Title = "🏰 قصر فاخر جاهز!",
+    Text = "اضغط 🏰 للتحكم الكامل",
     Duration = 6
-})
-
-task.wait(1)
-StarterGui:SetCore("SendNotification", {
-    Title = "✨ مرحباً",
-    Text = "استمتع بقصرك الجديد!",
-    Duration = 5
 })
