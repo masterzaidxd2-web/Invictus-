@@ -14,7 +14,7 @@ local CoreGui = game:GetService("CoreGui")
 local StarterGui = game:GetService("StarterGui")
 local lp = Players.LocalPlayer
 
-local HOUSE_CF = CFrame.new(-63.9, 0.0, 294.0) * CFrame.Angles(0, math.rad(2.4), 0)
+local HOUSE_CF = CFrame.new(-63.9, -2.0, 294.0) * CFrame.Angles(0, math.rad(2.4), 0)
 
 local C = {
     Wall=Color3.fromRGB(245,240,230), WallTrim=Color3.fromRGB(120,90,60),
